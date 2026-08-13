@@ -14,7 +14,9 @@
   margin-bottom: 28px;
 }
 .home-header h1 {
-  font-size: 30px;
+  font-size: clamp(15px, 5.2vw, 22px);
+  white-space: nowrap;
+  letter-spacing: -0.01em;
   margin: 0 0 4px;
   color: var(--primary);
 }
