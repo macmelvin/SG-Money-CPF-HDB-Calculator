@@ -39,6 +39,7 @@ const DEFAULTS = {
   replacementFlatPrice: 300000,
   legalMovingCosts: 15000,
   cpfLifeTargetTier: "ers" as CpfLifeTargetTier,
+  includeInvestmentHoldings: true,
 };
 
 const CPF_LIFE_TIER_LABEL: Record<CpfLifeTargetTier, string> = {
@@ -79,6 +80,7 @@ export default function RetirementCalculator() {
   const [replacementFlatPrice, setReplacementFlatPrice] = useState(initial.replacementFlatPrice);
   const [legalMovingCosts, setLegalMovingCosts] = useState(initial.legalMovingCosts);
   const [cpfLifeTargetTier, setCpfLifeTargetTier] = useState<CpfLifeTargetTier>(initial.cpfLifeTargetTier);
+  const [includeInvestmentHoldings, setIncludeInvestmentHoldings] = useState(initial.includeInvestmentHoldings);
 
   // Pull whatever the user last saved in the HDB Sale Proceeds calculator (if anything) so this
   // page can offer a "what if I sold today" scenario without asking them to re-enter numbers.
@@ -87,6 +89,11 @@ export default function RetirementCalculator() {
   const applyHdbScenario = includeHdbSale && hdbScenario !== null;
   const effectiveOA = currentOA + (applyHdbScenario ? hdbScenario.cpfRefund : 0);
   const effectiveSavings = currentSavings + (applyHdbScenario ? hdbScenario.cashProceeds : 0);
+
+  // Total value of the Net Worth Snapshot's investment/insurance holdings — computed here (ahead of the
+  // projection below) so it can optionally be grown and counted toward "how much you'll have at retirement."
+  const totalInvestmentsPortfolio = sumLineItems(investmentItems);
+  const effectiveInvestmentHoldings = includeInvestmentHoldings ? totalInvestmentsPortfolio : 0;
 
   const result = useMemo(
     () =>
@@ -101,6 +108,7 @@ export default function RetirementCalculator() {
         expectedReturnPct,
         desiredMonthlySpend,
         cpfLifeTargetTier,
+        investmentHoldingsValue: effectiveInvestmentHoldings,
       }),
     [
       currentAge,
@@ -113,12 +121,12 @@ export default function RetirementCalculator() {
       expectedReturnPct,
       desiredMonthlySpend,
       cpfLifeTargetTier,
+      effectiveInvestmentHoldings,
     ]
   );
 
   // --- Net worth snapshot ---
   const totalCpfToday = currentOA + currentSaRa + currentMA;
-  const totalInvestmentsPortfolio = sumLineItems(investmentItems);
   const { netWorth, slices } = computeNetWorth({
     hdbValue: hdbCurrentValue,
     totalCpf: totalCpfToday,
@@ -202,6 +210,7 @@ export default function RetirementCalculator() {
     setReplacementFlatPrice(DEFAULTS.replacementFlatPrice);
     setLegalMovingCosts(DEFAULTS.legalMovingCosts);
     setCpfLifeTargetTier(DEFAULTS.cpfLifeTargetTier);
+    setIncludeInvestmentHoldings(DEFAULTS.includeInvestmentHoldings);
     clearCalculatorData(STORAGE_KEY);
     setSavedAt(null);
   };
@@ -225,6 +234,7 @@ export default function RetirementCalculator() {
       replacementFlatPrice,
       legalMovingCosts,
       cpfLifeTargetTier,
+      includeInvestmentHoldings,
     });
     setSavedAt(at);
   };
@@ -254,6 +264,12 @@ export default function RetirementCalculator() {
         { label: "Projected cash & investments", value: formatSgd(result.projectedCash) },
         { label: "Projected CPF OA", value: formatSgd(result.projectedOA) },
         { label: "Projected CPF SA/RA", value: formatSgd(result.projectedSaRa) },
+        {
+          label: includeInvestmentHoldings
+            ? "Projected investment & insurance holdings (grown)"
+            : "Projected investment & insurance holdings (not included)",
+          value: formatSgd(result.projectedInvestmentHoldings),
+        },
         { label: "Projected CPF MediSave (not counted, healthcare only)", value: formatSgd(result.projectedMA) },
         { label: "Total counted toward retirement income", value: formatSgd(result.projectedSavings) },
         { label: "Target required", value: formatSgd(result.targetRequired) },
@@ -331,7 +347,8 @@ export default function RetirementCalculator() {
         <NumberField label="Current HDB value" value={hdbCurrentValue} onChange={setHdbCurrentValue} prefix="$" step={5000} />
         <p className="explainer" style={{ marginTop: 4 }}>
           Investments & insurance holdings — add each one (unit trusts, whole life policies, brokerage accounts,
-          SRS, etc). This is separate from "Current savings" above, which feeds your growth projection.
+          SRS, etc). This is separate from "Current savings" above — it can optionally be grown and added into
+          your retirement projection too (see "Projected Balances at Retirement" below).
         </p>
         <EditableLineItems
           items={investmentItems}
@@ -453,6 +470,23 @@ export default function RetirementCalculator() {
         <ResultRow label="Cash & investments" value={formatSgd(result.projectedCash)} />
         <ResultRow label="CPF OA" value={formatSgd(result.projectedOA)} />
         <ResultRow label="CPF SA/RA" value={formatSgd(result.projectedSaRa)} />
+        <label className="hdb-scenario-toggle" style={{ marginTop: 4 }}>
+          <input
+            type="checkbox"
+            checked={includeInvestmentHoldings}
+            onChange={(e) => setIncludeInvestmentHoldings(e.target.checked)}
+          />
+          <span>Include my investment &amp; insurance holdings</span>
+        </label>
+        <ResultRow
+          label="Investments & insurance (grown)"
+          value={formatSgd(result.projectedInvestmentHoldings)}
+        />
+        <p className="explainer" style={{ marginTop: -6 }}>
+          {includeInvestmentHoldings
+            ? `Today's ${formatSgd(totalInvestmentsPortfolio)} in holdings from your Net Worth Snapshot, grown at your expected return above. No further monthly top-ups are assumed for these.`
+            : "Unchecked — your Net Worth Snapshot holdings aren't counted here. Recheck to include them, grown at your expected return."}
+        </p>
         <ResultRow label="COUNTED TOWARD RETIREMENT INCOME" value={formatSgd(result.projectedSavings)} emphasis />
         <ResultRow label="CPF MediSave (kept for healthcare, not counted)" value={formatSgd(result.projectedMA)} />
       </ResultCard>

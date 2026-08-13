@@ -228,6 +228,8 @@ export interface RetirementInput {
   desiredMonthlySpend: number;
   yearsInRetirement?: number; // default 25
   cpfLifeTargetTier?: CpfLifeTargetTier; // default "ers" — which tier to set aside in the RA
+  investmentHoldingsValue?: number; // default 0 — today's value of investment/insurance holdings (e.g. from the
+  // Net Worth Snapshot's line items), grown as a lump sum at the same expected return as cash/investments
 }
 
 export interface RetirementResult {
@@ -236,7 +238,8 @@ export interface RetirementResult {
   projectedOA: number;
   projectedSaRa: number;
   projectedMA: number;
-  projectedSavings: number; // cash + OA + SA/RA — the pot counted toward retirement income
+  projectedInvestmentHoldings: number; // grown value of investment/insurance holdings, if included
+  projectedSavings: number; // cash + OA + SA/RA + investment holdings — the pot counted toward retirement income
   targetRequired: number;
   shortfall: number; // positive = shortfall, negative = surplus
   onTrack: boolean;
@@ -258,6 +261,7 @@ export function calculateRetirement(input: RetirementInput): RetirementResult {
     desiredMonthlySpend,
     yearsInRetirement = 25,
     cpfLifeTargetTier = "ers",
+    investmentHoldingsValue = 0,
   } = input;
 
   const yearsToRetirement = Math.max(0, retirementAge - currentAge);
@@ -280,17 +284,22 @@ export function calculateRetirement(input: RetirementInput): RetirementResult {
   const projectedSaRa = Math.round(currentSaRa * Math.pow(1 + rSmra, n));
   const projectedMA = Math.round(currentMA * Math.pow(1 + rSmra, n));
 
-  const projectedSavings = projectedCash + projectedOA + projectedSaRa;
+  // Investment/insurance holdings are a one-time lump sum today (no ongoing monthly top-up modelled
+  // here — that's what "Monthly investment" above is for), grown at the same expected return as cash.
+  const fvInvestmentHoldings = investmentHoldingsValue * Math.pow(1 + rInvest, n);
+  const projectedInvestmentHoldings = Math.round(fvInvestmentHoldings);
+
+  const projectedSavings = projectedCash + projectedOA + projectedSaRa + projectedInvestmentHoldings;
 
   const targetRequired = Math.round(desiredMonthlySpend * 12 * yearsInRetirement);
   const shortfall = targetRequired - projectedSavings;
   const onTrack = shortfall <= 0;
 
-  // Solve for the monthly contribution needed to close the gap (holding CPF and the cash lump sum fixed —
-  // CPF balances aren't something a user can top up from this calculator).
+  // Solve for the monthly contribution needed to close the gap (holding CPF, the cash lump sum, and
+  // investment holdings fixed — none of those are something a user can top up from this calculator).
   let suggestedMonthlySavings = monthlyInvestment;
   if (!onTrack && n > 0) {
-    const neededContribFv = targetRequired - fvLumpSumCash - projectedOA - projectedSaRa;
+    const neededContribFv = targetRequired - fvLumpSumCash - fvInvestmentHoldings - projectedOA - projectedSaRa;
     suggestedMonthlySavings = Math.round(
       rInvest === 0 ? neededContribFv / n : neededContribFv / ((Math.pow(1 + rInvest, n) - 1) / rInvest)
     );
@@ -312,6 +321,7 @@ export function calculateRetirement(input: RetirementInput): RetirementResult {
     projectedOA,
     projectedSaRa,
     projectedMA,
+    projectedInvestmentHoldings,
     projectedSavings,
     targetRequired,
     shortfall,
