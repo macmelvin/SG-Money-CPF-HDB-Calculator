@@ -1,8 +1,13 @@
 import { useMemo, useState } from "react";
 import { CalcShell, Disclaimer, NumberField, ResultCard, ResultRow } from "../components/CalcShell";
 import { calculateCarCost, formatSgd } from "../lib/cpf";
+import { usePageMeta } from "../lib/usePageMeta";
 
 export default function CarCostCalculator() {
+  usePageMeta(
+    "Car True Cost Calculator Singapore",
+    "Calculate the true monthly cost of owning a car in Singapore, including loan, petrol, parking, ERP, insurance, road tax and maintenance — plus how it compares to Grab."
+  );
   const [carPrice, setCarPrice] = useState(160000);
   const [downpayment, setDownpayment] = useState(60000);
   const [loanAmount, setLoanAmount] = useState(100000);

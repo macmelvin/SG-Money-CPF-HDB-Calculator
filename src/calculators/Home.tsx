@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { usePageMeta } from "../lib/usePageMeta";
 
 const TOOLS = [
   {
@@ -34,6 +35,10 @@ const TOOLS = [
 ];
 
 export default function Home() {
+  usePageMeta(
+    "CPF, Salary & HDB Calculators for Singapore",
+    "Free Singapore money calculators: CPF & salary take-home pay, HDB sale proceeds, CPF accrued interest, retirement and car ownership cost. No login, calculations stay on your device."
+  );
   return (
     <div className="home">
       <header className="home-header">

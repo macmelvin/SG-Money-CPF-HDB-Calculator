@@ -1,8 +1,13 @@
 import { useMemo, useState } from "react";
 import { CalcShell, Disclaimer, NumberField, ResultCard, ResultRow } from "../components/CalcShell";
 import { calculateRetirement, formatSgd } from "../lib/cpf";
+import { usePageMeta } from "../lib/usePageMeta";
 
 export default function RetirementCalculator() {
+  usePageMeta(
+    "Singapore Retirement Calculator",
+    "Free retirement calculator for Singapore. See if your savings, CPF and monthly investments are on track to meet your target retirement income, and what to change if they're not."
+  );
   const [currentAge, setCurrentAge] = useState(45);
   const [retirementAge, setRetirementAge] = useState(65);
   const [currentSavings, setCurrentSavings] = useState(200000);

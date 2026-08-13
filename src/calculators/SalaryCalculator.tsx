@@ -2,8 +2,13 @@ import { useMemo, useState } from "react";
 import { CalcShell, Disclaimer, NumberField, ResultCard, ResultRow, SelectField } from "../components/CalcShell";
 import { calculateSalaryCpf, formatSgd } from "../lib/cpf";
 import type { CitizenshipStatus } from "../lib/cpf";
+import { usePageMeta } from "../lib/usePageMeta";
 
 export default function SalaryCalculator() {
+  usePageMeta(
+    "Singapore Salary & CPF Calculator",
+    "Free CPF and take-home salary calculator for Singapore. Enter your monthly gross salary to estimate CPF contributions and your actual take-home pay, based on 2026 CPF rates."
+  );
   const [age, setAge] = useState(35);
   const [monthlyGross, setMonthlyGross] = useState(5000);
   const [monthlyBonus, setMonthlyBonus] = useState(0);

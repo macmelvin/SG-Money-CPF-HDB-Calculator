@@ -1,8 +1,13 @@
 import { useMemo, useState } from "react";
 import { CalcShell, Disclaimer, NumberField, ResultCard, ResultRow } from "../components/CalcShell";
 import { calculateHdbSaleProceeds, formatSgd } from "../lib/cpf";
+import { usePageMeta } from "../lib/usePageMeta";
 
 export default function HdbSaleCalculator() {
+  usePageMeta(
+    "HDB Sale Proceeds Calculator",
+    "Free HDB sale proceeds calculator for Singapore. Estimate your cash proceeds after CPF refund, outstanding loan, agent commission and other costs when selling your HDB flat."
+  );
   const [sellingPrice, setSellingPrice] = useState(650000);
   const [outstandingLoan, setOutstandingLoan] = useState(80000);
   const [cpfPrincipalUsed, setCpfPrincipalUsed] = useState(180000);

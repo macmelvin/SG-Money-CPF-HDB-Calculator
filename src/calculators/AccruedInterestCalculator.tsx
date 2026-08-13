@@ -1,8 +1,13 @@
 import { useMemo, useState } from "react";
 import { CalcShell, Disclaimer, NumberField, ResultCard, ResultRow } from "../components/CalcShell";
 import { calculateAccruedInterest, formatSgd } from "../lib/cpf";
+import { usePageMeta } from "../lib/usePageMeta";
 
 export default function AccruedInterestCalculator() {
+  usePageMeta(
+    "CPF Accrued Interest Calculator",
+    "Estimate the CPF accrued interest you'll need to refund when selling a property in Singapore. Free calculator based on CPF principal used and the year you first used it."
+  );
   const currentYear = new Date().getFullYear();
   const [principal, setPrincipal] = useState(180000);
   const [yearFirstUsed, setYearFirstUsed] = useState(2010);
