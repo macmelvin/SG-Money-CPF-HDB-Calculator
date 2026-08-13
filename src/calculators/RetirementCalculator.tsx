@@ -467,6 +467,11 @@ export default function RetirementCalculator() {
         {applyHdbScenario && (
           <p className="explainer">Includes a one-time boost from selling your HDB today (see above).</p>
         )}
+        <p className="explainer" style={{ marginTop: -2 }}>
+          Cash, investments and the holdings below all compound monthly at the{" "}
+          <strong>{expectedReturnPct}% expected annual return</strong> you set in the "Expected annual return
+          (cash/investments)" field near the top of this page — CPF balances use their own fixed rates instead.
+        </p>
         <ResultRow label="Cash & investments" value={formatSgd(result.projectedCash)} />
         <ResultRow label="CPF OA" value={formatSgd(result.projectedOA)} />
         <ResultRow label="CPF SA/RA" value={formatSgd(result.projectedSaRa)} />
@@ -484,8 +489,8 @@ export default function RetirementCalculator() {
         />
         <p className="explainer" style={{ marginTop: -6 }}>
           {includeInvestmentHoldings
-            ? `Today's ${formatSgd(totalInvestmentsPortfolio)} in holdings from your Net Worth Snapshot, grown at your expected return above. No further monthly top-ups are assumed for these.`
-            : "Unchecked — your Net Worth Snapshot holdings aren't counted here. Recheck to include them, grown at your expected return."}
+            ? `Today's ${formatSgd(totalInvestmentsPortfolio)} in holdings from your Net Worth Snapshot, compounded monthly at your ${expectedReturnPct}% expected annual return (same field as above). No further monthly top-ups are assumed for these.`
+            : `Unchecked — your Net Worth Snapshot holdings aren't counted here. Recheck to include them, compounded at your ${expectedReturnPct}% expected annual return.`}
         </p>
         <ResultRow label="COUNTED TOWARD RETIREMENT INCOME" value={formatSgd(result.projectedSavings)} emphasis />
         <ResultRow label="CPF MediSave (kept for healthcare, not counted)" value={formatSgd(result.projectedMA)} />
