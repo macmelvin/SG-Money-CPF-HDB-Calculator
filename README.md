@@ -1,4 +1,4 @@
-# SG Money — v0.1 Starter
+# SG-Money-CPF-HDB-Calculator — v0.1 Starter
 
 Singapore money calculators: Salary & CPF, HDB Sale Proceeds, CPF Accrued Interest,
 Retirement, and Car True Cost. One React codebase → Web/PWA (for iOS + Android browser
@@ -55,7 +55,7 @@ npx cap sync android       # 3. copy the web build + plugins into the Android pr
 npx cap open android       # 4. opens the /android folder in Android Studio
 ```
 
-From Android Studio you can run SG Money on an emulator or a physical phone, and later
+From Android Studio you can run SG-Money-CPF-HDB-Calculator on an emulator or a physical phone, and later
 use Build → Generate Signed Bundle/APK to produce the AAB for Google Play or an APK for
 sideloading/testing.
 

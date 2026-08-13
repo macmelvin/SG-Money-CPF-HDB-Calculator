@@ -11,7 +11,7 @@ import { useEffect } from "react";
  */
 export function usePageMeta(title: string, description: string) {
   useEffect(() => {
-    const fullTitle = `${title} | SG Money`;
+    const fullTitle = `${title} | SG-Money-CPF-HDB-Calculator`;
     document.title = fullTitle;
 
     let meta = document.querySelector('meta[name="description"]');

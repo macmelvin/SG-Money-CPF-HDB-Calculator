@@ -38,37 +38,37 @@ const SITE_URL = process.env.SITE_URL || "https://sg-money-web-production.up.rai
 const routes = [
   {
     path: "",
-    title: "SG Money — CPF, Salary & HDB Calculators for Singapore",
+    title: "SG-Money-CPF-HDB-Calculator — CPF, Salary & HDB Calculators for Singapore",
     description:
       "Free Singapore money calculators: CPF & salary take-home pay, HDB sale proceeds, CPF accrued interest, retirement and car ownership cost. No login, calculations stay on your device.",
   },
   {
     path: "salary-calculator",
-    title: "Singapore Salary & CPF Calculator | SG Money",
+    title: "Singapore Salary & CPF Calculator | SG-Money-CPF-HDB-Calculator",
     description:
       "Free CPF and take-home salary calculator for Singapore. Enter your monthly gross salary to estimate CPF contributions and your actual take-home pay, based on 2026 CPF rates.",
   },
   {
     path: "hdb-sale-proceeds",
-    title: "HDB Sale Proceeds Calculator | SG Money",
+    title: "HDB Sale Proceeds Calculator | SG-Money-CPF-HDB-Calculator",
     description:
       "Free HDB sale proceeds calculator for Singapore. Estimate your cash proceeds after CPF refund, outstanding loan, agent commission and other costs when selling your HDB flat.",
   },
   {
     path: "cpf-accrued-interest",
-    title: "CPF Accrued Interest Calculator | SG Money",
+    title: "CPF Accrued Interest Calculator | SG-Money-CPF-HDB-Calculator",
     description:
       "Estimate the CPF accrued interest you'll need to refund when selling a property in Singapore. Free calculator based on CPF principal used and the year you first used it.",
   },
   {
     path: "retirement-calculator",
-    title: "Singapore Retirement Calculator | SG Money",
+    title: "Singapore Retirement Calculator | SG-Money-CPF-HDB-Calculator",
     description:
       "Free retirement calculator for Singapore. See if your savings, CPF and monthly investments are on track to meet your target retirement income, and what to change if they're not.",
   },
   {
     path: "car-cost-calculator",
-    title: "Car True Cost Calculator Singapore | SG Money",
+    title: "Car True Cost Calculator Singapore | SG-Money-CPF-HDB-Calculator",
     description:
       "Calculate the true monthly cost of owning a car in Singapore, including loan, petrol, parking, ERP, insurance, road tax and maintenance — plus how it compares to Grab.",
   },

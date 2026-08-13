@@ -1,4 +1,4 @@
-// SG Money — Shared CPF calculation engine
+// SG-Money-CPF-HDB-Calculator — Shared CPF calculation engine
 // Rates sourced from CPF Board, applicable for 2026.
 // Ordinary Wage (OW) ceiling: S$8,000/month. Annual salary ceiling: S$102,000.
 // These are ESTIMATES for planning purposes only — not official CPF Board figures.

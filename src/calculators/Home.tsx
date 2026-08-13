@@ -10,7 +10,7 @@ export default function Home() {
   return (
     <div className="home">
       <header className="home-header">
-        <h1>🇸🇬 SG Money</h1>
+        <h1>🇸🇬 SG-Money-CPF-HDB-Calculator</h1>
         <p>Your Singapore Money Calculator</p>
       </header>
 
