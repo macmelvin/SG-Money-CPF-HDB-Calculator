@@ -631,6 +631,13 @@ export default function RetirementCalculator() {
         />
       </ResultCard>
 
+      <BtoPromo
+        title="Considering rightsizing to a smaller flat?"
+        desc="Check out our BTO Planning Tool for eligibility, timelines and flat selection."
+      />
+
+      <DocToolsPromo />
+
       {!result.onTrack && (
         <ResultCard title="Ways to close the gap">
           <ResultRow label="Increase monthly savings to" value={formatSgd(result.suggestedMonthlySavings)} />
@@ -714,13 +721,6 @@ export default function RetirementCalculator() {
           ))}
         </div>
       </ResultCard>
-
-      <BtoPromo
-        title="Considering rightsizing to a smaller flat?"
-        desc="Check out our BTO Planning Tool for eligibility, timelines and flat selection."
-      />
-
-      <DocToolsPromo />
 
       <Disclaimer>
         Assumes 25 years in retirement and steady investment returns — actual markets fluctuate. Your desired
