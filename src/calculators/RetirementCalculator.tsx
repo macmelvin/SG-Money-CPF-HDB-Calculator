@@ -39,6 +39,7 @@ const DEFAULTS = {
   incomeItems: [{ id: "income-1", label: "Salary", amount: 5000 }] as LineItem[],
   expenseItems: [{ id: "expense-1", label: "Living expenses", amount: 2400 }] as LineItem[],
   investmentItems: [{ id: "invest-1", label: "Unit trusts / stocks", amount: 50000 }] as LineItem[],
+  liabilityItems: [{ id: "liability-1", label: "Home loan / mortgage", amount: 0 }] as LineItem[],
   planRightsizing: false,
   replacementFlatPrice: 300000,
   legalMovingCosts: 15000,
@@ -83,6 +84,7 @@ export default function RetirementCalculator() {
   const [incomeItems, setIncomeItems] = useState<LineItem[]>(initial.incomeItems);
   const [expenseItems, setExpenseItems] = useState<LineItem[]>(initial.expenseItems);
   const [investmentItems, setInvestmentItems] = useState<LineItem[]>(initial.investmentItems);
+  const [liabilityItems, setLiabilityItems] = useState<LineItem[]>(initial.liabilityItems);
   const [planRightsizing, setPlanRightsizing] = useState(initial.planRightsizing);
   const [replacementFlatPrice, setReplacementFlatPrice] = useState(initial.replacementFlatPrice);
   const [legalMovingCosts, setLegalMovingCosts] = useState(initial.legalMovingCosts);
@@ -145,7 +147,8 @@ export default function RetirementCalculator() {
   // --- Monthly cash flow ---
   const totalIncome = sumLineItems(incomeItems);
   const totalExpenses = sumLineItems(expenseItems);
-  const monthlySurplus = totalIncome - totalExpenses;
+  const totalLiabilities = sumLineItems(liabilityItems);
+  const monthlySurplus = totalIncome - totalExpenses - totalLiabilities;
 
   // --- Rightsizing scenario ---
   const rightsizing =
@@ -173,6 +176,7 @@ export default function RetirementCalculator() {
     investmentItemCount: investmentItems.length,
     cashAndInvestmentsForLiquidity: currentSavings,
     totalMonthlyExpenses: totalExpenses,
+    totalMonthlyLiabilities: totalLiabilities,
     hasLoanLikeExpense,
     monthlySurplus,
     totalMonthlyIncome: totalIncome,
@@ -216,6 +220,7 @@ export default function RetirementCalculator() {
     setIncomeItems(DEFAULTS.incomeItems.map((i) => ({ ...i })));
     setExpenseItems(DEFAULTS.expenseItems.map((i) => ({ ...i })));
     setInvestmentItems(DEFAULTS.investmentItems.map((i) => ({ ...i })));
+    setLiabilityItems(DEFAULTS.liabilityItems.map((i) => ({ ...i })));
     setPlanRightsizing(DEFAULTS.planRightsizing);
     setReplacementFlatPrice(DEFAULTS.replacementFlatPrice);
     setLegalMovingCosts(DEFAULTS.legalMovingCosts);
@@ -241,6 +246,7 @@ export default function RetirementCalculator() {
       incomeItems,
       expenseItems,
       investmentItems,
+      liabilityItems,
       planRightsizing,
       replacementFlatPrice,
       legalMovingCosts,
@@ -314,8 +320,10 @@ export default function RetirementCalculator() {
         { label: "— Monthly Cash Flow —", value: "" },
         ...incomeItems.map((item) => ({ label: `  Income: ${item.label || "(unlabelled)"}`, value: formatSgd(item.amount) })),
         ...expenseItems.map((item) => ({ label: `  Expense: ${item.label || "(unlabelled)"}`, value: formatSgd(item.amount) })),
+        ...liabilityItems.map((item) => ({ label: `  Liability: ${item.label || "(unlabelled)"}`, value: formatSgd(item.amount) })),
         { label: "Total Income", value: formatSgd(totalIncome) },
         { label: "Total Expenses", value: formatSgd(totalExpenses) },
+        { label: "Total Liabilities", value: formatSgd(totalLiabilities) },
         { label: monthlySurplus >= 0 ? "Monthly Surplus" : "Monthly Deficit", value: formatSgd(Math.abs(monthlySurplus)) },
         ...(rightsizing
           ? [
@@ -357,8 +365,10 @@ export default function RetirementCalculator() {
     incomeItems,
     totalIncome,
     totalExpenses,
+    totalLiabilities,
     investmentItems,
     expenseItems,
+    liabilityItems,
     hdbOverview:
       savedHdb?.data && hdbScenario
         ? {
@@ -456,8 +466,21 @@ export default function RetirementCalculator() {
         <EditableLineItems items={incomeItems} onChange={setIncomeItems} addLabel="Add income source" placeholder="e.g. Salary" />
         <p className="explainer" style={{ marginTop: 14 }}>Expenses</p>
         <EditableLineItems items={expenseItems} onChange={setExpenseItems} addLabel="Add expense" placeholder="e.g. Insurance premium" />
+        <p className="explainer" style={{ marginTop: 14 }}>Liabilities</p>
+        <p className="explainer" style={{ marginTop: -6 }}>
+          Monthly loan/debt repayments — home mortgage, car loan, children's education loan, etc. These reduce
+          your cash flow surplus below, not your Net Worth above (which only subtracts outstanding loan
+          balances, tracked separately via the HDB Sale Proceeds calculator).
+        </p>
+        <EditableLineItems
+          items={liabilityItems}
+          onChange={setLiabilityItems}
+          addLabel="Add a liability"
+          placeholder="e.g. Home mortgage, car loan, children's education loan"
+        />
         <ResultRow label="Total income" value={formatSgd(totalIncome)} />
         <ResultRow label="Total expenses" value={`-${formatSgd(totalExpenses)}`} positive={false} />
+        <ResultRow label="Total liabilities" value={`-${formatSgd(totalLiabilities)}`} positive={false} />
         <ResultRow
           label={monthlySurplus >= 0 ? "MONTHLY SURPLUS" : "MONTHLY DEFICIT"}
           value={formatSgd(Math.abs(monthlySurplus))}

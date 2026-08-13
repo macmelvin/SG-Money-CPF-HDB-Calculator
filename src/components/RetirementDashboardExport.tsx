@@ -60,9 +60,11 @@ export interface DashboardExportData {
   incomeItems: LineItem[];
   totalIncome: number;
   totalExpenses: number;
+  totalLiabilities: number;
 
   investmentItems: LineItem[];
   expenseItems: LineItem[];
+  liabilityItems: LineItem[];
 
   hdbOverview: HdbOverviewData | null;
   rightsizing: RightsizingExportData | null;
@@ -236,6 +238,7 @@ export function RetirementDashboardExportCard({ data }: { data: DashboardExportD
           ))}
           <Row label="TOTAL INCOME" value={formatSgd(data.totalIncome)} bold />
           <Row label="Monthly expenses (see below)" value={formatSgd(data.totalExpenses)} muted />
+          <Row label="Monthly liabilities (see below)" value={formatSgd(data.totalLiabilities)} muted />
           <Row
             label={data.monthlySurplus >= 0 ? "SURPLUS / MONTH" : "DEFICIT / MONTH"}
             value={formatSgd(Math.abs(data.monthlySurplus))}
@@ -302,7 +305,7 @@ export function RetirementDashboardExportCard({ data }: { data: DashboardExportD
       </div>
 
       <div className="dex-grid dex-grid-3">
-        <Card title="Monthly Recurring Expenses" icon="🧾">
+        <Card title="Expenses & Liabilities" icon="🧾">
           {data.expenseItems.length === 0 ? (
             <p className="dex-empty">No expenses added yet.</p>
           ) : (
@@ -311,6 +314,19 @@ export function RetirementDashboardExportCard({ data }: { data: DashboardExportD
                 <Row key={item.id} label={item.label || "(unlabelled)"} value={formatSgd(item.amount)} />
               ))}
               <Row label="TOTAL MONTHLY EXPENSES" value={formatSgd(data.totalExpenses)} bold />
+            </>
+          )}
+          <div className="dex-subheading">Liabilities</div>
+          {data.liabilityItems.filter((i) => i.amount > 0).length === 0 ? (
+            <p className="dex-empty" style={{ marginTop: 10 }}>No liabilities added yet.</p>
+          ) : (
+            <>
+              {data.liabilityItems
+                .filter((i) => i.amount > 0)
+                .map((item) => (
+                  <Row key={item.id} label={item.label || "(unlabelled)"} value={formatSgd(item.amount)} />
+                ))}
+              <Row label="TOTAL MONTHLY LIABILITIES" value={formatSgd(data.totalLiabilities)} bold />
             </>
           )}
         </Card>

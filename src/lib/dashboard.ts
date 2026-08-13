@@ -103,6 +103,7 @@ export interface HealthCheckInput {
   investmentItemCount: number;
   cashAndInvestmentsForLiquidity: number; // "current savings" — liquid pot
   totalMonthlyExpenses: number;
+  totalMonthlyLiabilities: number; // monthly debt repayments (mortgage, car loan, education loan, etc.)
   hasLoanLikeExpense: boolean;
   monthlySurplus: number;
   totalMonthlyIncome: number;
@@ -176,9 +177,10 @@ export function computeHealthCheck(input: HealthCheckInput): {
     dimensions.push({ key: "investments", label: "Investment Portfolio", status: "moderate", note: "Concentrated in a small number of holdings." });
   }
 
-  // Liquidity — months of expenses covered by cash/investments
-  if (input.totalMonthlyExpenses > 0) {
-    const monthsCovered = input.cashAndInvestmentsForLiquidity / input.totalMonthlyExpenses;
+  // Liquidity — months of expenses + liability repayments covered by cash/investments
+  const totalMonthlyOutflows = input.totalMonthlyExpenses + input.totalMonthlyLiabilities;
+  if (totalMonthlyOutflows > 0) {
+    const monthsCovered = input.cashAndInvestmentsForLiquidity / totalMonthlyOutflows;
     if (monthsCovered >= 12) {
       dimensions.push({ key: "liquidity", label: "Liquidity", status: "strong", note: `Covers ~${Math.round(monthsCovered)} months of expenses.` });
     } else if (monthsCovered >= 6) {
@@ -194,9 +196,10 @@ export function computeHealthCheck(input: HealthCheckInput): {
 
   // Debt
   const hdbDebt = input.hdbLoanOutstanding ?? 0;
-  if (hdbDebt <= 0 && !input.hasLoanLikeExpense) {
+  const hasOtherDebtRepayments = input.hasLoanLikeExpense || input.totalMonthlyLiabilities > 0;
+  if (hdbDebt <= 0 && !hasOtherDebtRepayments) {
     dimensions.push({ key: "debt", label: "Debt", status: "strong", note: "No outstanding HDB loan or loan repayments listed." });
-  } else if (hdbDebt <= 0 && input.hasLoanLikeExpense) {
+  } else if (hdbDebt <= 0 && hasOtherDebtRepayments) {
     dimensions.push({ key: "debt", label: "Debt", status: "moderate", note: "HDB loan clear, but other loan repayments listed." });
   } else {
     dimensions.push({ key: "debt", label: "Debt", status: "moderate", note: "Still carrying an outstanding HDB loan." });
