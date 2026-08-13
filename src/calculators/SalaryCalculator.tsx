@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { CalcShell, Disclaimer, NumberField, ResultCard, ResultRow, SelectField } from "../components/CalcShell";
+import { BtoPromo, CalcShell, Disclaimer, NumberField, ResultCard, ResultRow, SelectField } from "../components/CalcShell";
 import { calculateSalaryCpf, formatSgd } from "../lib/cpf";
 import type { CitizenshipStatus } from "../lib/cpf";
 import { usePageMeta } from "../lib/usePageMeta";
@@ -107,6 +107,8 @@ export default function SalaryCalculator() {
         <ResultRow label="Employer CPF" value={`+${formatSgd(result.employerCpf)}`} positive />
         <ResultRow label="Total CPF contribution" value={formatSgd(result.totalCpf)} />
       </ResultCard>
+
+      <BtoPromo />
 
       <Disclaimer>
         Estimate based on 2026 CPF contribution rates and the S$8,000 Ordinary Wage ceiling. PR rates are simplified

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { CalcShell, Disclaimer, NumberField, ResultCard, ResultRow } from "../components/CalcShell";
+import { BtoPromo, CalcShell, Disclaimer, NumberField, ResultCard, ResultRow } from "../components/CalcShell";
 import { calculateAccruedInterest, formatSgd } from "../lib/cpf";
 import { usePageMeta } from "../lib/usePageMeta";
 import { clearCalculatorData, loadCalculatorData, saveCalculatorData } from "../lib/storage";
@@ -85,6 +85,8 @@ export default function AccruedInterestCalculator() {
         Accrued interest is the interest your CPF savings would have earned (at the CPF Ordinary Account rate) had
         they stayed in your CPF account instead of being used for your property.
       </p>
+
+      <BtoPromo />
 
       <Disclaimer>
         Simple estimate only — assumes a single lump-sum withdrawal compounded annually at 2.5%. Real CPF accrued

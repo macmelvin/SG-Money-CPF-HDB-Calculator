@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { CalcShell, Disclaimer, NumberField, ResultCard, ResultRow } from "../components/CalcShell";
+import { BtoPromo, CalcShell, Disclaimer, DocToolsPromo, NumberField, ResultCard, ResultRow } from "../components/CalcShell";
 import { AssetAllocationBar, EditableLineItems, HealthBadge } from "../components/Dashboard";
 import {
   CPF_LIFE_STANDARD_PAYOUT_2026,
@@ -591,6 +591,16 @@ export default function RetirementCalculator() {
           ))}
         </div>
       </ResultCard>
+
+      <BtoPromo
+        title="Considering rightsizing to a smaller flat?"
+        desc="Check out our BTO Planning Tool for eligibility, timelines and flat selection."
+      />
+
+      <DocToolsPromo
+        title="Not sure what your insurance policies actually cover?"
+        desc="Upload them to our Document Explainer for a plain-English breakdown. It's a separate tool — your file is processed on its server (not stored), unlike SG Money's calculators which never leave your device."
+      />
 
       <Disclaimer>
         Assumes 25 years in retirement and steady investment returns — actual markets fluctuate. CPF OA/SA/MediSave

@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { usePageMeta } from "../lib/usePageMeta";
 import { CALCULATORS } from "../lib/calculators";
-import { BtoPromo } from "../components/CalcShell";
+import { BtoPromo, DocToolsPromo } from "../components/CalcShell";
 
 export default function Home() {
   usePageMeta(
@@ -29,6 +29,8 @@ export default function Home() {
       </div>
 
       <BtoPromo />
+
+      <DocToolsPromo />
 
       <footer className="home-footer">
         <p>Free • No registration • Local calculations • Privacy-first</p>

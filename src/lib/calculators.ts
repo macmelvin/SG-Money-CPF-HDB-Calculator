@@ -11,6 +11,14 @@ export interface CalculatorMeta {
 // SG Money's calculators serve the same audience at different decision points.
 export const BTO_TOOL_URL = "https://bto-planning-tool.web.app/";
 
+// Another sister project — an AI document analysis tool (Plain-English
+// Translator, ToS/Privacy Risk Scanner, Contract Risk Highlighter). Unlike
+// SG Money, it processes uploads on a server (not stored, per its own
+// privacy notice) rather than entirely on-device, so it's cross-linked as a
+// separate tool rather than merged in, to keep SG Money's own
+// "nothing sent to a server" promise intact for its calculators.
+export const DOC_TOOLS_URL = "https://document-tools.up.railway.app/";
+
 export const CALCULATORS: CalculatorMeta[] = [
   {
     to: "/salary-calculator",

@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { CALCULATORS, BTO_TOOL_URL } from "../lib/calculators";
+import { CALCULATORS, BTO_TOOL_URL, DOC_TOOLS_URL } from "../lib/calculators";
 
 function formatSavedAt(savedAt: number): string {
   const diffMs = Date.now() - savedAt;
@@ -181,16 +181,20 @@ export function Disclaimer({ children }: { children: ReactNode }) {
   return <p className="disclaimer">{children}</p>;
 }
 
-export function BtoPromo({
-  title = "Planning a BTO?",
-  desc = "Check out our BTO Planning Tool for eligibility, timelines and flat selection.",
+function PromoLink({
+  href,
+  icon,
+  title,
+  desc,
 }: {
-  title?: string;
-  desc?: string;
+  href: string;
+  icon: string;
+  title: string;
+  desc: string;
 }) {
   return (
-    <a href={BTO_TOOL_URL} target="_blank" rel="noopener noreferrer" className="bto-promo">
-      <span className="bto-promo-icon">🏗️</span>
+    <a href={href} target="_blank" rel="noopener noreferrer" className="bto-promo">
+      <span className="bto-promo-icon">{icon}</span>
       <span className="bto-promo-text">
         <span className="bto-promo-title">{title}</span>
         <span className="bto-promo-desc">{desc}</span>
@@ -198,4 +202,29 @@ export function BtoPromo({
       <span className="bto-promo-arrow">↗</span>
     </a>
   );
+}
+
+export function BtoPromo({
+  title = "Planning a BTO?",
+  desc = "Check out our BTO Planning Tool for eligibility, timelines and flat selection.",
+}: {
+  title?: string;
+  desc?: string;
+}) {
+  return <PromoLink href={BTO_TOOL_URL} icon="🏗️" title={title} desc={desc} />;
+}
+
+// A separate tool (not part of SG Money's no-backend calculators) that lets
+// users upload a policy/document and get a plain-English explanation of it.
+// Uploads are processed on that tool's own server — its privacy notice says
+// they're never stored — which is different from SG Money's calculators,
+// where nothing ever leaves the device. The copy below says so plainly.
+export function DocToolsPromo({
+  title = "Not sure what your policy actually says?",
+  desc = "Upload it to our Document Explainer for a plain-English breakdown. It's a separate tool — your file is processed on its server (not stored), unlike SG Money's calculators which never leave your device.",
+}: {
+  title?: string;
+  desc?: string;
+}) {
+  return <PromoLink href={DOC_TOOLS_URL} icon="📄" title={title} desc={desc} />;
 }
