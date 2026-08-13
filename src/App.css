@@ -191,7 +191,7 @@
   .calc-page {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    align-items: start;
+    align-items: stretch;
     gap: 16px;
   }
   .calc-page > .back-link,
