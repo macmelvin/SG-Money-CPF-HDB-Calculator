@@ -1,20 +1,44 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { CALCULATORS, BTO_TOOL_URL } from "../lib/calculators";
+
+function formatSavedAt(savedAt: number): string {
+  const diffMs = Date.now() - savedAt;
+  if (diffMs < 60_000) return "just now";
+  return new Date(savedAt).toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
 
 export function CalcShell({
   title,
   subtitle,
   onClear,
+  onSave,
+  onDownloadPdf,
+  savedAt,
   children,
 }: {
   title: string;
   subtitle: string;
   onClear?: () => void;
+  onSave?: () => void;
+  onDownloadPdf?: () => void;
+  savedAt?: number | null;
   children: ReactNode;
 }) {
   const { pathname } = useLocation();
   const otherCalculators = CALCULATORS.filter((c) => c.to !== pathname);
+  const [justSaved, setJustSaved] = useState(false);
+
+  const handleSave = () => {
+    onSave?.();
+    setJustSaved(true);
+    window.setTimeout(() => setJustSaved(false), 2000);
+  };
 
   return (
     <div className="calc-page">
@@ -24,15 +48,30 @@ export function CalcShell({
       <h1>{title}</h1>
       <p className="subtitle">{subtitle}</p>
 
-      {onClear && (
+      {(onClear || onSave || onDownloadPdf) && (
         <div className="privacy-note">
           <span>
-            🔒 We don't store or transmit what you enter here — it stays on your device for this session only,
-            and nothing is saved anywhere unless a future version explicitly adds that.
+            🔒 Nothing is sent to a server. Tap Save and these numbers stay only in this browser, on this
+            device, until you clear them.
+            {savedAt ? ` Last saved ${formatSavedAt(savedAt)}.` : ""}
           </span>
-          <button type="button" className="clear-btn" onClick={onClear}>
-            Clear my inputs
-          </button>
+          <div className="calc-actions">
+            {onSave && (
+              <button type="button" className="save-btn" onClick={handleSave}>
+                {justSaved ? "✓ Saved" : "💾 Save"}
+              </button>
+            )}
+            {onDownloadPdf && (
+              <button type="button" className="pdf-btn" onClick={onDownloadPdf}>
+                ⬇ PDF
+              </button>
+            )}
+            {onClear && (
+              <button type="button" className="clear-btn" onClick={onClear}>
+                Clear
+              </button>
+            )}
+          </div>
         </div>
       )}
 

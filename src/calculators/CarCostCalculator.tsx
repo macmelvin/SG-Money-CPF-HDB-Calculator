@@ -2,6 +2,10 @@ import { useMemo, useState } from "react";
 import { CalcShell, Disclaimer, NumberField, ResultCard, ResultRow } from "../components/CalcShell";
 import { calculateCarCost, formatSgd } from "../lib/cpf";
 import { usePageMeta } from "../lib/usePageMeta";
+import { clearCalculatorData, loadCalculatorData, saveCalculatorData } from "../lib/storage";
+import { downloadCalculatorPdf } from "../lib/pdf";
+
+const STORAGE_KEY = "car-cost-calculator";
 
 const DEFAULTS = {
   carPrice: 160000,
@@ -23,18 +27,22 @@ export default function CarCostCalculator() {
     "Car True Cost Calculator Singapore",
     "Calculate the true monthly cost of owning a car in Singapore, including loan, petrol, parking, ERP, insurance, road tax and maintenance — plus how it compares to Grab."
   );
-  const [carPrice, setCarPrice] = useState(DEFAULTS.carPrice);
-  const [downpayment, setDownpayment] = useState(DEFAULTS.downpayment);
-  const [loanAmount, setLoanAmount] = useState(DEFAULTS.loanAmount);
-  const [loanYears, setLoanYears] = useState(DEFAULTS.loanYears);
-  const [interestRatePct, setInterestRatePct] = useState(DEFAULTS.interestRatePct);
-  const [monthlyPetrol, setMonthlyPetrol] = useState(DEFAULTS.monthlyPetrol);
-  const [monthlyParking, setMonthlyParking] = useState(DEFAULTS.monthlyParking);
-  const [monthlyErp, setMonthlyErp] = useState(DEFAULTS.monthlyErp);
-  const [annualInsurance, setAnnualInsurance] = useState(DEFAULTS.annualInsurance);
-  const [annualRoadTax, setAnnualRoadTax] = useState(DEFAULTS.annualRoadTax);
-  const [annualMaintenance, setAnnualMaintenance] = useState(DEFAULTS.annualMaintenance);
-  const [monthlyGrabSpend, setMonthlyGrabSpend] = useState(DEFAULTS.monthlyGrabSpend);
+  const saved = loadCalculatorData<typeof DEFAULTS>(STORAGE_KEY);
+  const initial = saved?.data ?? DEFAULTS;
+
+  const [carPrice, setCarPrice] = useState(initial.carPrice);
+  const [downpayment, setDownpayment] = useState(initial.downpayment);
+  const [loanAmount, setLoanAmount] = useState(initial.loanAmount);
+  const [loanYears, setLoanYears] = useState(initial.loanYears);
+  const [interestRatePct, setInterestRatePct] = useState(initial.interestRatePct);
+  const [monthlyPetrol, setMonthlyPetrol] = useState(initial.monthlyPetrol);
+  const [monthlyParking, setMonthlyParking] = useState(initial.monthlyParking);
+  const [monthlyErp, setMonthlyErp] = useState(initial.monthlyErp);
+  const [annualInsurance, setAnnualInsurance] = useState(initial.annualInsurance);
+  const [annualRoadTax, setAnnualRoadTax] = useState(initial.annualRoadTax);
+  const [annualMaintenance, setAnnualMaintenance] = useState(initial.annualMaintenance);
+  const [monthlyGrabSpend, setMonthlyGrabSpend] = useState(initial.monthlyGrabSpend);
+  const [savedAt, setSavedAt] = useState<number | null>(saved?.savedAt ?? null);
 
   const result = useMemo(
     () =>
@@ -68,6 +76,66 @@ export default function CarCostCalculator() {
     setAnnualRoadTax(DEFAULTS.annualRoadTax);
     setAnnualMaintenance(DEFAULTS.annualMaintenance);
     setMonthlyGrabSpend(DEFAULTS.monthlyGrabSpend);
+    clearCalculatorData(STORAGE_KEY);
+    setSavedAt(null);
+  };
+
+  const handleSave = () => {
+    const at = saveCalculatorData(STORAGE_KEY, {
+      carPrice,
+      downpayment,
+      loanAmount,
+      loanYears,
+      interestRatePct,
+      monthlyPetrol,
+      monthlyParking,
+      monthlyErp,
+      annualInsurance,
+      annualRoadTax,
+      annualMaintenance,
+      monthlyGrabSpend,
+    });
+    setSavedAt(at);
+  };
+
+  const handleDownloadPdf = () => {
+    downloadCalculatorPdf({
+      calculatorTitle: "Car True Cost Calculator",
+      inputs: [
+        { label: "Car purchase price (incl. COE)", value: formatSgd(carPrice) },
+        { label: "Downpayment", value: formatSgd(downpayment) },
+        { label: "Loan amount", value: formatSgd(loanAmount) },
+        { label: "Loan duration", value: `${loanYears} years` },
+        { label: "Interest rate (flat)", value: `${interestRatePct}%` },
+        { label: "Monthly petrol", value: formatSgd(monthlyPetrol) },
+        { label: "Monthly parking", value: formatSgd(monthlyParking) },
+        { label: "Monthly ERP", value: formatSgd(monthlyErp) },
+        { label: "Annual insurance", value: formatSgd(annualInsurance) },
+        { label: "Annual road tax", value: formatSgd(annualRoadTax) },
+        { label: "Annual maintenance", value: formatSgd(annualMaintenance) },
+        { label: "Average monthly Grab spending", value: formatSgd(monthlyGrabSpend) },
+      ],
+      results: [
+        { label: "Loan", value: formatSgd(result.monthlyLoan) },
+        { label: "Petrol", value: formatSgd(monthlyPetrol) },
+        { label: "Parking", value: formatSgd(monthlyParking) },
+        { label: "ERP", value: formatSgd(monthlyErp) },
+        { label: "Insurance", value: formatSgd(result.monthlyInsurance) },
+        { label: "Road Tax", value: formatSgd(result.monthlyRoadTax) },
+        { label: "Maintenance", value: formatSgd(result.monthlyMaintenance) },
+        { label: "True Monthly Cost", value: formatSgd(result.totalMonthly) },
+        { label: "True Annual Cost", value: formatSgd(result.totalAnnual) },
+        ...(result.grabComparison
+          ? [
+              { label: "Car (vs Grab)", value: `${formatSgd(result.grabComparison.carCost)}/month` },
+              { label: "Grab", value: `${formatSgd(result.grabComparison.grabCost)}/month` },
+              { label: "Grab saves you approximately", value: `${formatSgd(result.grabComparison.annualSavings)}/year` },
+            ]
+          : []),
+      ],
+      disclaimer:
+        "Estimate only. Assumes a flat-rate car loan (typical for Singapore) and does not include depreciation, COE renewal, or resale value.",
+    });
   };
 
   return (
@@ -75,6 +143,9 @@ export default function CarCostCalculator() {
       title="🚗 Car True Cost Calculator"
       subtitle="What does owning a car in Singapore really cost you each month?"
       onClear={clearInputs}
+      onSave={handleSave}
+      onDownloadPdf={handleDownloadPdf}
+      savedAt={savedAt}
     >
       <div className="form-grid">
         <NumberField label="Car purchase price (incl. COE)" value={carPrice} onChange={setCarPrice} prefix="$" step={1000} />

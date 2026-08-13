@@ -108,23 +108,49 @@
   border-radius: 12px;
   padding: 12px 14px;
   margin-bottom: 20px;
+  flex-wrap: wrap;
 }
 .privacy-note span {
   font-size: 12px;
   line-height: 1.5;
   color: var(--text-muted);
+  flex: 1 1 180px;
 }
-.clear-btn {
+.calc-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+.calc-actions button {
   flex-shrink: 0;
   background: transparent;
-  border: 1px solid var(--negative);
-  color: var(--negative);
   border-radius: 999px;
   padding: 7px 12px;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
+}
+.save-btn {
+  border: 1px solid var(--positive);
+  color: var(--positive);
+}
+.save-btn:active {
+  background: var(--positive);
+  color: white;
+}
+.pdf-btn {
+  border: 1px solid var(--primary);
+  color: var(--primary);
+}
+.pdf-btn:active {
+  background: var(--primary);
+  color: white;
+}
+.clear-btn {
+  border: 1px solid var(--negative);
+  color: var(--negative);
 }
 .clear-btn:active {
   background: var(--negative);
@@ -134,6 +160,9 @@
   .privacy-note {
     flex-direction: column;
     align-items: stretch;
+  }
+  .calc-actions {
+    justify-content: flex-start;
   }
 }
 
