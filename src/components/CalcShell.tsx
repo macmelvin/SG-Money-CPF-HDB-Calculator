@@ -20,6 +20,7 @@ export function CalcShell({
   onSave,
   onDownloadPdf,
   savedAt,
+  extraActions,
   children,
 }: {
   title: string;
@@ -28,6 +29,9 @@ export function CalcShell({
   onSave?: () => void;
   onDownloadPdf?: () => void;
   savedAt?: number | null;
+  // Slot for calculator-specific action buttons (e.g. Retirement Calculator's "Download
+  // Dashboard") that don't belong in CalcShell's generic save/PDF/clear API.
+  extraActions?: ReactNode;
   children: ReactNode;
 }) {
   const { pathname } = useLocation();
@@ -48,7 +52,7 @@ export function CalcShell({
       <h1>{title}</h1>
       <p className="subtitle">{subtitle}</p>
 
-      {(onClear || onSave || onDownloadPdf) && (
+      {(onClear || onSave || onDownloadPdf || extraActions) && (
         <div className="privacy-note">
           <span>
             🔒 Nothing is sent to a server. Tap Save and these numbers stay only in this browser, on this
@@ -71,6 +75,7 @@ export function CalcShell({
                 Clear
               </button>
             )}
+            {extraActions}
           </div>
         </div>
       )}

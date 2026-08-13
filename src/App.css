@@ -156,6 +156,18 @@
   background: var(--negative);
   color: white;
 }
+.dashboard-btn {
+  border: 1px solid #7a4fc9;
+  color: #7a4fc9;
+}
+.dashboard-btn:active {
+  background: #7a4fc9;
+  color: white;
+}
+.dashboard-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
 @media (max-width: 380px) {
   .privacy-note {
     flex-direction: column;

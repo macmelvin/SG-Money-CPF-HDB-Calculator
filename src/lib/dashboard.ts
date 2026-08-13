@@ -84,7 +84,7 @@ export const HEALTH_STATUS_LABEL: Record<HealthStatus, string> = {
 
 // Maps a qualitative band to a 0-10 score purely for the illustrative composite number —
 // these thresholds are simple rules of thumb, not a professional assessment.
-const STATUS_SCORE: Record<HealthStatus, number> = {
+export const STATUS_SCORE: Record<HealthStatus, number> = {
   strong: 9,
   good: 7.5,
   moderate: 5.5,

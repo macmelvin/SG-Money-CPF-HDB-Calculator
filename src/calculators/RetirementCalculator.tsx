@@ -1,7 +1,10 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { BtoPromo, CalcShell, Disclaimer, DocToolsPromo, NumberField, ResultCard, ResultRow } from "../components/CalcShell";
 import { AssetAllocationBar, EditableLineItems, HealthBadge } from "../components/Dashboard";
+import { RetirementDashboardExportCard } from "../components/RetirementDashboardExport";
+import type { DashboardExportData } from "../components/RetirementDashboardExport";
+import { downloadNodeAsImage } from "../lib/dashboardImage";
 import {
   CPF_LIFE_STANDARD_PAYOUT_2026,
   CPF_RETIREMENT_SUMS_2026,
@@ -71,6 +74,8 @@ export default function RetirementCalculator() {
   const [desiredMonthlySpend, setDesiredMonthlySpend] = useState(initial.desiredMonthlySpend);
   const [savedAt, setSavedAt] = useState<number | null>(saved?.savedAt ?? null);
   const [includeHdbSale, setIncludeHdbSale] = useState(true);
+  const [isGeneratingDashboard, setIsGeneratingDashboard] = useState(false);
+  const dashboardExportRef = useRef<HTMLDivElement>(null);
 
   const [hdbCurrentValue, setHdbCurrentValue] = useState(initial.hdbCurrentValue);
   const [incomeItems, setIncomeItems] = useState<LineItem[]>(initial.incomeItems);
@@ -322,6 +327,75 @@ export default function RetirementCalculator() {
     });
   };
 
+  const dashboardExportData: DashboardExportData = {
+    generatedOn: new Date().toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" }),
+    currentAge,
+    retirementAge,
+    yearsToRetirement: result.yearsToRetirement,
+    monthlyIncome: totalIncome,
+    monthlySurplus,
+    onTrack: result.onTrack,
+    netWorth,
+    hdbValue: hdbCurrentValue,
+    totalCpf: totalCpfToday,
+    totalInvestments: totalInvestmentsPortfolio,
+    slices,
+    cpfOa: currentOA,
+    cpfMa: currentMA,
+    cpfSaRa: currentSaRa,
+    incomeItems,
+    totalIncome,
+    totalExpenses,
+    investmentItems,
+    expenseItems,
+    hdbOverview:
+      savedHdb?.data && hdbScenario
+        ? {
+            saleValue: hdbCurrentValue,
+            cpfPrincipalUsed: savedHdb.data.cpfPrincipalUsed,
+            cpfAccruedInterest: savedHdb.data.cpfAccruedInterest,
+            cpfRefund: hdbScenario.cpfRefund,
+            loanOutstanding: savedHdb.data.outstandingLoan,
+          }
+        : null,
+    rightsizing:
+      rightsizing && hdbScenario
+        ? {
+            saleProceeds: hdbCurrentValue,
+            cpfRefund: hdbScenario.cpfRefund,
+            balanceAfterCpfRefund: rightsizing.balanceAfterCpfRefund,
+            replacementFlatPrice,
+            legalMovingCosts,
+            cashReleased: rightsizing.cashReleased,
+          }
+        : null,
+    financialPositionAfter:
+      rightsizing && estimatedAssetsAfterRightsizing !== null
+        ? {
+            cpfSavings: totalCpfToday,
+            investmentsAndInsurance: totalInvestmentsPortfolio,
+            cashReleased: rightsizing.cashReleased,
+            estimatedFinancialAssets: estimatedAssetsAfterRightsizing,
+          }
+        : null,
+    healthDimensions: healthCheck.dimensions,
+    overallScore: healthCheck.overallScore,
+    timelineSteps,
+  };
+
+  const handleDownloadDashboard = async () => {
+    if (!dashboardExportRef.current || isGeneratingDashboard) return;
+    setIsGeneratingDashboard(true);
+    try {
+      await downloadNodeAsImage(dashboardExportRef.current, "sg-money-retirement-dashboard.png");
+    } catch (err) {
+      console.error("Could not generate the dashboard image", err);
+      window.alert("Sorry, something went wrong generating the dashboard image. Please try again.");
+    } finally {
+      setIsGeneratingDashboard(false);
+    }
+  };
+
   return (
     <CalcShell
       title="👴 Retirement Calculator"
@@ -330,6 +404,11 @@ export default function RetirementCalculator() {
       onSave={handleSave}
       onDownloadPdf={handleDownloadPdf}
       savedAt={savedAt}
+      extraActions={
+        <button type="button" className="dashboard-btn" onClick={handleDownloadDashboard} disabled={isGeneratingDashboard}>
+          {isGeneratingDashboard ? "Generating…" : "📊 Dashboard"}
+        </button>
+      }
     >
       <div className="form-grid">
         <NumberField label="Current age" value={currentAge} onChange={setCurrentAge} />
@@ -612,6 +691,14 @@ export default function RetirementCalculator() {
         verified, and the health-check score is a simple illustrative self-check, not a professional
         assessment. Not financial advice.
       </Disclaimer>
+
+      {/* Rendered off-screen (not display:none, so html2canvas can lay it out) purely so the
+          "📊 Dashboard" button can capture it as a PNG on demand. */}
+      <div style={{ position: "fixed", top: 0, left: -99999, pointerEvents: "none" }} aria-hidden="true">
+        <div ref={dashboardExportRef}>
+          <RetirementDashboardExportCard data={dashboardExportData} />
+        </div>
+      </div>
     </CalcShell>
   );
 }
