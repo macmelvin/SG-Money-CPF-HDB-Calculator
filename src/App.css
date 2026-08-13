@@ -604,17 +604,15 @@
 .health-attention { border-left-color: var(--status-critical); }
 .health-badge-top {
   display: flex;
-  flex-wrap: wrap;
+  justify-content: space-between;
   align-items: baseline;
-  gap: 4px 8px;
+  gap: 6px;
   margin-bottom: 3px;
 }
 .health-badge-label {
   font-size: 12px;
   font-weight: 600;
   color: var(--text);
-  flex: 1 1 auto;
-  min-width: 0;
 }
 .health-badge-status {
   font-size: 10.5px;
@@ -622,7 +620,6 @@
   text-transform: uppercase;
   letter-spacing: 0.02em;
   flex-shrink: 0;
-  margin-left: auto;
 }
 .health-strong .health-badge-status, .health-good .health-badge-status { color: var(--status-good); }
 .health-moderate .health-badge-status { color: #b07d00; }
