@@ -3,23 +3,38 @@ import { CalcShell, Disclaimer, NumberField, ResultCard, ResultRow } from "../co
 import { calculateCarCost, formatSgd } from "../lib/cpf";
 import { usePageMeta } from "../lib/usePageMeta";
 
+const DEFAULTS = {
+  carPrice: 160000,
+  downpayment: 60000,
+  loanAmount: 100000,
+  loanYears: 7,
+  interestRatePct: 2.78,
+  monthlyPetrol: 300,
+  monthlyParking: 150,
+  monthlyErp: 80,
+  annualInsurance: 1800,
+  annualRoadTax: 740,
+  annualMaintenance: 1200,
+  monthlyGrabSpend: 800,
+};
+
 export default function CarCostCalculator() {
   usePageMeta(
     "Car True Cost Calculator Singapore",
     "Calculate the true monthly cost of owning a car in Singapore, including loan, petrol, parking, ERP, insurance, road tax and maintenance — plus how it compares to Grab."
   );
-  const [carPrice, setCarPrice] = useState(160000);
-  const [downpayment, setDownpayment] = useState(60000);
-  const [loanAmount, setLoanAmount] = useState(100000);
-  const [loanYears, setLoanYears] = useState(7);
-  const [interestRatePct, setInterestRatePct] = useState(2.78);
-  const [monthlyPetrol, setMonthlyPetrol] = useState(300);
-  const [monthlyParking, setMonthlyParking] = useState(150);
-  const [monthlyErp, setMonthlyErp] = useState(80);
-  const [annualInsurance, setAnnualInsurance] = useState(1800);
-  const [annualRoadTax, setAnnualRoadTax] = useState(740);
-  const [annualMaintenance, setAnnualMaintenance] = useState(1200);
-  const [monthlyGrabSpend, setMonthlyGrabSpend] = useState(800);
+  const [carPrice, setCarPrice] = useState(DEFAULTS.carPrice);
+  const [downpayment, setDownpayment] = useState(DEFAULTS.downpayment);
+  const [loanAmount, setLoanAmount] = useState(DEFAULTS.loanAmount);
+  const [loanYears, setLoanYears] = useState(DEFAULTS.loanYears);
+  const [interestRatePct, setInterestRatePct] = useState(DEFAULTS.interestRatePct);
+  const [monthlyPetrol, setMonthlyPetrol] = useState(DEFAULTS.monthlyPetrol);
+  const [monthlyParking, setMonthlyParking] = useState(DEFAULTS.monthlyParking);
+  const [monthlyErp, setMonthlyErp] = useState(DEFAULTS.monthlyErp);
+  const [annualInsurance, setAnnualInsurance] = useState(DEFAULTS.annualInsurance);
+  const [annualRoadTax, setAnnualRoadTax] = useState(DEFAULTS.annualRoadTax);
+  const [annualMaintenance, setAnnualMaintenance] = useState(DEFAULTS.annualMaintenance);
+  const [monthlyGrabSpend, setMonthlyGrabSpend] = useState(DEFAULTS.monthlyGrabSpend);
 
   const result = useMemo(
     () =>
@@ -40,8 +55,27 @@ export default function CarCostCalculator() {
     [carPrice, downpayment, loanAmount, loanYears, interestRatePct, monthlyPetrol, monthlyParking, monthlyErp, annualInsurance, annualRoadTax, annualMaintenance, monthlyGrabSpend]
   );
 
+  const clearInputs = () => {
+    setCarPrice(DEFAULTS.carPrice);
+    setDownpayment(DEFAULTS.downpayment);
+    setLoanAmount(DEFAULTS.loanAmount);
+    setLoanYears(DEFAULTS.loanYears);
+    setInterestRatePct(DEFAULTS.interestRatePct);
+    setMonthlyPetrol(DEFAULTS.monthlyPetrol);
+    setMonthlyParking(DEFAULTS.monthlyParking);
+    setMonthlyErp(DEFAULTS.monthlyErp);
+    setAnnualInsurance(DEFAULTS.annualInsurance);
+    setAnnualRoadTax(DEFAULTS.annualRoadTax);
+    setAnnualMaintenance(DEFAULTS.annualMaintenance);
+    setMonthlyGrabSpend(DEFAULTS.monthlyGrabSpend);
+  };
+
   return (
-    <CalcShell title="🚗 Car True Cost Calculator" subtitle="What does owning a car in Singapore really cost you each month?">
+    <CalcShell
+      title="🚗 Car True Cost Calculator"
+      subtitle="What does owning a car in Singapore really cost you each month?"
+      onClear={clearInputs}
+    >
       <div className="form-grid">
         <NumberField label="Car purchase price (incl. COE)" value={carPrice} onChange={setCarPrice} prefix="$" step={1000} />
         <NumberField label="Downpayment" value={downpayment} onChange={setDownpayment} prefix="$" step={1000} />

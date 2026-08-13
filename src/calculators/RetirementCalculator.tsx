@@ -3,18 +3,28 @@ import { CalcShell, Disclaimer, NumberField, ResultCard, ResultRow } from "../co
 import { calculateRetirement, formatSgd } from "../lib/cpf";
 import { usePageMeta } from "../lib/usePageMeta";
 
+const DEFAULTS = {
+  currentAge: 45,
+  retirementAge: 65,
+  currentSavings: 200000,
+  currentCpfRetirement: 120000,
+  monthlyInvestment: 1000,
+  expectedReturnPct: 4,
+  desiredMonthlySpend: 3000,
+};
+
 export default function RetirementCalculator() {
   usePageMeta(
     "Singapore Retirement Calculator",
     "Free retirement calculator for Singapore. See if your savings, CPF and monthly investments are on track to meet your target retirement income, and what to change if they're not."
   );
-  const [currentAge, setCurrentAge] = useState(45);
-  const [retirementAge, setRetirementAge] = useState(65);
-  const [currentSavings, setCurrentSavings] = useState(200000);
-  const [currentCpfRetirement, setCurrentCpfRetirement] = useState(120000);
-  const [monthlyInvestment, setMonthlyInvestment] = useState(1000);
-  const [expectedReturnPct, setExpectedReturnPct] = useState(4);
-  const [desiredMonthlySpend, setDesiredMonthlySpend] = useState(3000);
+  const [currentAge, setCurrentAge] = useState(DEFAULTS.currentAge);
+  const [retirementAge, setRetirementAge] = useState(DEFAULTS.retirementAge);
+  const [currentSavings, setCurrentSavings] = useState(DEFAULTS.currentSavings);
+  const [currentCpfRetirement, setCurrentCpfRetirement] = useState(DEFAULTS.currentCpfRetirement);
+  const [monthlyInvestment, setMonthlyInvestment] = useState(DEFAULTS.monthlyInvestment);
+  const [expectedReturnPct, setExpectedReturnPct] = useState(DEFAULTS.expectedReturnPct);
+  const [desiredMonthlySpend, setDesiredMonthlySpend] = useState(DEFAULTS.desiredMonthlySpend);
 
   const result = useMemo(
     () =>
@@ -30,8 +40,22 @@ export default function RetirementCalculator() {
     [currentAge, retirementAge, currentSavings, currentCpfRetirement, monthlyInvestment, expectedReturnPct, desiredMonthlySpend]
   );
 
+  const clearInputs = () => {
+    setCurrentAge(DEFAULTS.currentAge);
+    setRetirementAge(DEFAULTS.retirementAge);
+    setCurrentSavings(DEFAULTS.currentSavings);
+    setCurrentCpfRetirement(DEFAULTS.currentCpfRetirement);
+    setMonthlyInvestment(DEFAULTS.monthlyInvestment);
+    setExpectedReturnPct(DEFAULTS.expectedReturnPct);
+    setDesiredMonthlySpend(DEFAULTS.desiredMonthlySpend);
+  };
+
   return (
-    <CalcShell title="👴 Retirement Calculator" subtitle="Are you on track to retire comfortably in Singapore?">
+    <CalcShell
+      title="👴 Retirement Calculator"
+      subtitle="Are you on track to retire comfortably in Singapore?"
+      onClear={clearInputs}
+    >
       <div className="form-grid">
         <NumberField label="Current age" value={currentAge} onChange={setCurrentAge} />
         <NumberField label="Target retirement age" value={retirementAge} onChange={setRetirementAge} />

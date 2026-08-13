@@ -98,6 +98,45 @@
   margin: 0 0 20px;
 }
 
+.privacy-note {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 20px;
+}
+.privacy-note span {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+.clear-btn {
+  flex-shrink: 0;
+  background: transparent;
+  border: 1px solid var(--negative);
+  color: var(--negative);
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.clear-btn:active {
+  background: var(--negative);
+  color: white;
+}
+@media (max-width: 380px) {
+  .privacy-note {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
 .form-grid {
   display: flex;
   flex-direction: column;
@@ -231,4 +270,41 @@
 }
 .other-calc-icon {
   font-size: 15px;
+}
+
+.bto-promo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--card);
+  border: 1px dashed var(--primary);
+  border-radius: 14px;
+  padding: 14px 16px;
+  text-decoration: none;
+  color: inherit;
+  margin: 16px 0;
+}
+.bto-promo:active {
+  transform: scale(0.98);
+}
+.bto-promo-icon {
+  font-size: 22px;
+}
+.bto-promo-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.bto-promo-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--primary);
+}
+.bto-promo-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.bto-promo-arrow {
+  color: var(--primary);
+  font-size: 16px;
 }

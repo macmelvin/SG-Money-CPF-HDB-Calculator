@@ -1,19 +1,28 @@
 import { useMemo, useState } from "react";
-import { CalcShell, Disclaimer, NumberField, ResultCard, ResultRow } from "../components/CalcShell";
+import { CalcShell, Disclaimer, NumberField, ResultCard, ResultRow, BtoPromo } from "../components/CalcShell";
 import { calculateHdbSaleProceeds, formatSgd } from "../lib/cpf";
 import { usePageMeta } from "../lib/usePageMeta";
+
+const DEFAULTS = {
+  sellingPrice: 650000,
+  outstandingLoan: 80000,
+  cpfPrincipalUsed: 180000,
+  cpfAccruedInterest: 115000,
+  agentCommissionPct: 2,
+  otherCosts: 2500,
+};
 
 export default function HdbSaleCalculator() {
   usePageMeta(
     "HDB Sale Proceeds Calculator",
     "Free HDB sale proceeds calculator for Singapore. Estimate your cash proceeds after CPF refund, outstanding loan, agent commission and other costs when selling your HDB flat."
   );
-  const [sellingPrice, setSellingPrice] = useState(650000);
-  const [outstandingLoan, setOutstandingLoan] = useState(80000);
-  const [cpfPrincipalUsed, setCpfPrincipalUsed] = useState(180000);
-  const [cpfAccruedInterest, setCpfAccruedInterest] = useState(115000);
-  const [agentCommissionPct, setAgentCommissionPct] = useState(2);
-  const [otherCosts, setOtherCosts] = useState(2500);
+  const [sellingPrice, setSellingPrice] = useState(DEFAULTS.sellingPrice);
+  const [outstandingLoan, setOutstandingLoan] = useState(DEFAULTS.outstandingLoan);
+  const [cpfPrincipalUsed, setCpfPrincipalUsed] = useState(DEFAULTS.cpfPrincipalUsed);
+  const [cpfAccruedInterest, setCpfAccruedInterest] = useState(DEFAULTS.cpfAccruedInterest);
+  const [agentCommissionPct, setAgentCommissionPct] = useState(DEFAULTS.agentCommissionPct);
+  const [otherCosts, setOtherCosts] = useState(DEFAULTS.otherCosts);
 
   const result = useMemo(
     () =>
@@ -28,8 +37,21 @@ export default function HdbSaleCalculator() {
     [sellingPrice, outstandingLoan, cpfPrincipalUsed, cpfAccruedInterest, agentCommissionPct, otherCosts]
   );
 
+  const clearInputs = () => {
+    setSellingPrice(DEFAULTS.sellingPrice);
+    setOutstandingLoan(DEFAULTS.outstandingLoan);
+    setCpfPrincipalUsed(DEFAULTS.cpfPrincipalUsed);
+    setCpfAccruedInterest(DEFAULTS.cpfAccruedInterest);
+    setAgentCommissionPct(DEFAULTS.agentCommissionPct);
+    setOtherCosts(DEFAULTS.otherCosts);
+  };
+
   return (
-    <CalcShell title="🏠 HDB Sale Proceeds Calculator" subtitle="See how much cash you'll walk away with after selling your HDB flat.">
+    <CalcShell
+      title="🏠 HDB Sale Proceeds Calculator"
+      subtitle="See how much cash you'll walk away with after selling your HDB flat."
+      onClear={clearInputs}
+    >
       <div className="form-grid">
         <NumberField label="Estimated selling price" value={sellingPrice} onChange={setSellingPrice} prefix="$" step={1000} />
         <NumberField label="Outstanding HDB/bank loan" value={outstandingLoan} onChange={setOutstandingLoan} prefix="$" step={1000} />
@@ -53,6 +75,11 @@ export default function HdbSaleCalculator() {
           <ResultRow key={b.label} label={b.label} value={`${formatSgd(b.amount)}  (${b.pct.toFixed(0)}%)`} />
         ))}
       </ResultCard>
+
+      <BtoPromo
+        title="Selling to upgrade to a BTO?"
+        desc="Check eligibility, timelines and flat selection with our BTO Planning Tool."
+      />
 
       <Disclaimer>
         Simplified estimate. Actual proceeds depend on your exact CPF withdrawal history, resale levy (if any), and

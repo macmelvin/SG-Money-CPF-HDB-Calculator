@@ -7,6 +7,10 @@ export interface CalculatorMeta {
   desc: string;
 }
 
+// Sister project — a separate app, cross-linked because HDB/BTO planning and
+// SG Money's calculators serve the same audience at different decision points.
+export const BTO_TOOL_URL = "https://bto-planning-tool.web.app/";
+
 export const CALCULATORS: CalculatorMeta[] = [
   {
     to: "/salary-calculator",
