@@ -1,0 +1,64 @@
+import { useMemo, useState } from "react";
+import { CalcShell, Disclaimer, NumberField, ResultCard, ResultRow } from "../components/CalcShell";
+import { calculateRetirement, formatSgd } from "../lib/cpf";
+
+export default function RetirementCalculator() {
+  const [currentAge, setCurrentAge] = useState(45);
+  const [retirementAge, setRetirementAge] = useState(65);
+  const [currentSavings, setCurrentSavings] = useState(200000);
+  const [currentCpfRetirement, setCurrentCpfRetirement] = useState(120000);
+  const [monthlyInvestment, setMonthlyInvestment] = useState(1000);
+  const [expectedReturnPct, setExpectedReturnPct] = useState(4);
+  const [desiredMonthlySpend, setDesiredMonthlySpend] = useState(3000);
+
+  const result = useMemo(
+    () =>
+      calculateRetirement({
+        currentAge,
+        retirementAge,
+        currentSavings,
+        currentCpfRetirement,
+        monthlyInvestment,
+        expectedReturnPct,
+        desiredMonthlySpend,
+      }),
+    [currentAge, retirementAge, currentSavings, currentCpfRetirement, monthlyInvestment, expectedReturnPct, desiredMonthlySpend]
+  );
+
+  return (
+    <CalcShell title="👴 Retirement Calculator" subtitle="Are you on track to retire comfortably in Singapore?">
+      <div className="form-grid">
+        <NumberField label="Current age" value={currentAge} onChange={setCurrentAge} />
+        <NumberField label="Target retirement age" value={retirementAge} onChange={setRetirementAge} />
+        <NumberField label="Current savings (cash/investments)" value={currentSavings} onChange={setCurrentSavings} prefix="$" step={1000} />
+        <NumberField label="Current CPF retirement savings" value={currentCpfRetirement} onChange={setCurrentCpfRetirement} prefix="$" step={1000} />
+        <NumberField label="Monthly investment" value={monthlyInvestment} onChange={setMonthlyInvestment} prefix="$" step={100} />
+        <NumberField label="Expected annual return" value={expectedReturnPct} onChange={setExpectedReturnPct} suffix="%" step={0.5} />
+        <NumberField label="Desired retirement spending" value={desiredMonthlySpend} onChange={setDesiredMonthlySpend} prefix="$" suffix="/mo" step={100} />
+      </div>
+
+      <ResultCard title="Your Retirement Outlook">
+        <ResultRow label="Years remaining" value={`${result.yearsToRetirement} years`} />
+        <ResultRow label="Projected savings at retirement" value={formatSgd(result.projectedSavings)} />
+        <ResultRow label="Target required" value={formatSgd(result.targetRequired)} />
+        <ResultRow
+          label={result.onTrack ? "SURPLUS" : "SHORTFALL"}
+          value={formatSgd(Math.abs(result.shortfall))}
+          emphasis
+          positive={result.onTrack}
+        />
+      </ResultCard>
+
+      {!result.onTrack && (
+        <ResultCard title="Ways to close the gap">
+          <ResultRow label="Increase monthly savings to" value={formatSgd(result.suggestedMonthlySavings)} />
+        </ResultCard>
+      )}
+
+      <Disclaimer>
+        Assumes 25 years in retirement and steady returns — actual markets fluctuate. Does not include CPF LIFE
+        payouts, which depend on your Retirement Sum tier. Not financial advice.
+      </Disclaimer>
+    </CalcShell>
+  );
+}
