@@ -148,24 +148,90 @@ export function calculateAccruedInterest(input: AccruedInterestInput): AccruedIn
   };
 }
 
+// CPF Ordinary Account floor interest rate. Special/MediSave/Retirement Accounts
+// (SMRA) earn a higher floor rate. Actual accounts can earn more via extra interest
+// on the first tranches of savings — ignored here for simplicity, same approach as
+// the accrued-interest calculator.
+export const CPF_OA_RATE = 0.025;
+export const CPF_SMRA_RATE = 0.04;
+
+// Basic / Full / Enhanced Retirement Sum figures for members turning 55 in 2026,
+// and the indicative CPF LIFE Standard Plan monthly payout (from age 65) CPF Board
+// publishes for each tier. Sourced from CPF Board planning guidance for the 2026
+// cohort — these change most years, so treat as illustrative, not exact.
+export const CPF_RETIREMENT_SUMS_2026 = {
+  brs: 110200,
+  frs: 220400,
+  ers: 440800,
+};
+
+export const CPF_LIFE_STANDARD_PAYOUT_2026 = {
+  brs: 950,
+  frs: 1780,
+  ers: 3440,
+};
+
+export interface CpfLifeEstimate {
+  retirementAccountBalance: number; // capped at ERS, since RA can't be topped up beyond it
+  estimatedMonthlyPayout: number;
+  nearestTier: "Below BRS" | "BRS" | "Between BRS and FRS" | "FRS" | "Between FRS and ERS" | "ERS or above";
+}
+
+// Piecewise-linear interpolation between the published BRS/FRS/ERS payout anchor
+// points. CPF Board doesn't publish a continuous formula, but payouts scale close
+// to linearly with the Retirement Account balance within each band.
+export function estimateCpfLifePayout(raBalance: number): CpfLifeEstimate {
+  const { brs, frs, ers } = CPF_RETIREMENT_SUMS_2026;
+  const { brs: brsP, frs: frsP, ers: ersP } = CPF_LIFE_STANDARD_PAYOUT_2026;
+  const capped = Math.max(0, Math.min(raBalance, ers));
+
+  let payout: number;
+  let nearestTier: CpfLifeEstimate["nearestTier"];
+  if (capped <= brs) {
+    payout = brs === 0 ? 0 : (capped / brs) * brsP;
+    nearestTier = capped === brs ? "BRS" : "Below BRS";
+  } else if (capped <= frs) {
+    const t = (capped - brs) / (frs - brs);
+    payout = brsP + t * (frsP - brsP);
+    nearestTier = capped === frs ? "FRS" : "Between BRS and FRS";
+  } else {
+    const t = (capped - frs) / (ers - frs);
+    payout = frsP + t * (ersP - frsP);
+    nearestTier = capped === ers ? "ERS or above" : "Between FRS and ERS";
+  }
+
+  return {
+    retirementAccountBalance: Math.round(capped),
+    estimatedMonthlyPayout: Math.round(payout),
+    nearestTier,
+  };
+}
+
 export interface RetirementInput {
   currentAge: number;
   retirementAge: number;
   currentSavings: number;
-  currentCpfRetirement: number;
+  currentOA: number;
+  currentSaRa: number; // Special Account (pre-55) / Retirement Account (55+)
+  currentMA: number; // MediSave — reserved for healthcare, not counted toward retirement income
   monthlyInvestment: number;
-  expectedReturnPct: number; // annual, e.g. 4 for 4%
+  expectedReturnPct: number; // annual, e.g. 4 for 4% — applies to cash/investments only
   desiredMonthlySpend: number;
   yearsInRetirement?: number; // default 25
 }
 
 export interface RetirementResult {
   yearsToRetirement: number;
-  projectedSavings: number;
+  projectedCash: number;
+  projectedOA: number;
+  projectedSaRa: number;
+  projectedMA: number;
+  projectedSavings: number; // cash + OA + SA/RA — the pot counted toward retirement income
   targetRequired: number;
   shortfall: number; // positive = shortfall, negative = surplus
   onTrack: boolean;
   suggestedMonthlySavings: number;
+  cpfLife: CpfLifeEstimate;
 }
 
 export function calculateRetirement(input: RetirementInput): RetirementResult {
@@ -173,7 +239,9 @@ export function calculateRetirement(input: RetirementInput): RetirementResult {
     currentAge,
     retirementAge,
     currentSavings,
-    currentCpfRetirement,
+    currentOA,
+    currentSaRa,
+    currentMA,
     monthlyInvestment,
     expectedReturnPct,
     desiredMonthlySpend,
@@ -181,30 +249,59 @@ export function calculateRetirement(input: RetirementInput): RetirementResult {
   } = input;
 
   const yearsToRetirement = Math.max(0, retirementAge - currentAge);
-  const r = expectedReturnPct / 100 / 12;
   const n = yearsToRetirement * 12;
-  const startingPot = currentSavings + currentCpfRetirement;
 
-  // Future value of current savings + monthly contributions (ordinary annuity).
-  const fvLumpSum = startingPot * Math.pow(1 + r, n);
-  const fvContributions = r === 0 ? monthlyInvestment * n : monthlyInvestment * ((Math.pow(1 + r, n) - 1) / r);
-  const projectedSavings = Math.round(fvLumpSum + fvContributions);
+  const rInvest = expectedReturnPct / 100 / 12;
+  const rOA = CPF_OA_RATE / 12;
+  const rSmra = CPF_SMRA_RATE / 12;
+
+  // Future value of cash/investments: current lump sum + monthly contributions (ordinary annuity),
+  // growing at the user's own expected return.
+  const fvLumpSumCash = currentSavings * Math.pow(1 + rInvest, n);
+  const fvContributions =
+    rInvest === 0 ? monthlyInvestment * n : monthlyInvestment * ((Math.pow(1 + rInvest, n) - 1) / rInvest);
+  const projectedCash = Math.round(fvLumpSumCash + fvContributions);
+
+  // CPF balances grow at their own fixed floor rates, not the user's investment assumption.
+  // This does not model further CPF contributions between now and retirement.
+  const projectedOA = Math.round(currentOA * Math.pow(1 + rOA, n));
+  const projectedSaRa = Math.round(currentSaRa * Math.pow(1 + rSmra, n));
+  const projectedMA = Math.round(currentMA * Math.pow(1 + rSmra, n));
+
+  const projectedSavings = projectedCash + projectedOA + projectedSaRa;
 
   const targetRequired = Math.round(desiredMonthlySpend * 12 * yearsInRetirement);
   const shortfall = targetRequired - projectedSavings;
   const onTrack = shortfall <= 0;
 
-  // Solve for the monthly contribution needed to close the gap (holding lump sum fixed).
+  // Solve for the monthly contribution needed to close the gap (holding CPF and the cash lump sum fixed —
+  // CPF balances aren't something a user can top up from this calculator).
   let suggestedMonthlySavings = monthlyInvestment;
   if (!onTrack && n > 0) {
-    const neededContribFv = targetRequired - fvLumpSum;
+    const neededContribFv = targetRequired - fvLumpSumCash - projectedOA - projectedSaRa;
     suggestedMonthlySavings = Math.round(
-      r === 0 ? neededContribFv / n : neededContribFv / ((Math.pow(1 + r, n) - 1) / r)
+      rInvest === 0 ? neededContribFv / n : neededContribFv / ((Math.pow(1 + rInvest, n) - 1) / rInvest)
     );
     if (suggestedMonthlySavings < monthlyInvestment) suggestedMonthlySavings = monthlyInvestment;
   }
 
-  return { yearsToRetirement, projectedSavings, targetRequired, shortfall, onTrack, suggestedMonthlySavings };
+  // CPF LIFE payout estimate uses projected OA + SA/RA (capped at the Enhanced Retirement Sum,
+  // since that's the most one can set aside in the Retirement Account at 55).
+  const cpfLife = estimateCpfLifePayout(projectedOA + projectedSaRa);
+
+  return {
+    yearsToRetirement,
+    projectedCash,
+    projectedOA,
+    projectedSaRa,
+    projectedMA,
+    projectedSavings,
+    targetRequired,
+    shortfall,
+    onTrack,
+    suggestedMonthlySavings,
+    cpfLife,
+  };
 }
 
 export interface CarCostInput {
