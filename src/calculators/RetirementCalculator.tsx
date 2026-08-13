@@ -150,6 +150,7 @@ export default function RetirementCalculator() {
     cpfOaSaRa: currentOA + currentSaRa,
     cpfFrs: CPF_RETIREMENT_SUMS_2026.frs,
     cpfBrs: CPF_RETIREMENT_SUMS_2026.brs,
+    cpfErs: CPF_RETIREMENT_SUMS_2026.ers,
     hdbLoanOutstanding: savedHdb?.data ? savedHdb.data.outstandingLoan : null,
     totalInvestments: totalInvestmentsPortfolio,
     investmentItemCount: investmentItems.length,
@@ -159,6 +160,8 @@ export default function RetirementCalculator() {
     monthlySurplus,
     totalMonthlyIncome: totalIncome,
     onTrackForRetirement: result.onTrack,
+    cpfLifeTargetTier,
+    projectedCpfForRetirementAccount: result.projectedOA + result.projectedSaRa,
   });
 
   // --- Timeline ---

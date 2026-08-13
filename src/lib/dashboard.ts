@@ -2,6 +2,8 @@
 // numbers the user has typed into this device's browser — nothing is looked up,
 // nothing is sent anywhere.
 
+import type { CpfLifeTargetTier } from "./cpf";
+
 export interface LineItem {
   id: string;
   label: string;
@@ -89,10 +91,13 @@ const STATUS_SCORE: Record<HealthStatus, number> = {
   attention: 2.5,
 };
 
+const CPF_LIFE_TIER_NAME: Record<CpfLifeTargetTier, string> = { brs: "BRS", frs: "FRS", ers: "ERS" };
+
 export interface HealthCheckInput {
   cpfOaSaRa: number; // counted-toward-retirement CPF (OA + SA/RA)
   cpfFrs: number; // Full Retirement Sum reference point
   cpfBrs: number; // Basic Retirement Sum reference point
+  cpfErs: number; // Enhanced Retirement Sum reference point
   hdbLoanOutstanding: number | null; // null = unknown / no HDB data saved
   totalInvestments: number;
   investmentItemCount: number;
@@ -102,6 +107,8 @@ export interface HealthCheckInput {
   monthlySurplus: number;
   totalMonthlyIncome: number;
   onTrackForRetirement: boolean;
+  cpfLifeTargetTier: CpfLifeTargetTier; // which RA tier the user selected in the CPF LIFE section
+  projectedCpfForRetirementAccount: number; // projected OA+SA/RA the CPF LIFE estimate is based on (uncapped)
 }
 
 export function computeHealthCheck(input: HealthCheckInput): {
@@ -119,6 +126,36 @@ export function computeHealthCheck(input: HealthCheckInput): {
     dimensions.push({ key: "cpf", label: "CPF Position", status: "moderate", note: "Below the Basic Retirement Sum." });
   } else {
     dimensions.push({ key: "cpf", label: "CPF Position", status: "attention", note: "No CPF OA/SA-RA entered yet." });
+  }
+
+  // CPF LIFE tier plan — is the tier picked in the CPF LIFE section actually realistic?
+  // BRS only works if you pledge your property (see the CPF LIFE section's explainer), so it always
+  // gets flagged for confirmation rather than a pass/fail — this calculator can't know if you've pledged.
+  const tierName = CPF_LIFE_TIER_NAME[input.cpfLifeTargetTier];
+  if (input.cpfLifeTargetTier === "brs") {
+    dimensions.push({
+      key: "cpfLifeTier",
+      label: "CPF LIFE Tier Plan",
+      status: "moderate",
+      note: "BRS only applies if you pledge your property — confirm this with CPF Board, since it isn't the default.",
+    });
+  } else {
+    const tierAmount = input.cpfLifeTargetTier === "ers" ? input.cpfErs : input.cpfFrs;
+    if (input.projectedCpfForRetirementAccount >= tierAmount) {
+      dimensions.push({
+        key: "cpfLifeTier",
+        label: "CPF LIFE Tier Plan",
+        status: "strong",
+        note: `Projected CPF is on track to reach your selected ${tierName}.`,
+      });
+    } else {
+      dimensions.push({
+        key: "cpfLifeTier",
+        label: "CPF LIFE Tier Plan",
+        status: "attention",
+        note: `Projected CPF falls short of your selected ${tierName} — payout will be lower than shown unless you top up.`,
+      });
+    }
   }
 
   // Property position
