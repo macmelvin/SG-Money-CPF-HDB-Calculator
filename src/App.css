@@ -213,6 +213,20 @@
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 14px 16px;
   }
+  /* Grid columns can still grow past what a single number actually needs on very wide
+     screens (1fr keeps distributing leftover space) — cap each box at a standard width
+     instead of letting it stretch, so a short value like "4" doesn't sit in a mostly-empty
+     box. Boxes left-align within their (possibly wider) column once capped. */
+  .calc-page > .form-grid .field {
+    max-width: 300px;
+  }
+  /* Some labels wrap to 2 lines ("Expected annual return (cash/investments)") while their
+     row neighbours stay on 1 line, which otherwise pushes just that one input box down and
+     breaks the row's horizontal alignment. Reserving 2 lines of height for every label keeps
+     all the input boxes in a row level regardless of how long any one label is. */
+  .calc-page > .form-grid .field-label {
+    min-height: 2.6em;
+  }
 }
 
 .form-grid {
