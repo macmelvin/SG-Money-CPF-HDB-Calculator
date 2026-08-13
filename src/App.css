@@ -653,6 +653,11 @@
   margin-bottom: 12px;
   cursor: pointer;
 }
+.dashboard-toggle.section-divider {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
 .dashboard-toggle input[type="checkbox"] {
   width: 17px;
   height: 17px;

@@ -358,17 +358,9 @@ export default function RetirementCalculator() {
         />
       </ResultCard>
 
-      <ResultCard title="🏠 Selling your HDB today?">
+      <ResultCard title="🏠 Selling Your HDB">
         {hdbScenario ? (
           <>
-            <label className="hdb-scenario-toggle">
-              <input
-                type="checkbox"
-                checked={includeHdbSale}
-                onChange={(e) => setIncludeHdbSale(e.target.checked)}
-              />
-              <span>Include selling my HDB today in this projection</span>
-            </label>
             <ResultRow label="CPF refund → added to your OA" value={`+${formatSgd(hdbScenario.cpfRefund)}`} positive />
             <ResultRow label="Cash proceeds → added to your savings" value={`+${formatSgd(hdbScenario.cashProceeds)}`} positive />
             <p className="explainer">
@@ -377,14 +369,79 @@ export default function RetirementCalculator() {
               {savedHdb?.savedAt
                 ? ` on ${new Date(savedHdb.savedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`
                 : ""}
-              . Uncheck the box above to see your outlook without selling.
+              .
             </p>
+
+            <label className="hdb-scenario-toggle">
+              <input
+                type="checkbox"
+                checked={includeHdbSale}
+                onChange={(e) => setIncludeHdbSale(e.target.checked)}
+              />
+              <span>Include selling my HDB today in this projection</span>
+            </label>
+            <p className="explainer" style={{ marginTop: -6 }}>
+              Adds the CPF refund and cash proceeds above into your projected balances below. Uncheck to see
+              your outlook without selling.
+            </p>
+
+            <label className="dashboard-toggle section-divider">
+              <input type="checkbox" checked={planRightsizing} onChange={(e) => setPlanRightsizing(e.target.checked)} />
+              <span>I'm considering downsizing to a smaller flat</span>
+            </label>
+            {!planRightsizing && (
+              <p className="explainer">
+                Check the box above to model buying a smaller replacement flat and see how much cash that
+                would release for retirement.
+              </p>
+            )}
+            {planRightsizing && rightsizing && (
+              <>
+                <NumberField
+                  label="Replacement flat price"
+                  value={replacementFlatPrice}
+                  onChange={setReplacementFlatPrice}
+                  prefix="$"
+                  step={5000}
+                />
+                <NumberField
+                  label="Estimated legal & moving costs"
+                  value={legalMovingCosts}
+                  onChange={setLegalMovingCosts}
+                  prefix="$"
+                  step={500}
+                />
+                <ResultRow label="Estimated sale proceeds" value={formatSgd(hdbCurrentValue)} />
+                <ResultRow label="Less: CPF refund" value={`-${formatSgd(hdbScenario.cpfRefund)}`} positive={false} />
+                <ResultRow label="Balance after CPF refund" value={formatSgd(rightsizing.balanceAfterCpfRefund)} />
+                <ResultRow label="Less: replacement flat price" value={`-${formatSgd(replacementFlatPrice)}`} positive={false} />
+                <ResultRow label="Less: legal & moving costs" value={`-${formatSgd(legalMovingCosts)}`} positive={false} />
+                <ResultRow
+                  label="ESTIMATED CASH RELEASED"
+                  value={formatSgd(rightsizing.cashReleased)}
+                  emphasis
+                  positive={rightsizing.cashReleased >= 0}
+                />
+                <div className="result-card" style={{ marginTop: 12, marginBottom: 0, boxShadow: "none" }}>
+                  <h3>Financial Position After Rightsizing</h3>
+                  <ResultRow label="CPF savings" value={formatSgd(totalCpfToday)} />
+                  <ResultRow label="Investments & insurance" value={formatSgd(totalInvestmentsPortfolio)} />
+                  <ResultRow label="Cash released from rightsizing" value={formatSgd(rightsizing.cashReleased)} />
+                  <ResultRow
+                    label="ESTIMATED FINANCIAL ASSETS"
+                    value={formatSgd(estimatedAssetsAfterRightsizing ?? 0)}
+                    emphasis
+                  />
+                  <p className="explainer">Excludes the value of your replacement flat.</p>
+                </div>
+              </>
+            )}
           </>
         ) : (
           <p className="explainer">
             Save your numbers in the <Link to="/hdb-sale-proceeds">HDB Sale Proceeds calculator</Link> and
             they'll show up here as a "what if I sold today" scenario — the CPF refund gets added to your OA
-            and the cash proceeds to your savings, below.
+            and the cash proceeds to your savings, plus you'll be able to model downsizing to a smaller flat.
           </p>
         )}
       </ResultCard>
@@ -417,66 +474,6 @@ export default function RetirementCalculator() {
           <ResultRow label="Increase monthly savings to" value={formatSgd(result.suggestedMonthlySavings)} />
         </ResultCard>
       )}
-
-      <ResultCard title="🏘️ Rightsizing Scenario">
-        <label className="dashboard-toggle">
-          <input type="checkbox" checked={planRightsizing} onChange={(e) => setPlanRightsizing(e.target.checked)} />
-          <span>I'm considering downsizing to a smaller flat</span>
-        </label>
-        {!planRightsizing && (
-          <p className="explainer">
-            Check the box above to model selling your HDB, buying a smaller replacement flat, and seeing how
-            much cash that would release for retirement.
-          </p>
-        )}
-        {planRightsizing && !hdbScenario && (
-          <p className="explainer">
-            This needs your HDB numbers — save them in the{" "}
-            <Link to="/hdb-sale-proceeds">HDB Sale Proceeds calculator</Link> first.
-          </p>
-        )}
-        {planRightsizing && rightsizing && (
-          <>
-            <NumberField
-              label="Replacement flat price"
-              value={replacementFlatPrice}
-              onChange={setReplacementFlatPrice}
-              prefix="$"
-              step={5000}
-            />
-            <NumberField
-              label="Estimated legal & moving costs"
-              value={legalMovingCosts}
-              onChange={setLegalMovingCosts}
-              prefix="$"
-              step={500}
-            />
-            <ResultRow label="Estimated sale proceeds" value={formatSgd(hdbCurrentValue)} />
-            <ResultRow label="Less: CPF refund" value={`-${formatSgd(hdbScenario!.cpfRefund)}`} positive={false} />
-            <ResultRow label="Balance after CPF refund" value={formatSgd(rightsizing.balanceAfterCpfRefund)} />
-            <ResultRow label="Less: replacement flat price" value={`-${formatSgd(replacementFlatPrice)}`} positive={false} />
-            <ResultRow label="Less: legal & moving costs" value={`-${formatSgd(legalMovingCosts)}`} positive={false} />
-            <ResultRow
-              label="ESTIMATED CASH RELEASED"
-              value={formatSgd(rightsizing.cashReleased)}
-              emphasis
-              positive={rightsizing.cashReleased >= 0}
-            />
-            <div className="result-card" style={{ marginTop: 12, marginBottom: 0, boxShadow: "none" }}>
-              <h3>Financial Position After Rightsizing</h3>
-              <ResultRow label="CPF savings" value={formatSgd(totalCpfToday)} />
-              <ResultRow label="Investments & insurance" value={formatSgd(totalInvestmentsPortfolio)} />
-              <ResultRow label="Cash released from rightsizing" value={formatSgd(rightsizing.cashReleased)} />
-              <ResultRow
-                label="ESTIMATED FINANCIAL ASSETS"
-                value={formatSgd(estimatedAssetsAfterRightsizing ?? 0)}
-                emphasis
-              />
-              <p className="explainer">Excludes the value of your replacement flat.</p>
-            </div>
-          </>
-        )}
-      </ResultCard>
 
       <ResultCard title="🏦 CPF LIFE Estimate (from age 65)">
         <p className="explainer" style={{ marginTop: -2 }}>
