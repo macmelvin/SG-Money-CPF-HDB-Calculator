@@ -230,6 +230,10 @@ export interface RetirementInput {
   cpfLifeTargetTier?: CpfLifeTargetTier; // default "ers" — which tier to set aside in the RA
   investmentHoldingsValue?: number; // default 0 — today's value of investment/insurance holdings (e.g. from the
   // Net Worth Snapshot's line items), grown as a lump sum at the same expected return as cash/investments
+  inflationRatePct?: number; // default 2.5 — annual, applied to desiredMonthlySpend between now and retirement,
+  // and again across every year of retirement, so targetRequired stays in the same nominal-dollars-at-retirement
+  // terms as projectedSavings. 2.5% sits within MAS's implicit ~2-3% long-run core inflation range and matches
+  // the default other SG retirement calculators use.
 }
 
 export interface RetirementResult {
@@ -240,6 +244,7 @@ export interface RetirementResult {
   projectedMA: number;
   projectedInvestmentHoldings: number; // grown value of investment/insurance holdings, if included
   projectedSavings: number; // cash + OA + SA/RA + investment holdings — the pot counted toward retirement income
+  desiredMonthlySpendAtRetirement: number; // desiredMonthlySpend inflated to the year you actually retire
   targetRequired: number;
   shortfall: number; // positive = shortfall, negative = surplus
   onTrack: boolean;
@@ -262,6 +267,7 @@ export function calculateRetirement(input: RetirementInput): RetirementResult {
     yearsInRetirement = 25,
     cpfLifeTargetTier = "ers",
     investmentHoldingsValue = 0,
+    inflationRatePct = 2.5,
   } = input;
 
   const yearsToRetirement = Math.max(0, retirementAge - currentAge);
@@ -291,7 +297,17 @@ export function calculateRetirement(input: RetirementInput): RetirementResult {
 
   const projectedSavings = projectedCash + projectedOA + projectedSaRa + projectedInvestmentHoldings;
 
-  const targetRequired = Math.round(desiredMonthlySpend * 12 * yearsInRetirement);
+  // Inflate today's desired spending to the year you actually retire, then keep inflating it across
+  // every year you're drawing down in retirement — a future-value-of-a-growing-annuity calculation —
+  // so targetRequired stays comparable to projectedSavings (both are nominal dollars at retirement).
+  const inflationRate = inflationRatePct / 100;
+  const desiredMonthlySpendAtRetirement = desiredMonthlySpend * Math.pow(1 + inflationRate, yearsToRetirement);
+  const annualSpendAtRetirement = desiredMonthlySpendAtRetirement * 12;
+  const targetRequired = Math.round(
+    inflationRate === 0
+      ? annualSpendAtRetirement * yearsInRetirement
+      : (annualSpendAtRetirement * (Math.pow(1 + inflationRate, yearsInRetirement) - 1)) / inflationRate
+  );
   const shortfall = targetRequired - projectedSavings;
   const onTrack = shortfall <= 0;
 
@@ -323,6 +339,7 @@ export function calculateRetirement(input: RetirementInput): RetirementResult {
     projectedMA,
     projectedInvestmentHoldings,
     projectedSavings,
+    desiredMonthlySpendAtRetirement: Math.round(desiredMonthlySpendAtRetirement),
     targetRequired,
     shortfall,
     onTrack,

@@ -34,6 +34,7 @@ const DEFAULTS = {
   monthlyInvestment: 1000,
   expectedReturnPct: 4,
   desiredMonthlySpend: 3000,
+  inflationRatePct: 2.5,
   hdbCurrentValue: 650000,
   incomeItems: [{ id: "income-1", label: "Salary", amount: 5000 }] as LineItem[],
   expenseItems: [{ id: "expense-1", label: "Living expenses", amount: 2400 }] as LineItem[],
@@ -72,6 +73,7 @@ export default function RetirementCalculator() {
   const [monthlyInvestment, setMonthlyInvestment] = useState(initial.monthlyInvestment);
   const [expectedReturnPct, setExpectedReturnPct] = useState(initial.expectedReturnPct);
   const [desiredMonthlySpend, setDesiredMonthlySpend] = useState(initial.desiredMonthlySpend);
+  const [inflationRatePct, setInflationRatePct] = useState(initial.inflationRatePct);
   const [savedAt, setSavedAt] = useState<number | null>(saved?.savedAt ?? null);
   const [includeHdbSale, setIncludeHdbSale] = useState(true);
   const [isGeneratingDashboard, setIsGeneratingDashboard] = useState(false);
@@ -114,6 +116,7 @@ export default function RetirementCalculator() {
         desiredMonthlySpend,
         cpfLifeTargetTier,
         investmentHoldingsValue: effectiveInvestmentHoldings,
+        inflationRatePct,
       }),
     [
       currentAge,
@@ -127,6 +130,7 @@ export default function RetirementCalculator() {
       desiredMonthlySpend,
       cpfLifeTargetTier,
       effectiveInvestmentHoldings,
+      inflationRatePct,
     ]
   );
 
@@ -207,6 +211,7 @@ export default function RetirementCalculator() {
     setMonthlyInvestment(DEFAULTS.monthlyInvestment);
     setExpectedReturnPct(DEFAULTS.expectedReturnPct);
     setDesiredMonthlySpend(DEFAULTS.desiredMonthlySpend);
+    setInflationRatePct(DEFAULTS.inflationRatePct);
     setHdbCurrentValue(DEFAULTS.hdbCurrentValue);
     setIncomeItems(DEFAULTS.incomeItems.map((i) => ({ ...i })));
     setExpenseItems(DEFAULTS.expenseItems.map((i) => ({ ...i })));
@@ -231,6 +236,7 @@ export default function RetirementCalculator() {
       monthlyInvestment,
       expectedReturnPct,
       desiredMonthlySpend,
+      inflationRatePct,
       hdbCurrentValue,
       incomeItems,
       expenseItems,
@@ -256,7 +262,8 @@ export default function RetirementCalculator() {
         { label: "Current CPF MediSave (MA)", value: formatSgd(currentMA) },
         { label: "Monthly investment", value: formatSgd(monthlyInvestment) },
         { label: "Expected annual return (cash/investments)", value: `${expectedReturnPct}%` },
-        { label: "Desired retirement spending", value: `${formatSgd(desiredMonthlySpend)}/mo` },
+        { label: "Desired retirement spending (today's dollars)", value: `${formatSgd(desiredMonthlySpend)}/mo` },
+        { label: "Expected inflation rate", value: `${inflationRatePct}%` },
         ...(applyHdbScenario
           ? [
               { label: "Includes selling HDB today: CPF refund added to OA", value: `+${formatSgd(hdbScenario.cpfRefund)}` },
@@ -277,7 +284,11 @@ export default function RetirementCalculator() {
         },
         { label: "Projected CPF MediSave (not counted, healthcare only)", value: formatSgd(result.projectedMA) },
         { label: "Total counted toward retirement income", value: formatSgd(result.projectedSavings) },
-        { label: "Target required", value: formatSgd(result.targetRequired) },
+        {
+          label: `Desired spending at retirement (${inflationRatePct}%/yr inflation)`,
+          value: `${formatSgd(result.desiredMonthlySpendAtRetirement)}/mo`,
+        },
+        { label: "Target required (inflation-adjusted)", value: formatSgd(result.targetRequired) },
         {
           label: result.onTrack ? "Surplus" : "Shortfall",
           value: formatSgd(Math.abs(result.shortfall)),
@@ -420,6 +431,7 @@ export default function RetirementCalculator() {
         <NumberField label="Monthly investment" value={monthlyInvestment} onChange={setMonthlyInvestment} prefix="$" step={100} />
         <NumberField label="Expected annual return (cash/investments)" value={expectedReturnPct} onChange={setExpectedReturnPct} suffix="%" step={0.5} />
         <NumberField label="Desired retirement spending" value={desiredMonthlySpend} onChange={setDesiredMonthlySpend} prefix="$" suffix="/mo" step={100} />
+        <NumberField label="Expected inflation rate" value={inflationRatePct} onChange={setInflationRatePct} suffix="%" step={0.5} />
       </div>
 
       <ResultCard title="📊 Net Worth Snapshot">
@@ -578,7 +590,16 @@ export default function RetirementCalculator() {
       <ResultCard title="Your Retirement Outlook">
         <ResultRow label="Years remaining" value={`${result.yearsToRetirement} years`} />
         <ResultRow label="Projected savings at retirement" value={formatSgd(result.projectedSavings)} />
+        <ResultRow
+          label={`Desired spending at retirement (${inflationRatePct}%/yr inflation)`}
+          value={`${formatSgd(result.desiredMonthlySpendAtRetirement)}/mo`}
+        />
         <ResultRow label="Target required" value={formatSgd(result.targetRequired)} />
+        <p className="explainer" style={{ marginTop: -6 }}>
+          Your {formatSgd(desiredMonthlySpend)}/mo today is inflated to {formatSgd(result.desiredMonthlySpendAtRetirement)}/mo by
+          the time you retire, then kept rising at the same rate across your 25 years in retirement — "Target required" is
+          the total nominal dollars that takes.
+        </p>
         <ResultRow
           label={result.onTrack ? "SURPLUS" : "SHORTFALL"}
           value={formatSgd(Math.abs(result.shortfall))}
@@ -679,7 +700,11 @@ export default function RetirementCalculator() {
       <DocToolsPromo />
 
       <Disclaimer>
-        Assumes 25 years in retirement and steady investment returns — actual markets fluctuate. CPF OA/SA/MediSave
+        Assumes 25 years in retirement and steady investment returns — actual markets fluctuate. Your desired
+        retirement spending is entered in today's dollars and inflated at your chosen rate (2.5% by default, in
+        line with MAS's long-run core inflation range) to the year you retire, then kept rising at that same rate
+        across your years in retirement — investment returns and CPF interest rates themselves are not adjusted
+        for inflation, only spending. CPF OA/SA/MediSave
         balances are projected at CPF's floor interest rates (OA 2.5%, SA/MA/RA 4%) with no further CPF
         contributions modelled between now and retirement. The CPF LIFE payout is an indicative Standard Plan
         estimate for the 2026 cohort, interpolated between CPF Board's published BRS/FRS/ERS figures — actual
