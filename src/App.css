@@ -166,6 +166,43 @@
   }
 }
 
+/* Desktop: calculator pages widen and lay their cards out in 2-4 columns instead of one
+   long single-column scroll, so more is visible at once without losing the inputs at the
+   top. Only kicks in for calculator pages (.app:has(.calc-page)) — the Home page keeps its
+   narrow, centered mobile-app look at any width. Everything that should stay full-width
+   (the header, the input form, the disclaimer, the "other calculators" nav) is pinned across
+   every column; only the result cards themselves flow into the grid. */
+@media (min-width: 640px) {
+  .app:has(.calc-page) {
+    max-width: 1360px;
+  }
+  .calc-page {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    align-items: start;
+    gap: 16px;
+  }
+  .calc-page > .back-link,
+  .calc-page > h1,
+  .calc-page > .subtitle,
+  .calc-page > .privacy-note,
+  .calc-page > .form-grid,
+  .calc-page > .disclaimer,
+  .calc-page > .other-calcs {
+    grid-column: 1 / -1;
+  }
+  .calc-page > .result-card {
+    margin-bottom: 0;
+  }
+  /* The input fields above the cards also stop stretching full-width — same auto-fit
+     approach, just with a narrower minimum since these are single number inputs. */
+  .calc-page > .form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px 16px;
+  }
+}
+
 .form-grid {
   display: flex;
   flex-direction: column;
