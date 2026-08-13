@@ -256,6 +256,22 @@
   margin: -6px 0 16px;
 }
 
+.hdb-scenario-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  cursor: pointer;
+}
+.hdb-scenario-toggle input[type="checkbox"] {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--positive);
+  cursor: pointer;
+}
+
 .cpf-life-tiers {
   display: flex;
   gap: 8px;

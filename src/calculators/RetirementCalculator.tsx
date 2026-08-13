@@ -1,6 +1,14 @@
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { CalcShell, Disclaimer, NumberField, ResultCard, ResultRow } from "../components/CalcShell";
-import { CPF_LIFE_STANDARD_PAYOUT_2026, CPF_RETIREMENT_SUMS_2026, calculateRetirement, formatSgd } from "../lib/cpf";
+import {
+  CPF_LIFE_STANDARD_PAYOUT_2026,
+  CPF_RETIREMENT_SUMS_2026,
+  calculateHdbSaleProceeds,
+  calculateRetirement,
+  formatSgd,
+} from "../lib/cpf";
+import type { HdbSaleInput } from "../lib/cpf";
 import { usePageMeta } from "../lib/usePageMeta";
 import { clearCalculatorData, loadCalculatorData, saveCalculatorData } from "../lib/storage";
 import { downloadCalculatorPdf } from "../lib/pdf";
@@ -18,6 +26,8 @@ const DEFAULTS = {
 };
 
 const STORAGE_KEY = "retirement-calculator";
+// Must match the storage key HdbSaleCalculator.tsx saves under.
+const HDB_SALE_STORAGE_KEY = "hdb-sale-proceeds";
 
 export default function RetirementCalculator() {
   usePageMeta(
@@ -37,14 +47,23 @@ export default function RetirementCalculator() {
   const [expectedReturnPct, setExpectedReturnPct] = useState(initial.expectedReturnPct);
   const [desiredMonthlySpend, setDesiredMonthlySpend] = useState(initial.desiredMonthlySpend);
   const [savedAt, setSavedAt] = useState<number | null>(saved?.savedAt ?? null);
+  const [includeHdbSale, setIncludeHdbSale] = useState(true);
+
+  // Pull whatever the user last saved in the HDB Sale Proceeds calculator (if anything) so this
+  // page can offer a "what if I sold today" scenario without asking them to re-enter numbers.
+  const savedHdb = loadCalculatorData<HdbSaleInput>(HDB_SALE_STORAGE_KEY);
+  const hdbScenario = savedHdb?.data ? calculateHdbSaleProceeds(savedHdb.data) : null;
+  const applyHdbScenario = includeHdbSale && hdbScenario !== null;
+  const effectiveOA = currentOA + (applyHdbScenario ? hdbScenario.cpfRefund : 0);
+  const effectiveSavings = currentSavings + (applyHdbScenario ? hdbScenario.cashProceeds : 0);
 
   const result = useMemo(
     () =>
       calculateRetirement({
         currentAge,
         retirementAge,
-        currentSavings,
-        currentOA,
+        currentSavings: effectiveSavings,
+        currentOA: effectiveOA,
         currentSaRa,
         currentMA,
         monthlyInvestment,
@@ -54,8 +73,8 @@ export default function RetirementCalculator() {
     [
       currentAge,
       retirementAge,
-      currentSavings,
-      currentOA,
+      effectiveSavings,
+      effectiveOA,
       currentSaRa,
       currentMA,
       monthlyInvestment,
@@ -106,6 +125,12 @@ export default function RetirementCalculator() {
         { label: "Monthly investment", value: formatSgd(monthlyInvestment) },
         { label: "Expected annual return (cash/investments)", value: `${expectedReturnPct}%` },
         { label: "Desired retirement spending", value: `${formatSgd(desiredMonthlySpend)}/mo` },
+        ...(applyHdbScenario
+          ? [
+              { label: "Includes selling HDB today: CPF refund added to OA", value: `+${formatSgd(hdbScenario.cpfRefund)}` },
+              { label: "Includes selling HDB today: cash added to savings", value: `+${formatSgd(hdbScenario.cashProceeds)}` },
+            ]
+          : []),
       ],
       results: [
         { label: "Years remaining", value: `${result.yearsToRetirement} years` },
@@ -151,7 +176,41 @@ export default function RetirementCalculator() {
         <NumberField label="Desired retirement spending" value={desiredMonthlySpend} onChange={setDesiredMonthlySpend} prefix="$" suffix="/mo" step={100} />
       </div>
 
+      <ResultCard title="🏠 Selling your HDB today?">
+        {hdbScenario ? (
+          <>
+            <label className="hdb-scenario-toggle">
+              <input
+                type="checkbox"
+                checked={includeHdbSale}
+                onChange={(e) => setIncludeHdbSale(e.target.checked)}
+              />
+              <span>Include selling my HDB today in this projection</span>
+            </label>
+            <ResultRow label="CPF refund → added to your OA" value={`+${formatSgd(hdbScenario.cpfRefund)}`} positive />
+            <ResultRow label="Cash proceeds → added to your savings" value={`+${formatSgd(hdbScenario.cashProceeds)}`} positive />
+            <p className="explainer">
+              Pulled from what you saved in the{" "}
+              <Link to="/hdb-sale-proceeds">HDB Sale Proceeds calculator</Link>
+              {savedHdb?.savedAt
+                ? ` on ${new Date(savedHdb.savedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`
+                : ""}
+              . Uncheck the box above to see your outlook without selling.
+            </p>
+          </>
+        ) : (
+          <p className="explainer">
+            Save your numbers in the <Link to="/hdb-sale-proceeds">HDB Sale Proceeds calculator</Link> and
+            they'll show up here as a "what if I sold today" scenario — the CPF refund gets added to your OA
+            and the cash proceeds to your savings, below.
+          </p>
+        )}
+      </ResultCard>
+
       <ResultCard title="Projected Balances at Retirement">
+        {applyHdbScenario && (
+          <p className="explainer">Includes a one-time boost from selling your HDB today (see above).</p>
+        )}
         <ResultRow label="Cash & investments" value={formatSgd(result.projectedCash)} />
         <ResultRow label="CPF OA" value={formatSgd(result.projectedOA)} />
         <ResultRow label="CPF SA/RA" value={formatSgd(result.projectedSaRa)} />
@@ -219,8 +278,9 @@ export default function RetirementCalculator() {
         contributions modelled between now and retirement. The CPF LIFE payout is an indicative Standard Plan
         estimate for the 2026 cohort, interpolated between CPF Board's published BRS/FRS/ERS figures — actual
         payouts depend on your plan choice (Standard/Basic/Escalating), gender, cohort and prevailing interest
-        rates. For a personalised figure, use the official CPF LIFE Estimator on the CPF Board website. Not
-        financial advice.
+        rates. For a personalised figure, use the official CPF LIFE Estimator on the CPF Board website. The
+        HDB sale scenario, if included, adds the whole CPF refund and cash proceeds in one lump sum at today's
+        prices — it doesn't model when you'd actually sell or where you'd live afterwards. Not financial advice.
       </Disclaimer>
     </CalcShell>
   );
