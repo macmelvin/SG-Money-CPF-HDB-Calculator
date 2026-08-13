@@ -183,7 +183,7 @@ export function ResultCard({ children, title }: { children: ReactNode; title?: s
 }
 
 export function Disclaimer({ children }: { children: ReactNode }) {
-  return <p className="disclaimer">{children}</p>;
+  return <div className="disclaimer">{children}</div>;
 }
 
 function PromoLink({

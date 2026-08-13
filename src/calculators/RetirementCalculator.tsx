@@ -724,21 +724,29 @@ export default function RetirementCalculator() {
       </div>
 
       <Disclaimer>
-        Assumes 25 years in retirement and steady investment returns — actual markets fluctuate. Your desired
-        retirement spending is entered in today's dollars and inflated at your chosen rate (2.5% by default, in
-        line with MAS's long-run core inflation range) to the year you retire, then kept rising at that same rate
-        across your years in retirement — investment returns and CPF interest rates themselves are not adjusted
-        for inflation, only spending. CPF OA/SA/MediSave
-        balances are projected at CPF's floor interest rates (OA 2.5%, SA/MA/RA 4%) with no further CPF
-        contributions modelled between now and retirement. The CPF LIFE payout is an indicative Standard Plan
-        estimate for the 2026 cohort, interpolated between CPF Board's published BRS/FRS/ERS figures — actual
-        payouts depend on your plan choice (Standard/Basic/Escalating), gender, cohort and prevailing interest
-        rates. For a personalised figure, use the official CPF LIFE Estimator on the CPF Board website. The
-        HDB sale and rightsizing scenarios add the whole CPF refund and cash proceeds in one lump sum at
-        today's prices — they don't model when you'd actually sell or where you'd live afterwards. The net
-        worth, cash flow and health-check figures are computed only from what you type in here — nothing is
-        verified, and the health-check score is a simple illustrative self-check, not a professional
-        assessment. Not financial advice.
+        <p>
+          Assumes 25 years in retirement and steady investment returns — actual markets fluctuate. Your desired
+          retirement spending is entered in today's dollars and inflated at your chosen rate (2.5% by default, in
+          line with MAS's long-run core inflation range) to the year you retire, then kept rising at that same rate
+          across your years in retirement — investment returns and CPF interest rates themselves are not adjusted
+          for inflation, only spending. CPF OA/SA/MediSave balances are projected at CPF's floor interest rates
+          (OA 2.5%, SA/MA/RA 4%) with no further CPF contributions modelled between now and retirement.
+        </p>
+        <p>
+          The CPF LIFE payout is an indicative Standard Plan estimate for the 2026 cohort, interpolated between
+          CPF Board's published BRS/FRS/ERS figures — actual payouts depend on your plan choice
+          (Standard/Basic/Escalating), gender, cohort and prevailing interest rates. For a personalised figure, use
+          the official CPF LIFE Estimator on the CPF Board website.
+        </p>
+        <p>
+          The HDB sale and rightsizing scenarios add the whole CPF refund and cash proceeds in one lump sum at
+          today's prices — they don't model when you'd actually sell or where you'd live afterwards.
+        </p>
+        <p>
+          The net worth, cash flow and health-check figures are computed only from what you type in here — nothing
+          is verified, and the health-check score is a simple illustrative self-check, not a professional
+          assessment. Not financial advice.
+        </p>
       </Disclaimer>
 
       {/* Rendered off-screen (not display:none, so html2canvas can lay it out) purely so the

@@ -398,6 +398,12 @@
   border-top: 1px solid var(--border);
   padding-top: 12px;
 }
+.disclaimer p {
+  margin: 0 0 10px;
+}
+.disclaimer p:last-child {
+  margin-bottom: 0;
+}
 
 .other-calcs {
   margin-top: 24px;
