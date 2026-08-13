@@ -382,3 +382,264 @@
   color: var(--primary);
   font-size: 16px;
 }
+
+/* --- Editable line items (income / expenses / investments) --- */
+.line-items {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.line-item-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.line-item-label {
+  flex: 1.3;
+  min-width: 0;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 10px;
+  font-size: 14px;
+  color: var(--text);
+}
+.line-item-amount {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0 10px;
+}
+.line-item-amount input {
+  border: none;
+  background: transparent;
+  outline: none;
+  padding: 9px 0;
+  font-size: 14px;
+  width: 100%;
+  color: var(--text);
+}
+.line-item-remove {
+  flex-shrink: 0;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 6px;
+  line-height: 1;
+}
+.line-item-remove:active {
+  color: var(--negative);
+}
+.line-item-add {
+  align-self: flex-start;
+  background: transparent;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--primary);
+  cursor: pointer;
+  margin-top: 2px;
+}
+.line-items-total {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 700;
+  font-size: 14px;
+  padding-top: 8px;
+  margin-top: 4px;
+  border-top: 1px solid var(--border);
+}
+
+/* --- Asset allocation stacked bar --- */
+.allocation-chart {
+  margin-top: 8px;
+}
+.allocation-bar {
+  display: flex;
+  width: 100%;
+  height: 20px;
+  gap: 2px;
+  margin-bottom: 14px;
+}
+.allocation-segment {
+  height: 100%;
+  min-width: 2px;
+  transition: width 0.2s ease;
+}
+.allocation-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.allocation-legend-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.allocation-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+.allocation-legend-label {
+  flex: 1;
+  color: var(--text);
+}
+.allocation-legend-value {
+  font-weight: 600;
+  color: var(--text);
+}
+.allocation-legend-pct {
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+/* --- Retirement health check --- */
+.health-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 4px;
+}
+.health-badge {
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--text-muted);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: var(--bg);
+}
+.health-strong { border-left-color: var(--status-good); }
+.health-good { border-left-color: var(--status-good); }
+.health-moderate { border-left-color: var(--status-warning); }
+.health-attention { border-left-color: var(--status-critical); }
+.health-badge-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 3px;
+}
+.health-badge-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+}
+.health-badge-status {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+}
+.health-strong .health-badge-status, .health-good .health-badge-status { color: var(--status-good); }
+.health-moderate .health-badge-status { color: #b07d00; }
+.health-attention .health-badge-status { color: var(--status-critical); }
+.health-badge-note {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  line-height: 1.4;
+  margin: 0;
+}
+
+.score-ring {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+.score-number {
+  font-size: 36px;
+  font-weight: 800;
+  color: var(--primary);
+  line-height: 1;
+}
+.score-number span {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.score-caption {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* --- Retirement timeline --- */
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-top: 4px;
+}
+.timeline-step {
+  display: flex;
+  gap: 12px;
+  padding-bottom: 16px;
+  position: relative;
+}
+.timeline-step:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  left: 13px;
+  top: 28px;
+  bottom: 0;
+  width: 2px;
+  background: var(--border);
+}
+.timeline-dot {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  z-index: 1;
+}
+.timeline-body {
+  flex: 1;
+  padding-top: 2px;
+}
+.timeline-age {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--primary);
+}
+.timeline-label {
+  font-size: 13.5px;
+  color: var(--text);
+  margin-top: 2px;
+}
+
+/* --- Dashboard toggle rows (rightsizing) --- */
+.dashboard-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  cursor: pointer;
+}
+.dashboard-toggle input[type="checkbox"] {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--positive);
+  cursor: pointer;
+}

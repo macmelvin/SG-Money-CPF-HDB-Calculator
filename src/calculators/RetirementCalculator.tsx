@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { CalcShell, Disclaimer, NumberField, ResultCard, ResultRow } from "../components/CalcShell";
+import { AssetAllocationBar, EditableLineItems, HealthBadge } from "../components/Dashboard";
 import {
   CPF_LIFE_STANDARD_PAYOUT_2026,
   CPF_RETIREMENT_SUMS_2026,
@@ -9,6 +10,13 @@ import {
   formatSgd,
 } from "../lib/cpf";
 import type { HdbSaleInput } from "../lib/cpf";
+import {
+  computeHealthCheck,
+  computeNetWorth,
+  computeRightsizing,
+  sumLineItems,
+} from "../lib/dashboard";
+import type { LineItem } from "../lib/dashboard";
 import { usePageMeta } from "../lib/usePageMeta";
 import { clearCalculatorData, loadCalculatorData, saveCalculatorData } from "../lib/storage";
 import { downloadCalculatorPdf } from "../lib/pdf";
@@ -23,6 +31,13 @@ const DEFAULTS = {
   monthlyInvestment: 1000,
   expectedReturnPct: 4,
   desiredMonthlySpend: 3000,
+  hdbCurrentValue: 650000,
+  incomeItems: [{ id: "income-1", label: "Salary", amount: 5000 }] as LineItem[],
+  expenseItems: [{ id: "expense-1", label: "Living expenses", amount: 2400 }] as LineItem[],
+  investmentItems: [{ id: "invest-1", label: "Unit trusts / stocks", amount: 50000 }] as LineItem[],
+  planRightsizing: false,
+  replacementFlatPrice: 300000,
+  legalMovingCosts: 15000,
 };
 
 const STORAGE_KEY = "retirement-calculator";
@@ -32,7 +47,7 @@ const HDB_SALE_STORAGE_KEY = "hdb-sale-proceeds";
 export default function RetirementCalculator() {
   usePageMeta(
     "Singapore Retirement Calculator",
-    "Free retirement calculator for Singapore. See if your savings, CPF (OA/MA/SA-RA) and monthly investments are on track to meet your target retirement income, plus an estimated CPF LIFE monthly payout."
+    "Free retirement calculator for Singapore. Net worth, monthly cash flow, CPF (OA/MA/SA-RA), rightsizing and CPF LIFE — see if you're on track for retirement and where you stand today."
   );
   const saved = loadCalculatorData<typeof DEFAULTS>(STORAGE_KEY);
   const initial = { ...DEFAULTS, ...(saved?.data ?? {}) };
@@ -48,6 +63,14 @@ export default function RetirementCalculator() {
   const [desiredMonthlySpend, setDesiredMonthlySpend] = useState(initial.desiredMonthlySpend);
   const [savedAt, setSavedAt] = useState<number | null>(saved?.savedAt ?? null);
   const [includeHdbSale, setIncludeHdbSale] = useState(true);
+
+  const [hdbCurrentValue, setHdbCurrentValue] = useState(initial.hdbCurrentValue);
+  const [incomeItems, setIncomeItems] = useState<LineItem[]>(initial.incomeItems);
+  const [expenseItems, setExpenseItems] = useState<LineItem[]>(initial.expenseItems);
+  const [investmentItems, setInvestmentItems] = useState<LineItem[]>(initial.investmentItems);
+  const [planRightsizing, setPlanRightsizing] = useState(initial.planRightsizing);
+  const [replacementFlatPrice, setReplacementFlatPrice] = useState(initial.replacementFlatPrice);
+  const [legalMovingCosts, setLegalMovingCosts] = useState(initial.legalMovingCosts);
 
   // Pull whatever the user last saved in the HDB Sale Proceeds calculator (if anything) so this
   // page can offer a "what if I sold today" scenario without asking them to re-enter numbers.
@@ -83,6 +106,71 @@ export default function RetirementCalculator() {
     ]
   );
 
+  // --- Net worth snapshot ---
+  const totalCpfToday = currentOA + currentSaRa + currentMA;
+  const totalInvestmentsPortfolio = sumLineItems(investmentItems);
+  const { netWorth, slices } = computeNetWorth({
+    hdbValue: hdbCurrentValue,
+    totalCpf: totalCpfToday,
+    totalInvestments: totalInvestmentsPortfolio,
+  });
+
+  // --- Monthly cash flow ---
+  const totalIncome = sumLineItems(incomeItems);
+  const totalExpenses = sumLineItems(expenseItems);
+  const monthlySurplus = totalIncome - totalExpenses;
+
+  // --- Rightsizing scenario ---
+  const rightsizing =
+    planRightsizing && hdbScenario
+      ? computeRightsizing({
+          saleProceeds: hdbCurrentValue,
+          cpfRefund: hdbScenario.cpfRefund,
+          replacementFlatPrice,
+          legalMovingCosts,
+        })
+      : null;
+  const estimatedAssetsAfterRightsizing = rightsizing
+    ? totalCpfToday + totalInvestmentsPortfolio + rightsizing.cashReleased
+    : null;
+
+  // --- Health check ---
+  const hasLoanLikeExpense = expenseItems.some((item) => /loan/i.test(item.label));
+  const healthCheck = computeHealthCheck({
+    cpfOaSaRa: currentOA + currentSaRa,
+    cpfFrs: CPF_RETIREMENT_SUMS_2026.frs,
+    cpfBrs: CPF_RETIREMENT_SUMS_2026.brs,
+    hdbLoanOutstanding: savedHdb?.data ? savedHdb.data.outstandingLoan : null,
+    totalInvestments: totalInvestmentsPortfolio,
+    investmentItemCount: investmentItems.length,
+    cashAndInvestmentsForLiquidity: currentSavings,
+    totalMonthlyExpenses: totalExpenses,
+    hasLoanLikeExpense,
+    monthlySurplus,
+    totalMonthlyIncome: totalIncome,
+    onTrackForRetirement: result.onTrack,
+  });
+
+  // --- Timeline ---
+  const timelineSteps = [
+    { age: `${currentAge}–${retirementAge}`, icon: "📈", label: "Grow investments & build cash reserves" },
+    {
+      age: `${retirementAge}`,
+      icon: "🏁",
+      label: planRightsizing ? "Retire — consider rightsizing to a smaller flat" : "Retire",
+    },
+    {
+      age: "65",
+      icon: "🏦",
+      label:
+        retirementAge >= 65
+          ? "CPF LIFE payouts begin"
+          : "CPF LIFE payouts begin (bridge the gap before this with cash/investments)",
+    },
+    { age: "80+", icon: "🩺", label: "Review portfolio & healthcare needs" },
+    { age: "Legacy", icon: "🌳", label: "Preserve wealth & plan for beneficiaries" },
+  ];
+
   const clearInputs = () => {
     setCurrentAge(DEFAULTS.currentAge);
     setRetirementAge(DEFAULTS.retirementAge);
@@ -93,6 +181,13 @@ export default function RetirementCalculator() {
     setMonthlyInvestment(DEFAULTS.monthlyInvestment);
     setExpectedReturnPct(DEFAULTS.expectedReturnPct);
     setDesiredMonthlySpend(DEFAULTS.desiredMonthlySpend);
+    setHdbCurrentValue(DEFAULTS.hdbCurrentValue);
+    setIncomeItems(DEFAULTS.incomeItems.map((i) => ({ ...i })));
+    setExpenseItems(DEFAULTS.expenseItems.map((i) => ({ ...i })));
+    setInvestmentItems(DEFAULTS.investmentItems.map((i) => ({ ...i })));
+    setPlanRightsizing(DEFAULTS.planRightsizing);
+    setReplacementFlatPrice(DEFAULTS.replacementFlatPrice);
+    setLegalMovingCosts(DEFAULTS.legalMovingCosts);
     clearCalculatorData(STORAGE_KEY);
     setSavedAt(null);
   };
@@ -108,6 +203,13 @@ export default function RetirementCalculator() {
       monthlyInvestment,
       expectedReturnPct,
       desiredMonthlySpend,
+      hdbCurrentValue,
+      incomeItems,
+      expenseItems,
+      investmentItems,
+      planRightsizing,
+      replacementFlatPrice,
+      legalMovingCosts,
     });
     setSavedAt(at);
   };
@@ -149,9 +251,36 @@ export default function RetirementCalculator() {
           : []),
         { label: "Projected OA + SA/RA at retirement (capped at ERS)", value: formatSgd(result.cpfLife.retirementAccountBalance) },
         { label: "Estimated CPF LIFE Standard Plan payout (from 65)", value: `${formatSgd(result.cpfLife.estimatedMonthlyPayout)}/mo` },
+        { label: "— Net Worth Snapshot —", value: "" },
+        { label: "HDB Property", value: formatSgd(hdbCurrentValue) },
+        { label: "Total CPF (OA+SA/RA+MediSave)", value: formatSgd(totalCpfToday) },
+        ...investmentItems.map((item) => ({ label: `  Investment: ${item.label || "(unlabelled)"}`, value: formatSgd(item.amount) })),
+        { label: "Total Investments & Insurance", value: formatSgd(totalInvestmentsPortfolio) },
+        { label: "TOTAL NET WORTH", value: formatSgd(netWorth) },
+        { label: "— Monthly Cash Flow —", value: "" },
+        ...incomeItems.map((item) => ({ label: `  Income: ${item.label || "(unlabelled)"}`, value: formatSgd(item.amount) })),
+        ...expenseItems.map((item) => ({ label: `  Expense: ${item.label || "(unlabelled)"}`, value: formatSgd(item.amount) })),
+        { label: "Total Income", value: formatSgd(totalIncome) },
+        { label: "Total Expenses", value: formatSgd(totalExpenses) },
+        { label: monthlySurplus >= 0 ? "Monthly Surplus" : "Monthly Deficit", value: formatSgd(Math.abs(monthlySurplus)) },
+        ...(rightsizing
+          ? [
+              { label: "— Rightsizing Scenario —", value: "" },
+              { label: "Estimated sale proceeds", value: formatSgd(hdbCurrentValue) },
+              { label: "Less: CPF refund", value: `-${formatSgd(hdbScenario!.cpfRefund)}` },
+              { label: "Balance after CPF refund", value: formatSgd(rightsizing.balanceAfterCpfRefund) },
+              { label: "Less: replacement flat price", value: `-${formatSgd(replacementFlatPrice)}` },
+              { label: "Less: legal & moving costs", value: `-${formatSgd(legalMovingCosts)}` },
+              { label: "Cash released from rightsizing", value: formatSgd(rightsizing.cashReleased) },
+              { label: "Estimated financial assets after rightsizing", value: formatSgd(estimatedAssetsAfterRightsizing ?? 0) },
+            ]
+          : []),
+        { label: "— Retirement Health Check —", value: "" },
+        ...healthCheck.dimensions.map((d) => ({ label: d.label, value: d.status })),
+        { label: "Overall illustrative score", value: `${healthCheck.overallScore}/100` },
       ],
       disclaimer:
-        "Assumes 25 years in retirement and steady investment returns — actual markets fluctuate. CPF OA/SA/MediSave balances are projected at CPF's floor interest rates (OA 2.5%, SA/MA/RA 4%) with no further CPF contributions modelled. CPF LIFE payout is an indicative Standard Plan estimate for the 2026 cohort, interpolated between CPF Board's published BRS/FRS/ERS figures — actual payouts depend on your plan choice, gender, cohort and prevailing rates. Not financial advice.",
+        "Assumes 25 years in retirement and steady investment returns — actual markets fluctuate. CPF OA/SA/MediSave balances are projected at CPF's floor interest rates (OA 2.5%, SA/MA/RA 4%) with no further CPF contributions modelled. CPF LIFE payout is an indicative Standard Plan estimate for the 2026 cohort, interpolated between CPF Board's published BRS/FRS/ERS figures. The net worth, cash flow, rightsizing and health-check figures are computed only from what you typed in on this device — nothing is verified or fetched. The health check score is an illustrative self-check using simple rules of thumb, not a professional financial assessment. Not financial advice.",
     });
   };
 
@@ -175,6 +304,37 @@ export default function RetirementCalculator() {
         <NumberField label="Expected annual return (cash/investments)" value={expectedReturnPct} onChange={setExpectedReturnPct} suffix="%" step={0.5} />
         <NumberField label="Desired retirement spending" value={desiredMonthlySpend} onChange={setDesiredMonthlySpend} prefix="$" suffix="/mo" step={100} />
       </div>
+
+      <ResultCard title="📊 Net Worth Snapshot">
+        <NumberField label="Current HDB value" value={hdbCurrentValue} onChange={setHdbCurrentValue} prefix="$" step={5000} />
+        <p className="explainer" style={{ marginTop: 4 }}>
+          Investments & insurance holdings — add each one (unit trusts, whole life policies, brokerage accounts,
+          SRS, etc). This is separate from "Current savings" above, which feeds your growth projection.
+        </p>
+        <EditableLineItems
+          items={investmentItems}
+          onChange={setInvestmentItems}
+          addLabel="Add a holding"
+          placeholder="e.g. Whole life policy"
+        />
+        <ResultRow label="TOTAL NET WORTH" value={formatSgd(netWorth)} emphasis />
+        <AssetAllocationBar slices={slices} />
+      </ResultCard>
+
+      <ResultCard title="💵 Monthly Cash Flow">
+        <p className="explainer" style={{ marginTop: -2 }}>Income</p>
+        <EditableLineItems items={incomeItems} onChange={setIncomeItems} addLabel="Add income source" placeholder="e.g. Salary" />
+        <p className="explainer" style={{ marginTop: 14 }}>Expenses</p>
+        <EditableLineItems items={expenseItems} onChange={setExpenseItems} addLabel="Add expense" placeholder="e.g. Insurance premium" />
+        <ResultRow label="Total income" value={formatSgd(totalIncome)} />
+        <ResultRow label="Total expenses" value={`-${formatSgd(totalExpenses)}`} positive={false} />
+        <ResultRow
+          label={monthlySurplus >= 0 ? "MONTHLY SURPLUS" : "MONTHLY DEFICIT"}
+          value={formatSgd(Math.abs(monthlySurplus))}
+          emphasis
+          positive={monthlySurplus >= 0}
+        />
+      </ResultCard>
 
       <ResultCard title="🏠 Selling your HDB today?">
         {hdbScenario ? (
@@ -236,6 +396,66 @@ export default function RetirementCalculator() {
         </ResultCard>
       )}
 
+      <ResultCard title="🏘️ Rightsizing Scenario">
+        <label className="dashboard-toggle">
+          <input type="checkbox" checked={planRightsizing} onChange={(e) => setPlanRightsizing(e.target.checked)} />
+          <span>I'm considering downsizing to a smaller flat</span>
+        </label>
+        {!planRightsizing && (
+          <p className="explainer">
+            Check the box above to model selling your HDB, buying a smaller replacement flat, and seeing how
+            much cash that would release for retirement.
+          </p>
+        )}
+        {planRightsizing && !hdbScenario && (
+          <p className="explainer">
+            This needs your HDB numbers — save them in the{" "}
+            <Link to="/hdb-sale-proceeds">HDB Sale Proceeds calculator</Link> first.
+          </p>
+        )}
+        {planRightsizing && rightsizing && (
+          <>
+            <NumberField
+              label="Replacement flat price"
+              value={replacementFlatPrice}
+              onChange={setReplacementFlatPrice}
+              prefix="$"
+              step={5000}
+            />
+            <NumberField
+              label="Estimated legal & moving costs"
+              value={legalMovingCosts}
+              onChange={setLegalMovingCosts}
+              prefix="$"
+              step={500}
+            />
+            <ResultRow label="Estimated sale proceeds" value={formatSgd(hdbCurrentValue)} />
+            <ResultRow label="Less: CPF refund" value={`-${formatSgd(hdbScenario!.cpfRefund)}`} positive={false} />
+            <ResultRow label="Balance after CPF refund" value={formatSgd(rightsizing.balanceAfterCpfRefund)} />
+            <ResultRow label="Less: replacement flat price" value={`-${formatSgd(replacementFlatPrice)}`} positive={false} />
+            <ResultRow label="Less: legal & moving costs" value={`-${formatSgd(legalMovingCosts)}`} positive={false} />
+            <ResultRow
+              label="ESTIMATED CASH RELEASED"
+              value={formatSgd(rightsizing.cashReleased)}
+              emphasis
+              positive={rightsizing.cashReleased >= 0}
+            />
+            <div className="result-card" style={{ marginTop: 12, marginBottom: 0, boxShadow: "none" }}>
+              <h3>Financial Position After Rightsizing</h3>
+              <ResultRow label="CPF savings" value={formatSgd(totalCpfToday)} />
+              <ResultRow label="Investments & insurance" value={formatSgd(totalInvestmentsPortfolio)} />
+              <ResultRow label="Cash released from rightsizing" value={formatSgd(rightsizing.cashReleased)} />
+              <ResultRow
+                label="ESTIMATED FINANCIAL ASSETS"
+                value={formatSgd(estimatedAssetsAfterRightsizing ?? 0)}
+                emphasis
+              />
+              <p className="explainer">Excludes the value of your replacement flat.</p>
+            </div>
+          </>
+        )}
+      </ResultCard>
+
       <ResultCard title="🏦 CPF LIFE Estimate (from age 65)">
         <ResultRow
           label="Projected OA + SA/RA at 65 (capped at ERS)"
@@ -272,6 +492,38 @@ export default function RetirementCalculator() {
         </div>
       </ResultCard>
 
+      <ResultCard title="✅ Retirement Health Check">
+        <div className="score-ring">
+          <div className="score-number">
+            {healthCheck.overallScore}
+            <span>/100</span>
+          </div>
+          <p className="score-caption">
+            An illustrative self-check from the numbers above — simple rules of thumb, not a professional
+            assessment.
+          </p>
+        </div>
+        <div className="health-grid">
+          {healthCheck.dimensions.map((d) => (
+            <HealthBadge key={d.key} dimension={d} />
+          ))}
+        </div>
+      </ResultCard>
+
+      <ResultCard title="🗓️ Retirement Timeline">
+        <div className="timeline">
+          {timelineSteps.map((step) => (
+            <div className="timeline-step" key={step.age + step.label}>
+              <div className="timeline-dot">{step.icon}</div>
+              <div className="timeline-body">
+                <div className="timeline-age">{step.age}</div>
+                <div className="timeline-label">{step.label}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </ResultCard>
+
       <Disclaimer>
         Assumes 25 years in retirement and steady investment returns — actual markets fluctuate. CPF OA/SA/MediSave
         balances are projected at CPF's floor interest rates (OA 2.5%, SA/MA/RA 4%) with no further CPF
@@ -279,8 +531,11 @@ export default function RetirementCalculator() {
         estimate for the 2026 cohort, interpolated between CPF Board's published BRS/FRS/ERS figures — actual
         payouts depend on your plan choice (Standard/Basic/Escalating), gender, cohort and prevailing interest
         rates. For a personalised figure, use the official CPF LIFE Estimator on the CPF Board website. The
-        HDB sale scenario, if included, adds the whole CPF refund and cash proceeds in one lump sum at today's
-        prices — it doesn't model when you'd actually sell or where you'd live afterwards. Not financial advice.
+        HDB sale and rightsizing scenarios add the whole CPF refund and cash proceeds in one lump sum at
+        today's prices — they don't model when you'd actually sell or where you'd live afterwards. The net
+        worth, cash flow and health-check figures are computed only from what you type in here — nothing is
+        verified, and the health-check score is a simple illustrative self-check, not a professional
+        assessment. Not financial advice.
       </Disclaimer>
     </CalcShell>
   );
