@@ -171,8 +171,10 @@ export const CPF_LIFE_STANDARD_PAYOUT_2026 = {
   ers: 3440,
 };
 
+export type CpfLifeTargetTier = "brs" | "frs" | "ers";
+
 export interface CpfLifeEstimate {
-  retirementAccountBalance: number; // capped at ERS, since RA can't be topped up beyond it
+  retirementAccountBalance: number; // capped at the chosen target tier (BRS/FRS/ERS)
   estimatedMonthlyPayout: number;
   nearestTier: "Below BRS" | "BRS" | "Between BRS and FRS" | "FRS" | "Between FRS and ERS" | "ERS or above";
 }
@@ -180,10 +182,17 @@ export interface CpfLifeEstimate {
 // Piecewise-linear interpolation between the published BRS/FRS/ERS payout anchor
 // points. CPF Board doesn't publish a continuous formula, but payouts scale close
 // to linearly with the Retirement Account balance within each band.
-export function estimateCpfLifePayout(raBalance: number): CpfLifeEstimate {
+//
+// `capAmount` defaults to ERS (the most anyone can set aside in their RA), but callers
+// can pass a lower tier (e.g. BRS, for someone planning to pledge their property) to see
+// the payout — and leftover cash — for actually setting aside only that much.
+export function estimateCpfLifePayout(
+  raBalance: number,
+  capAmount: number = CPF_RETIREMENT_SUMS_2026.ers
+): CpfLifeEstimate {
   const { brs, frs, ers } = CPF_RETIREMENT_SUMS_2026;
   const { brs: brsP, frs: frsP, ers: ersP } = CPF_LIFE_STANDARD_PAYOUT_2026;
-  const capped = Math.max(0, Math.min(raBalance, ers));
+  const capped = Math.max(0, Math.min(raBalance, capAmount));
 
   let payout: number;
   let nearestTier: CpfLifeEstimate["nearestTier"];
@@ -218,6 +227,7 @@ export interface RetirementInput {
   expectedReturnPct: number; // annual, e.g. 4 for 4% — applies to cash/investments only
   desiredMonthlySpend: number;
   yearsInRetirement?: number; // default 25
+  cpfLifeTargetTier?: CpfLifeTargetTier; // default "ers" — which tier to set aside in the RA
 }
 
 export interface RetirementResult {
@@ -232,6 +242,7 @@ export interface RetirementResult {
   onTrack: boolean;
   suggestedMonthlySavings: number;
   cpfLife: CpfLifeEstimate;
+  cpfLifeExcessCash: number; // projected OA+SA/RA beyond the chosen tier — withdrawable as cash at 55
 }
 
 export function calculateRetirement(input: RetirementInput): RetirementResult {
@@ -246,6 +257,7 @@ export function calculateRetirement(input: RetirementInput): RetirementResult {
     expectedReturnPct,
     desiredMonthlySpend,
     yearsInRetirement = 25,
+    cpfLifeTargetTier = "ers",
   } = input;
 
   const yearsToRetirement = Math.max(0, retirementAge - currentAge);
@@ -285,9 +297,14 @@ export function calculateRetirement(input: RetirementInput): RetirementResult {
     if (suggestedMonthlySavings < monthlyInvestment) suggestedMonthlySavings = monthlyInvestment;
   }
 
-  // CPF LIFE payout estimate uses projected OA + SA/RA (capped at the Enhanced Retirement Sum,
-  // since that's the most one can set aside in the Retirement Account at 55).
-  const cpfLife = estimateCpfLifePayout(projectedOA + projectedSaRa);
+  // CPF LIFE payout estimate uses projected OA + SA/RA, capped at whichever tier the user
+  // is actually planning to set aside (defaults to ERS, the most anyone can set aside).
+  // Anything projected beyond that tier is cash you could withdraw at 55 instead — e.g. by
+  // pledging your property so you only need to set aside BRS.
+  const projectedCpfForLife = projectedOA + projectedSaRa;
+  const cpfLifeCapAmount = CPF_RETIREMENT_SUMS_2026[cpfLifeTargetTier];
+  const cpfLife = estimateCpfLifePayout(projectedCpfForLife, cpfLifeCapAmount);
+  const cpfLifeExcessCash = Math.max(0, projectedCpfForLife - cpfLife.retirementAccountBalance);
 
   return {
     yearsToRetirement,
@@ -301,6 +318,7 @@ export function calculateRetirement(input: RetirementInput): RetirementResult {
     onTrack,
     suggestedMonthlySavings,
     cpfLife,
+    cpfLifeExcessCash,
   };
 }
 

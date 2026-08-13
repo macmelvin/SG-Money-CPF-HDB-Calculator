@@ -9,7 +9,7 @@ import {
   calculateRetirement,
   formatSgd,
 } from "../lib/cpf";
-import type { HdbSaleInput } from "../lib/cpf";
+import type { CpfLifeTargetTier, HdbSaleInput } from "../lib/cpf";
 import {
   computeHealthCheck,
   computeNetWorth,
@@ -38,6 +38,13 @@ const DEFAULTS = {
   planRightsizing: false,
   replacementFlatPrice: 300000,
   legalMovingCosts: 15000,
+  cpfLifeTargetTier: "ers" as CpfLifeTargetTier,
+};
+
+const CPF_LIFE_TIER_LABEL: Record<CpfLifeTargetTier, string> = {
+  brs: "Basic Retirement Sum (BRS)",
+  frs: "Full Retirement Sum (FRS)",
+  ers: "Enhanced Retirement Sum (ERS)",
 };
 
 const STORAGE_KEY = "retirement-calculator";
@@ -71,6 +78,7 @@ export default function RetirementCalculator() {
   const [planRightsizing, setPlanRightsizing] = useState(initial.planRightsizing);
   const [replacementFlatPrice, setReplacementFlatPrice] = useState(initial.replacementFlatPrice);
   const [legalMovingCosts, setLegalMovingCosts] = useState(initial.legalMovingCosts);
+  const [cpfLifeTargetTier, setCpfLifeTargetTier] = useState<CpfLifeTargetTier>(initial.cpfLifeTargetTier);
 
   // Pull whatever the user last saved in the HDB Sale Proceeds calculator (if anything) so this
   // page can offer a "what if I sold today" scenario without asking them to re-enter numbers.
@@ -92,6 +100,7 @@ export default function RetirementCalculator() {
         monthlyInvestment,
         expectedReturnPct,
         desiredMonthlySpend,
+        cpfLifeTargetTier,
       }),
     [
       currentAge,
@@ -103,6 +112,7 @@ export default function RetirementCalculator() {
       monthlyInvestment,
       expectedReturnPct,
       desiredMonthlySpend,
+      cpfLifeTargetTier,
     ]
   );
 
@@ -188,6 +198,7 @@ export default function RetirementCalculator() {
     setPlanRightsizing(DEFAULTS.planRightsizing);
     setReplacementFlatPrice(DEFAULTS.replacementFlatPrice);
     setLegalMovingCosts(DEFAULTS.legalMovingCosts);
+    setCpfLifeTargetTier(DEFAULTS.cpfLifeTargetTier);
     clearCalculatorData(STORAGE_KEY);
     setSavedAt(null);
   };
@@ -210,6 +221,7 @@ export default function RetirementCalculator() {
       planRightsizing,
       replacementFlatPrice,
       legalMovingCosts,
+      cpfLifeTargetTier,
     });
     setSavedAt(at);
   };
@@ -249,8 +261,15 @@ export default function RetirementCalculator() {
         ...(!result.onTrack
           ? [{ label: "Increase monthly savings to", value: formatSgd(result.suggestedMonthlySavings) }]
           : []),
-        { label: "Projected OA + SA/RA at retirement (capped at ERS)", value: formatSgd(result.cpfLife.retirementAccountBalance) },
+        {
+          label: `Retirement Account target: ${CPF_LIFE_TIER_LABEL[cpfLifeTargetTier]}`,
+          value: formatSgd(CPF_RETIREMENT_SUMS_2026[cpfLifeTargetTier]),
+        },
+        { label: "Projected OA + SA/RA set aside in RA", value: formatSgd(result.cpfLife.retirementAccountBalance) },
         { label: "Estimated CPF LIFE Standard Plan payout (from 65)", value: `${formatSgd(result.cpfLife.estimatedMonthlyPayout)}/mo` },
+        ...(result.cpfLifeExcessCash > 0
+          ? [{ label: "Estimated cash withdrawable at 55 (above chosen tier)", value: formatSgd(result.cpfLifeExcessCash) }]
+          : []),
         { label: "— Net Worth Snapshot —", value: "" },
         { label: "HDB Property", value: formatSgd(hdbCurrentValue) },
         { label: "Total CPF (OA+SA/RA+MediSave)", value: formatSgd(totalCpfToday) },
@@ -457,8 +476,29 @@ export default function RetirementCalculator() {
       </ResultCard>
 
       <ResultCard title="🏦 CPF LIFE Estimate (from age 65)">
+        <p className="explainer" style={{ marginTop: -2 }}>
+          Which tier are you actually planning to set aside in your CPF Retirement Account? Pick BRS if you plan to
+          pledge your property (or already own one) and only need the Basic Retirement Sum set aside — the rest of
+          your projected CPF becomes cash you could withdraw at 55. Most people without a pledge default to FRS.
+        </p>
+        <div className="cpf-life-tiers" role="radiogroup" aria-label="CPF LIFE target tier">
+          {(["brs", "frs", "ers"] as CpfLifeTargetTier[]).map((tier) => (
+            <button
+              type="button"
+              key={tier}
+              role="radio"
+              aria-checked={cpfLifeTargetTier === tier}
+              className={`cpf-life-tier${cpfLifeTargetTier === tier ? " cpf-life-tier-selected" : ""}`}
+              onClick={() => setCpfLifeTargetTier(tier)}
+            >
+              <span className="cpf-life-tier-name">{tier.toUpperCase()}</span>
+              <span>{formatSgd(CPF_RETIREMENT_SUMS_2026[tier])}</span>
+              <span className="cpf-life-tier-payout">~{formatSgd(CPF_LIFE_STANDARD_PAYOUT_2026[tier])}/mo</span>
+            </button>
+          ))}
+        </div>
         <ResultRow
-          label="Projected OA + SA/RA at 65 (capped at ERS)"
+          label={`Set aside for ${CPF_LIFE_TIER_LABEL[cpfLifeTargetTier]}`}
           value={formatSgd(result.cpfLife.retirementAccountBalance)}
         />
         <ResultRow
@@ -467,29 +507,18 @@ export default function RetirementCalculator() {
           emphasis
           positive
         />
+        {result.cpfLifeExcessCash > 0 && (
+          <ResultRow
+            label="Estimated cash withdrawable at 55 (above this tier)"
+            value={formatSgd(result.cpfLifeExcessCash)}
+            positive
+          />
+        )}
         <p className="explainer">
-          Based on the CPF LIFE Standard Plan, using CPF Board's published 2026 retirement sum tiers below as
+          Based on the CPF LIFE Standard Plan, using CPF Board's published 2026 retirement sum tiers above as
           reference points. Your OA and SA/RA typically combine into your Retirement Account at age 55 — this
-          estimate assumes that happens and is capped at the Enhanced Retirement Sum, since that's the most CPF
-          allows you to set aside.
+          estimate assumes that happens, then caps at whichever tier you've selected above.
         </p>
-        <div className="cpf-life-tiers">
-          <div className="cpf-life-tier">
-            <span className="cpf-life-tier-name">BRS</span>
-            <span>{formatSgd(CPF_RETIREMENT_SUMS_2026.brs)}</span>
-            <span className="cpf-life-tier-payout">~{formatSgd(CPF_LIFE_STANDARD_PAYOUT_2026.brs)}/mo</span>
-          </div>
-          <div className="cpf-life-tier">
-            <span className="cpf-life-tier-name">FRS</span>
-            <span>{formatSgd(CPF_RETIREMENT_SUMS_2026.frs)}</span>
-            <span className="cpf-life-tier-payout">~{formatSgd(CPF_LIFE_STANDARD_PAYOUT_2026.frs)}/mo</span>
-          </div>
-          <div className="cpf-life-tier">
-            <span className="cpf-life-tier-name">ERS</span>
-            <span>{formatSgd(CPF_RETIREMENT_SUMS_2026.ers)}</span>
-            <span className="cpf-life-tier-payout">~{formatSgd(CPF_LIFE_STANDARD_PAYOUT_2026.ers)}/mo</span>
-          </div>
-        </div>
       </ResultCard>
 
       <ResultCard title="✅ Retirement Health Check">
