@@ -220,7 +220,7 @@ export function BtoPromo({
 // they're never stored — which is different from SG Money's calculators,
 // where nothing ever leaves the device. The copy below says so plainly.
 export function DocToolsPromo({
-  title = "Not sure what your policy actually says?",
+  title = "Not sure what your insurance policy actually says?",
   desc = "Upload it to our Document Explainer for a plain-English breakdown. It's a separate tool — your file is processed on its server (not stored), unlike SG Money's calculators which never leave your device.",
 }: {
   title?: string;

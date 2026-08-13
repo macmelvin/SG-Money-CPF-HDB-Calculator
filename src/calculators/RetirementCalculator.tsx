@@ -597,10 +597,7 @@ export default function RetirementCalculator() {
         desc="Check out our BTO Planning Tool for eligibility, timelines and flat selection."
       />
 
-      <DocToolsPromo
-        title="Not sure what your insurance policies actually cover?"
-        desc="Upload them to our Document Explainer for a plain-English breakdown. It's a separate tool — your file is processed on its server (not stored), unlike SG Money's calculators which never leave your device."
-      />
+      <DocToolsPromo />
 
       <Disclaimer>
         Assumes 25 years in retirement and steady investment returns — actual markets fluctuate. CPF OA/SA/MediSave
