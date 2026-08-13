@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
+import { CALCULATORS } from "../lib/calculators";
 
 export function CalcShell({
   title,
@@ -10,6 +11,9 @@ export function CalcShell({
   subtitle: string;
   children: ReactNode;
 }) {
+  const { pathname } = useLocation();
+  const otherCalculators = CALCULATORS.filter((c) => c.to !== pathname);
+
   return (
     <div className="calc-page">
       <Link to="/" className="back-link">
@@ -18,6 +22,18 @@ export function CalcShell({
       <h1>{title}</h1>
       <p className="subtitle">{subtitle}</p>
       {children}
+
+      <nav className="other-calcs" aria-label="Other calculators">
+        <h3>Other calculators</h3>
+        <div className="other-calcs-list">
+          {otherCalculators.map((c) => (
+            <Link to={c.to} key={c.to} className="other-calc-link">
+              <span className="other-calc-icon">{c.icon}</span>
+              <span>{c.title}</span>
+            </Link>
+          ))}
+        </div>
+      </nav>
     </div>
   );
 }

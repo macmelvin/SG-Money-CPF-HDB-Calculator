@@ -1,38 +1,6 @@
 import { Link } from "react-router-dom";
 import { usePageMeta } from "../lib/usePageMeta";
-
-const TOOLS = [
-  {
-    to: "/salary-calculator",
-    icon: "💰",
-    title: "Salary & CPF",
-    desc: "Calculate your take-home salary",
-  },
-  {
-    to: "/hdb-sale-proceeds",
-    icon: "🏠",
-    title: "HDB Sale",
-    desc: "How much will you receive after selling?",
-  },
-  {
-    to: "/cpf-accrued-interest",
-    icon: "📈",
-    title: "CPF Accrued Interest",
-    desc: "Estimate your CPF housing refund",
-  },
-  {
-    to: "/retirement-calculator",
-    icon: "👴",
-    title: "Retirement",
-    desc: "Are you on track for retirement?",
-  },
-  {
-    to: "/car-cost-calculator",
-    icon: "🚗",
-    title: "Car Cost",
-    desc: "What's your true monthly car cost?",
-  },
-];
+import { CALCULATORS } from "../lib/calculators";
 
 export default function Home() {
   usePageMeta(
@@ -47,7 +15,7 @@ export default function Home() {
       </header>
 
       <div className="tool-list">
-        {TOOLS.map((t) => (
+        {CALCULATORS.map((t) => (
           <Link to={t.to} key={t.to} className="tool-card">
             <span className="tool-icon">{t.icon}</span>
             <span className="tool-text">
