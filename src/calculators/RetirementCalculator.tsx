@@ -4,7 +4,7 @@ import { BtoPromo, CalcShell, Disclaimer, DocToolsPromo, NumberField, ResultCard
 import { AssetAllocationBar, EditableLineItems, HealthBadge } from "../components/Dashboard";
 import { RetirementDashboardExportCard } from "../components/RetirementDashboardExport";
 import type { DashboardExportData } from "../components/RetirementDashboardExport";
-import { downloadNodeAsImage } from "../lib/dashboardImage";
+import { captureNodeAsCanvas } from "../lib/dashboardImage";
 import {
   CPF_LIFE_STANDARD_PAYOUT_2026,
   CPF_RETIREMENT_SUMS_2026,
@@ -80,7 +80,7 @@ export default function RetirementCalculator() {
   const [inflationRatePct, setInflationRatePct] = useState(initial.inflationRatePct);
   const [savedAt, setSavedAt] = useState<number | null>(saved?.savedAt ?? null);
   const [includeHdbSale, setIncludeHdbSale] = useState(true);
-  const [isGeneratingDashboard, setIsGeneratingDashboard] = useState(false);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const dashboardExportRef = useRef<HTMLDivElement>(null);
   const [premiumUnlocked, setPremiumUnlocked] = useState(() => isPremiumReportUnlocked());
 
@@ -416,21 +416,15 @@ export default function RetirementCalculator() {
     timelineSteps,
   };
 
-  const handleDownloadDashboard = async () => {
-    if (!dashboardExportRef.current || isGeneratingDashboard) return;
-    setIsGeneratingDashboard(true);
+  // The Dashboard infographic used to be its own free PNG download — it's now folded into the
+  // Premium Report as an appendix instead, so generating the report captures it first.
+  const handleDownloadPremiumReport = async () => {
+    if (isGeneratingReport) return;
+    setIsGeneratingReport(true);
     try {
-      await downloadNodeAsImage(dashboardExportRef.current, "sg-money-retirement-dashboard.png");
-    } catch (err) {
-      console.error("Could not generate the dashboard image", err);
-      window.alert("Sorry, something went wrong generating the dashboard image. Please try again.");
-    } finally {
-      setIsGeneratingDashboard(false);
-    }
-  };
-
-  const handleDownloadPremiumReport = () => {
-    try {
+      const dashboardCanvas = dashboardExportRef.current
+        ? await captureNodeAsCanvas(dashboardExportRef.current)
+        : null;
       generatePremiumRetirementReport({
         base: {
           currentAge,
@@ -448,10 +442,13 @@ export default function RetirementCalculator() {
         },
         result,
         cpfLifeTargetTier,
+        dashboardCanvas,
       });
     } catch (err) {
       console.error("Could not generate the premium report", err);
       window.alert("Sorry, something went wrong generating your report. Please try again.");
+    } finally {
+      setIsGeneratingReport(false);
     }
   };
 
@@ -463,11 +460,6 @@ export default function RetirementCalculator() {
       onSave={handleSave}
       onDownloadPdf={handleDownloadPdf}
       savedAt={savedAt}
-      extraActions={
-        <button type="button" className="dashboard-btn" onClick={handleDownloadDashboard} disabled={isGeneratingDashboard}>
-          {isGeneratingDashboard ? "Generating…" : "📊 Dashboard"}
-        </button>
-      }
     >
       <div className="form-grid">
         <NumberField label="Current age" value={currentAge} onChange={setCurrentAge} />
@@ -674,11 +666,16 @@ export default function RetirementCalculator() {
           <>
             <p className="explainer" style={{ marginTop: -2 }}>
               Unlocked — download your personalized multi-page report: a written breakdown of where you stand,
-              retirement-age and savings scenarios, a year-by-year growth projection, and a CPF LIFE tier
-              comparison, all built from the numbers above.
+              retirement-age and savings scenarios, a year-by-year growth projection, a CPF LIFE tier comparison,
+              and the full Dashboard infographic, all built from the numbers above.
             </p>
-            <button type="button" className="dashboard-btn" onClick={handleDownloadPremiumReport}>
-              📄 Download Premium Report
+            <button
+              type="button"
+              className="dashboard-btn"
+              onClick={handleDownloadPremiumReport}
+              disabled={isGeneratingReport}
+            >
+              {isGeneratingReport ? "Generating…" : "📄 Download Premium Report"}
             </button>
           </>
         ) : (
@@ -686,7 +683,8 @@ export default function RetirementCalculator() {
             <p className="explainer" style={{ marginTop: -2 }}>
               Go deeper than the free outlook above: a written breakdown of where you stand, side-by-side
               scenarios for retiring earlier/later or saving more each month, a year-by-year growth projection,
-              and a CPF LIFE tier comparison — all in one personalized PDF, generated on your device.
+              a CPF LIFE tier comparison, and the full Dashboard infographic — all in one personalized PDF,
+              generated on your device.
             </p>
             <a
               href={PREMIUM_REPORT_PAYMENT_LINK}
@@ -820,7 +818,7 @@ export default function RetirementCalculator() {
       </Disclaimer>
 
       {/* Rendered off-screen (not display:none, so html2canvas can lay it out) purely so the
-          "📊 Dashboard" button can capture it as a PNG on demand. */}
+          Premium Report generator can capture it and fold it in as an appendix. */}
       <div style={{ position: "fixed", top: 0, left: -99999, pointerEvents: "none" }} aria-hidden="true">
         <div ref={dashboardExportRef}>
           <RetirementDashboardExportCard data={dashboardExportData} />

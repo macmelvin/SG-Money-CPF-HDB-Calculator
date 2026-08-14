@@ -1,6 +1,7 @@
 import { jsPDF } from "jspdf";
 import {
   APP_NAME,
+  BOTTOM_LIMIT,
   MARGIN_X,
   PAGE_WIDTH,
   TOP_MARGIN,
@@ -22,6 +23,11 @@ export interface PremiumReportInput {
   base: RetirementInput;
   result: RetirementResult;
   cpfLifeTargetTier: CpfLifeTargetTier;
+  // The captured Dashboard infographic (same content as the app's free-standing Dashboard
+  // feature used to export) — folded into the report as its own appendix section instead of
+  // being a separate free download. Optional so the rest of the report still generates fine
+  // if the capture fails for some reason.
+  dashboardCanvas?: HTMLCanvasElement | null;
 }
 
 const PRIMARY = { r: 179, g: 38, b: 30 }; // matches --primary
@@ -237,7 +243,12 @@ function drawProjectionChart(doc: jsPDF, input: PremiumReportInput): void {
   const chartHeight = 220;
   const chartTop = y;
   const chartBottom = chartTop + chartHeight;
-  const maxSavings = Math.max(...points.map((p) => p.savings), 1);
+  // Guard against NaN/Infinity from unexpected input combinations — jsPDF's line() throws on
+  // non-finite coordinates, which would otherwise crash report generation entirely for a
+  // customer who's already paid. Falling back to a flat "$0" axis is a much softer failure.
+  const rawMax = Math.max(...points.map((p) => p.savings), 1);
+  const maxSavings = Number.isFinite(rawMax) && rawMax > 0 ? rawMax : 1;
+  const validPoints = points.every((p) => Number.isFinite(p.savings));
 
   // Axes
   doc.setDrawColor(210);
@@ -256,17 +267,24 @@ function drawProjectionChart(doc: jsPDF, input: PremiumReportInput): void {
     doc.text(formatSgd(Math.round(val)), MARGIN_X, gy + 3);
   }
 
-  // Line
-  doc.setDrawColor(PRIMARY.r, PRIMARY.g, PRIMARY.b);
-  doc.setLineWidth(1.6);
-  for (let i = 0; i < points.length - 1; i++) {
-    const x1 = chartX + (chartWidth * i) / years;
-    const x2 = chartX + (chartWidth * (i + 1)) / years;
-    const y1 = chartBottom - (chartHeight * points[i].savings) / maxSavings;
-    const y2 = chartBottom - (chartHeight * points[i + 1].savings) / maxSavings;
-    doc.line(x1, y1, x2, y2);
+  if (!validPoints) {
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(9.5);
+    doc.setTextColor(140);
+    doc.text("Chart unavailable for these inputs.", chartX + 8, chartTop + 20);
+  } else {
+    // Line
+    doc.setDrawColor(PRIMARY.r, PRIMARY.g, PRIMARY.b);
+    doc.setLineWidth(1.6);
+    for (let i = 0; i < points.length - 1; i++) {
+      const x1 = chartX + (chartWidth * i) / years;
+      const x2 = chartX + (chartWidth * (i + 1)) / years;
+      const y1 = chartBottom - (chartHeight * points[i].savings) / maxSavings;
+      const y2 = chartBottom - (chartHeight * points[i + 1].savings) / maxSavings;
+      doc.line(x1, y1, x2, y2);
+    }
+    doc.setLineWidth(1);
   }
-  doc.setLineWidth(1);
 
   // X-axis labels — thin out if there are many years so labels don't collide
   const labelEvery = years > 20 ? 5 : years > 10 ? 2 : 1;
@@ -322,6 +340,48 @@ function drawCpfLifePage(doc: jsPDF, input: PremiumReportInput): void {
   drawRows(doc, estimateRows, y);
 }
 
+// The Dashboard infographic is captured as one tall canvas (same content that used to be the
+// free standalone PNG export). To keep it readable in print rather than shrinking the whole
+// thing onto one page, it's sliced into page-height chunks and each chunk becomes its own PDF
+// page — the same trick "print this long webpage to PDF" uses.
+function drawDashboardAppendix(doc: jsPDF, canvas: HTMLCanvasElement): void {
+  doc.addPage();
+  let y = TOP_MARGIN;
+  y = drawSectionTitle(doc, "Your Full Dashboard", y);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.setTextColor(90);
+  const intro = doc.splitTextToSize(
+    "A full infographic view — net worth, cash flow, CPF, HDB, and health check, " +
+      "all in one place — included here as part of your report.",
+    PAGE_WIDTH - MARGIN_X * 2
+  );
+  doc.text(intro, MARGIN_X, y);
+
+  const contentWidthPt = PAGE_WIDTH - MARGIN_X * 2;
+  const usableHeightPt = BOTTOM_LIMIT - TOP_MARGIN;
+  const ptPerPx = contentWidthPt / canvas.width;
+  const sliceHeightPx = Math.floor(usableHeightPt / ptPerPx);
+
+  let offset = 0;
+  while (offset < canvas.height) {
+    const thisSliceHeightPx = Math.min(sliceHeightPx, canvas.height - offset);
+
+    const slice = document.createElement("canvas");
+    slice.width = canvas.width;
+    slice.height = thisSliceHeightPx;
+    const ctx = slice.getContext("2d");
+    if (!ctx) break;
+    ctx.drawImage(canvas, 0, offset, canvas.width, thisSliceHeightPx, 0, 0, canvas.width, thisSliceHeightPx);
+
+    doc.addPage();
+    const sliceHeightPt = thisSliceHeightPx * ptPerPx;
+    doc.addImage(slice, "PNG", MARGIN_X, TOP_MARGIN, contentWidthPt, sliceHeightPt);
+
+    offset += thisSliceHeightPx;
+  }
+}
+
 export function generatePremiumRetirementReport(input: PremiumReportInput): void {
   const doc = new jsPDF({ unit: "pt", format: "a4" });
 
@@ -338,6 +398,10 @@ export function generatePremiumRetirementReport(input: PremiumReportInput): void
 
   doc.addPage();
   drawCpfLifePage(doc, input);
+
+  if (input.dashboardCanvas) {
+    drawDashboardAppendix(doc, input.dashboardCanvas);
+  }
 
   drawFooters(doc);
   doc.save("sg-money-premium-retirement-report.pdf");
