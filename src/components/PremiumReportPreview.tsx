@@ -8,6 +8,8 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { RetirementDashboardExportCard } from "./RetirementDashboardExport";
 import type { DashboardExportData } from "./RetirementDashboardExport";
 
+const DASHBOARD_NATURAL_WIDTH = 1400; // matches .dex-root's fixed width in dashboard-export.css
+
 const SAMPLE_DASHBOARD_DATA: DashboardExportData = {
   generatedOn: "1 January 2026",
   currentAge: 40,
@@ -71,24 +73,43 @@ const SAMPLE_DASHBOARD_DATA: DashboardExportData = {
   ],
 };
 
-// The real dashboard is a fixed 1400px-wide capture target (see dashboard-export.css) — shrunk
-// down via CSS transform so it reads as a compact preview thumbnail rather than a giant card.
-const PREVIEW_SCALE = 0.34;
-
+// The real dashboard is a fixed 1400px-wide capture target (see dashboard-export.css) — much
+// wider than the card it's previewed in, so instead of a fixed shrink factor (which either
+// leaves it too big to fit, cropping the sides, or too small to read), the scale is computed
+// from the actual available width so the full image is always visible with nothing cut off.
 export function PremiumReportPreview() {
+  const outerRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(0);
   const [scaledHeight, setScaledHeight] = useState(0);
 
   useLayoutEffect(() => {
-    if (innerRef.current) {
-      setScaledHeight(Math.round(innerRef.current.offsetHeight * PREVIEW_SCALE));
-    }
+    const outer = outerRef.current;
+    const inner = innerRef.current;
+    if (!outer || !inner) return;
+
+    const recompute = () => {
+      const availableWidth = outer.clientWidth;
+      if (!availableWidth) return;
+      const nextScale = availableWidth / DASHBOARD_NATURAL_WIDTH;
+      setScale(nextScale);
+      setScaledHeight(Math.round(inner.offsetHeight * nextScale));
+    };
+
+    recompute();
+    const observer = new ResizeObserver(recompute);
+    observer.observe(outer);
+    return () => observer.disconnect();
   }, []);
 
   return (
-    <div className="rp-dashboard-wrap">
+    <div className="rp-dashboard-wrap" ref={outerRef}>
       <div className="rp-dashboard-frame" style={{ height: scaledHeight || 260 }}>
-        <div className="rp-dashboard-scale" style={{ transform: `scale(${PREVIEW_SCALE})` }} ref={innerRef}>
+        <div
+          className="rp-dashboard-scale"
+          style={{ transform: `scale(${scale || 0.001})` }}
+          ref={innerRef}
+        >
           <RetirementDashboardExportCard data={SAMPLE_DASHBOARD_DATA} />
         </div>
         <div className="rp-watermark">SAMPLE DATA</div>
