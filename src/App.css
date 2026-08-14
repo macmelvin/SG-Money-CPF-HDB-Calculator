@@ -116,6 +116,15 @@
   color: var(--text-muted);
   flex: 1 1 180px;
 }
+.backup-link {
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.backup-link:hover {
+  text-decoration: underline;
+}
 .calc-actions {
   display: flex;
   gap: 8px;

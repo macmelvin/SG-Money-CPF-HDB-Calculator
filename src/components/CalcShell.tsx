@@ -57,7 +57,10 @@ export function CalcShell({
           <span>
             🔒 Nothing is sent to a server. Tap Save and these numbers stay only in this browser, on this
             device, until you clear them.
-            {savedAt ? ` Last saved ${formatSavedAt(savedAt)}.` : ""}
+            {savedAt ? ` Last saved ${formatSavedAt(savedAt)}.` : ""}{" "}
+            <Link to="/backup" className="backup-link">
+              💾 Backup all your data
+            </Link>
           </span>
           <div className="calc-actions">
             {onSave && (

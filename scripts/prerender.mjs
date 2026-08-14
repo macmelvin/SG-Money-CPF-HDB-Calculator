@@ -72,6 +72,12 @@ const routes = [
     description:
       "Calculate the true monthly cost of owning a car in Singapore, including loan, petrol, parking, ERP, insurance, road tax and maintenance — plus how it compares to Grab.",
   },
+  {
+    path: "backup",
+    title: "Backup & Restore Your Data | SG-Money-CPF-HDB-Calculator",
+    description:
+      "Export everything you've saved across SG Money's calculators to one file, and restore it any time — useful if you use a private/incognito window, clear your browser data, or switch devices.",
+  },
 ];
 
 function renderHead(template, route) {

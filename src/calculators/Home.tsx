@@ -35,6 +35,11 @@ export default function Home() {
       <footer className="home-footer">
         <p>Free • No registration • Local calculations • Privacy-first</p>
         <p className="lock">🔒 Your financial data stays on your device.</p>
+        <p>
+          <Link to="/backup" className="backup-link">
+            💾 Backup or restore your data
+          </Link>
+        </p>
       </footer>
     </div>
   );

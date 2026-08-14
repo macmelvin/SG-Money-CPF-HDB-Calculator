@@ -41,3 +41,25 @@ export function clearCalculatorData(key: string): void {
     // ignore
   }
 }
+
+// Writes back an already-saved {data, savedAt} pair verbatim — used by Backup & Restore
+// (src/lib/backup.ts) so a restored calculator shows its original "last saved" date rather
+// than looking like it was just edited a moment ago.
+export function restoreCalculatorData<T>(key: string, saved: SavedCalculatorData<T>): void {
+  try {
+    localStorage.setItem(PREFIX + key, JSON.stringify(saved));
+  } catch {
+    // localStorage unavailable — fail silently, same as saveCalculatorData.
+  }
+}
+
+// Writes back an already-saved {data, savedAt} pair verbatim — used by Backup & Restore
+// (src/lib/backup.ts) so a restored calculator shows its original "last saved" date rather
+// than looking like it was just edited a moment ago.
+export function restoreCalculatorData<T>(key: string, saved: SavedCalculatorData<T>): void {
+  try {
+    localStorage.setItem(PREFIX + key, JSON.stringify(saved));
+  } catch {
+    // localStorage unavailable — fail silently, same as saveCalculatorData.
+  }
+}
