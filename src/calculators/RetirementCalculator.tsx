@@ -8,11 +8,20 @@ import { captureNodeAsCanvas } from "../lib/dashboardImage";
 import {
   CPF_LIFE_STANDARD_PAYOUT_2026,
   CPF_RETIREMENT_SUMS_2026,
+  calculateAccruedInterest,
+  calculateCarCost,
   calculateHdbSaleProceeds,
   calculateRetirement,
+  calculateSalaryCpf,
   formatSgd,
 } from "../lib/cpf";
-import type { CpfLifeTargetTier, HdbSaleInput } from "../lib/cpf";
+import type {
+  AccruedInterestInput,
+  CarCostInput,
+  CpfLifeTargetTier,
+  HdbSaleInput,
+  SalaryCpfInput,
+} from "../lib/cpf";
 import {
   computeHealthCheck,
   computeNetWorth,
@@ -56,8 +65,13 @@ const CPF_LIFE_TIER_LABEL: Record<CpfLifeTargetTier, string> = {
 };
 
 const STORAGE_KEY = "retirement-calculator";
-// Must match the storage key HdbSaleCalculator.tsx saves under.
+// Must match the storage keys the other calculators save under — read here so the
+// Premium Report can pull in whatever the person already entered elsewhere, instead
+// of asking them to re-type it.
 const HDB_SALE_STORAGE_KEY = "hdb-sale-proceeds";
+const SALARY_STORAGE_KEY = "salary-calculator";
+const ACCRUED_INTEREST_STORAGE_KEY = "cpf-accrued-interest";
+const CAR_COST_STORAGE_KEY = "car-cost-calculator";
 
 export default function RetirementCalculator() {
   usePageMeta(
@@ -109,6 +123,18 @@ export default function RetirementCalculator() {
   const applyHdbScenario = includeHdbSale && hdbScenario !== null;
   const effectiveOA = currentOA + (applyHdbScenario ? hdbScenario.cpfRefund : 0);
   const effectiveSavings = currentSavings + (applyHdbScenario ? hdbScenario.cashProceeds : 0);
+
+  // Same idea for the other three calculators — only used to enrich the Premium Report
+  // with a fuller financial picture, so someone who's used the whole app doesn't have to
+  // re-enter everything just to see it summarized in one place.
+  const savedSalary = loadCalculatorData<SalaryCpfInput>(SALARY_STORAGE_KEY);
+  const salaryResult = savedSalary?.data ? calculateSalaryCpf(savedSalary.data) : null;
+  const savedAccruedInterest = loadCalculatorData<Omit<AccruedInterestInput, "currentYear">>(ACCRUED_INTEREST_STORAGE_KEY);
+  const accruedInterestResult = savedAccruedInterest?.data
+    ? calculateAccruedInterest({ ...savedAccruedInterest.data, currentYear: new Date().getFullYear() })
+    : null;
+  const savedCarCost = loadCalculatorData<CarCostInput>(CAR_COST_STORAGE_KEY);
+  const carCostResult = savedCarCost?.data ? calculateCarCost(savedCarCost.data) : null;
 
   // Total value of the Net Worth Snapshot's investment/insurance holdings — computed here (ahead of the
   // projection below) so it can optionally be grown and counted toward "how much you'll have at retirement."
@@ -352,6 +378,15 @@ export default function RetirementCalculator() {
         result,
         cpfLifeTargetTier,
         dashboardCanvas,
+        otherModules: {
+          salary: savedSalary?.data && salaryResult ? { input: savedSalary.data, result: salaryResult, savedAt: savedSalary.savedAt } : null,
+          accruedInterest:
+            savedAccruedInterest?.data && accruedInterestResult
+              ? { input: savedAccruedInterest.data, result: accruedInterestResult, savedAt: savedAccruedInterest.savedAt }
+              : null,
+          carCost: savedCarCost?.data && carCostResult ? { input: savedCarCost.data, result: carCostResult, savedAt: savedCarCost.savedAt } : null,
+          hdbSale: savedHdb?.data && hdbScenario ? { input: savedHdb.data, result: hdbScenario, savedAt: savedHdb.savedAt } : null,
+        },
       });
     } catch (err) {
       console.error("Could not generate the premium report", err);

@@ -17,7 +17,30 @@ import {
   calculateRetirement,
   formatSgd,
 } from "./cpf";
-import type { CpfLifeTargetTier, RetirementInput, RetirementResult } from "./cpf";
+import type {
+  AccruedInterestInput,
+  AccruedInterestResult,
+  CarCostInput,
+  CarCostResult,
+  CpfLifeTargetTier,
+  HdbSaleInput,
+  HdbSaleResult,
+  RetirementInput,
+  RetirementResult,
+  SalaryCpfInput,
+  SalaryCpfResult,
+} from "./cpf";
+
+// Data pulled in from the app's other calculators (each is independently optional — someone
+// may only ever have used the Retirement Calculator, and that's fine, the report just leaves
+// those sections out). Mirrors what each calculator itself already computes, so the report
+// never duplicates or drifts from the app's own math.
+export interface OtherModulesData {
+  salary?: { input: SalaryCpfInput; result: SalaryCpfResult; savedAt: number } | null;
+  hdbSale?: { input: HdbSaleInput; result: HdbSaleResult; savedAt: number } | null;
+  accruedInterest?: { input: Omit<AccruedInterestInput, "currentYear">; result: AccruedInterestResult; savedAt: number } | null;
+  carCost?: { input: CarCostInput; result: CarCostResult; savedAt: number } | null;
+}
 
 export interface PremiumReportInput {
   base: RetirementInput;
@@ -28,6 +51,9 @@ export interface PremiumReportInput {
   // being a separate free download. Optional so the rest of the report still generates fine
   // if the capture fails for some reason.
   dashboardCanvas?: HTMLCanvasElement | null;
+  // Whatever the person has saved in the app's other calculators, so the report can be a
+  // complete snapshot of their SG Money data rather than just the Retirement Calculator's.
+  otherModules?: OtherModulesData;
 }
 
 const PRIMARY = { r: 179, g: 38, b: 30 }; // matches --primary
@@ -340,6 +366,99 @@ function drawCpfLifePage(doc: jsPDF, input: PremiumReportInput): void {
   drawRows(doc, estimateRows, y);
 }
 
+const CITIZENSHIP_STATUS_LABEL: Record<string, string> = {
+  citizen: "Singapore Citizen / PR (3rd yr+)",
+  pr1: "PR — 1st year",
+  pr2: "PR — 2nd year",
+  pr3plus: "PR — 3rd year+",
+};
+
+function savedOnLabel(savedAt: number): string {
+  return `Saved ${new Date(savedAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`;
+}
+
+// Pulls in whatever the person has separately saved in the app's other calculators, so the
+// report is a complete snapshot of their SG Money data instead of just the Retirement
+// Calculator's. Each module is independently optional — a section that was never used/saved
+// just gets a short "not yet provided" note rather than being silently skipped, so the reader
+// knows the app has more to offer rather than assuming the report is already complete.
+function drawOtherModulesPage(doc: jsPDF, otherModules: OtherModulesData | undefined): void {
+  doc.addPage();
+  let y = TOP_MARGIN;
+  y = drawSectionTitle(doc, "Your Full Financial Picture", y);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.setTextColor(90);
+  const intro = doc.splitTextToSize(
+    "SG Money has calculators for salary & CPF, HDB sale proceeds, CPF accrued interest, and true car cost. " +
+      "Anything you've saved in those is pulled in below to round out this report.",
+    PAGE_WIDTH - MARGIN_X * 2
+  );
+  doc.text(intro, MARGIN_X, y);
+  y += intro.length * 13 + 20;
+
+  const notProvided = (calculatorName: string): PdfRow[] => [
+    { label: calculatorName, value: "" },
+    { label: "Not included in this report", value: "Use & save it in the app" },
+  ];
+
+  // Salary & CPF
+  y = ensureSpace(doc, y, 26);
+  const salary = otherModules?.salary;
+  const salaryRows: PdfRow[] = salary
+    ? [
+        { label: `Salary & CPF (${savedOnLabel(salary.savedAt)})`, value: "" },
+        { label: "Citizenship status", value: CITIZENSHIP_STATUS_LABEL[salary.input.status] ?? salary.input.status },
+        { label: "Monthly gross salary", value: formatSgd(salary.input.monthlyGross) },
+        { label: "Estimated take-home pay", value: `${formatSgd(salary.result.takeHome)}/mo` },
+        { label: "Total CPF contribution (employee + employer)", value: `${formatSgd(salary.result.totalCpf)}/mo` },
+      ]
+    : notProvided("Salary & CPF Calculator");
+  y = drawRows(doc, salaryRows, y);
+
+  y += 12;
+  y = ensureSpace(doc, y, 26);
+  const hdbSale = otherModules?.hdbSale;
+  const hdbRows: PdfRow[] = hdbSale
+    ? [
+        { label: `HDB Sale Proceeds (${savedOnLabel(hdbSale.savedAt)})`, value: "" },
+        { label: "Estimated selling price", value: formatSgd(hdbSale.input.sellingPrice) },
+        { label: "CPF refund on sale", value: formatSgd(hdbSale.result.cpfRefund) },
+        { label: "Estimated cash proceeds", value: formatSgd(hdbSale.result.cashProceeds) },
+      ]
+    : notProvided("HDB Sale Proceeds Calculator");
+  y = drawRows(doc, hdbRows, y);
+
+  y += 12;
+  y = ensureSpace(doc, y, 26);
+  const accruedInterest = otherModules?.accruedInterest;
+  const accruedRows: PdfRow[] = accruedInterest
+    ? [
+        { label: `CPF Accrued Interest (${savedOnLabel(accruedInterest.savedAt)})`, value: "" },
+        { label: "CPF principal used for property", value: formatSgd(accruedInterest.input.principal) },
+        { label: "Years accrued", value: `${accruedInterest.result.years} yrs` },
+        { label: "Estimated CPF refund owed on sale", value: formatSgd(accruedInterest.result.totalRefund) },
+      ]
+    : notProvided("CPF Accrued Interest Calculator");
+  y = drawRows(doc, accruedRows, y);
+
+  y += 12;
+  y = ensureSpace(doc, y, 26);
+  const carCost = otherModules?.carCost;
+  const carRows: PdfRow[] = carCost
+    ? [
+        { label: `Car True Cost (${savedOnLabel(carCost.savedAt)})`, value: "" },
+        { label: "True monthly cost of ownership", value: formatSgd(carCost.result.totalMonthly) },
+        { label: "True annual cost of ownership", value: formatSgd(carCost.result.totalAnnual) },
+        ...(carCost.result.grabComparison
+          ? [{ label: "vs. Grab, approximately saves/costs", value: `${formatSgd(carCost.result.grabComparison.annualSavings)}/yr` }]
+          : []),
+      ]
+    : notProvided("Car True Cost Calculator");
+  drawRows(doc, carRows, y);
+}
+
 // The Dashboard infographic is captured as one tall canvas (same content that used to be the
 // free standalone PNG export). To keep it readable in print rather than shrinking the whole
 // thing onto one page, it's sliced into page-height chunks and each chunk becomes its own PDF
@@ -398,6 +517,8 @@ export function generatePremiumRetirementReport(input: PremiumReportInput): void
 
   doc.addPage();
   drawCpfLifePage(doc, input);
+
+  drawOtherModulesPage(doc, input.otherModules);
 
   if (input.dashboardCanvas) {
     drawDashboardAppendix(doc, input.dashboardCanvas);
