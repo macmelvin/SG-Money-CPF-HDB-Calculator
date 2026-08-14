@@ -4,6 +4,7 @@ import { BtoPromo, CalcShell, Disclaimer, DocToolsPromo, NumberField, ResultCard
 import { AssetAllocationBar, EditableLineItems, HealthBadge } from "../components/Dashboard";
 import { RetirementDashboardExportCard } from "../components/RetirementDashboardExport";
 import type { DashboardExportData } from "../components/RetirementDashboardExport";
+import { PremiumReportPreview } from "../components/PremiumReportPreview";
 import { captureNodeAsCanvas } from "../lib/dashboardImage";
 import {
   CPF_LIFE_STANDARD_PAYOUT_2026,
@@ -629,6 +630,7 @@ export default function RetirementCalculator() {
               a CPF LIFE tier comparison, and the full Dashboard infographic — all in one personalized PDF,
               generated on your device.
             </p>
+            <PremiumReportPreview />
             <a
               href={PREMIUM_REPORT_PAYMENT_LINK}
               target="_blank"
