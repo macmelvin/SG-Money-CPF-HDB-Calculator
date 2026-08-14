@@ -5,7 +5,7 @@ import { AssetAllocationBar, EditableLineItems, HealthBadge } from "../component
 import { RetirementDashboardExportCard } from "../components/RetirementDashboardExport";
 import type { DashboardExportData } from "../components/RetirementDashboardExport";
 import { PremiumReportPreview } from "../components/PremiumReportPreview";
-import { captureNodeAsCanvas } from "../lib/dashboardImage";
+import { captureNodeAsCanvas, downloadCanvasAsPng } from "../lib/dashboardImage";
 import {
   CPF_LIFE_STANDARD_PAYOUT_2026,
   CPF_RETIREMENT_SUMS_2026,
@@ -95,6 +95,7 @@ export default function RetirementCalculator() {
   const [savedAt, setSavedAt] = useState<number | null>(saved?.savedAt ?? null);
   const [includeHdbSale, setIncludeHdbSale] = useState(true);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [isGeneratingDashboardImage, setIsGeneratingDashboardImage] = useState(false);
   const dashboardExportRef = useRef<HTMLDivElement>(null);
   const [premiumUnlocked, setPremiumUnlocked] = useState(() => isPremiumReportUnlocked());
 
@@ -397,6 +398,28 @@ export default function RetirementCalculator() {
     }
   };
 
+  // A quick single-image alternative to the full multi-page PDF — same capture as the report's
+  // Dashboard appendix, just exported straight away as one PNG instead of being embedded in a
+  // report. Gated behind the same unlock flag as the Premium Report so it isn't re-exposed to
+  // everyone as a free standalone feature.
+  const handleDownloadDashboardImage = async () => {
+    if (isGeneratingDashboardImage) return;
+    setIsGeneratingDashboardImage(true);
+    try {
+      const canvas = dashboardExportRef.current ? await captureNodeAsCanvas(dashboardExportRef.current) : null;
+      if (!canvas) {
+        window.alert("Could not generate the dashboard image. Please try again.");
+        return;
+      }
+      downloadCanvasAsPng(canvas, "sg-money-retirement-dashboard.png");
+    } catch (err) {
+      console.error("Could not generate the dashboard image", err);
+      window.alert("Sorry, something went wrong generating the dashboard image. Please try again.");
+    } finally {
+      setIsGeneratingDashboardImage(false);
+    }
+  };
+
   return (
     <CalcShell
       title="👴 Retirement Calculator"
@@ -611,16 +634,27 @@ export default function RetirementCalculator() {
             <p className="explainer" style={{ marginTop: -2 }}>
               Unlocked — download your personalized multi-page report: a written breakdown of where you stand,
               retirement-age and savings scenarios, a year-by-year growth projection, a CPF LIFE tier comparison,
-              and the full Dashboard infographic, all built from the numbers above.
+              and the full Dashboard infographic, all built from the numbers above. Or just grab the Dashboard as a
+              quick single image, no need to regenerate the full report every time you update your numbers.
             </p>
-            <button
-              type="button"
-              className="dashboard-btn"
-              onClick={handleDownloadPremiumReport}
-              disabled={isGeneratingReport}
-            >
-              {isGeneratingReport ? "Generating…" : "📄 Download Premium Report"}
-            </button>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+              <button
+                type="button"
+                className="dashboard-btn"
+                onClick={handleDownloadPremiumReport}
+                disabled={isGeneratingReport}
+              >
+                {isGeneratingReport ? "Generating…" : "📄 Download Premium Report"}
+              </button>
+              <button
+                type="button"
+                className="dashboard-btn"
+                onClick={handleDownloadDashboardImage}
+                disabled={isGeneratingDashboardImage}
+              >
+                {isGeneratingDashboardImage ? "Generating…" : "📊 Download Dashboard (PNG)"}
+              </button>
+            </div>
           </>
         ) : (
           <>

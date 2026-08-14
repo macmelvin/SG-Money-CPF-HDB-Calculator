@@ -11,3 +11,12 @@ export async function captureNodeAsCanvas(node: HTMLElement): Promise<HTMLCanvas
     useCORS: true,
   });
 }
+
+// Triggers a browser download of a captured canvas as a PNG — used for the quick one-image
+// Dashboard export (as opposed to the full multi-page Premium Report PDF).
+export function downloadCanvasAsPng(canvas: HTMLCanvasElement, filename: string): void {
+  const link = document.createElement("a");
+  link.href = canvas.toDataURL("image/png");
+  link.download = filename;
+  link.click();
+}
