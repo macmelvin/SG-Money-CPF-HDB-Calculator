@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { BtoPromo, CalcShell, Disclaimer, DocToolsPromo, NumberField, ResultCard, ResultRow } from "../components/CalcShell";
 import { AssetAllocationBar, EditableLineItems, HealthBadge } from "../components/Dashboard";
@@ -23,6 +23,9 @@ import type { LineItem } from "../lib/dashboard";
 import { usePageMeta } from "../lib/usePageMeta";
 import { clearCalculatorData, loadCalculatorData, saveCalculatorData } from "../lib/storage";
 import { downloadCalculatorPdf } from "../lib/pdf";
+import { generatePremiumRetirementReport } from "../lib/premiumReport";
+import { consumeUnlockRedirect, isPremiumReportUnlocked } from "../lib/premiumUnlock";
+import { PREMIUM_REPORT_PAYMENT_LINK, PREMIUM_REPORT_PRICE_LABEL } from "../lib/calculators";
 
 const DEFAULTS = {
   currentAge: 45,
@@ -79,6 +82,15 @@ export default function RetirementCalculator() {
   const [includeHdbSale, setIncludeHdbSale] = useState(true);
   const [isGeneratingDashboard, setIsGeneratingDashboard] = useState(false);
   const dashboardExportRef = useRef<HTMLDivElement>(null);
+  const [premiumUnlocked, setPremiumUnlocked] = useState(() => isPremiumReportUnlocked());
+
+  // If we just got redirected back here from a successful Stripe payment
+  // (?unlocked=true), persist the unlock and clean the URL up.
+  useEffect(() => {
+    if (consumeUnlockRedirect()) {
+      setPremiumUnlocked(true);
+    }
+  }, []);
 
   const [hdbCurrentValue, setHdbCurrentValue] = useState(initial.hdbCurrentValue);
   const [incomeItems, setIncomeItems] = useState<LineItem[]>(initial.incomeItems);
@@ -417,6 +429,32 @@ export default function RetirementCalculator() {
     }
   };
 
+  const handleDownloadPremiumReport = () => {
+    try {
+      generatePremiumRetirementReport({
+        base: {
+          currentAge,
+          retirementAge,
+          currentSavings: effectiveSavings,
+          currentOA: effectiveOA,
+          currentSaRa,
+          currentMA,
+          monthlyInvestment,
+          expectedReturnPct,
+          desiredMonthlySpend,
+          cpfLifeTargetTier,
+          investmentHoldingsValue: effectiveInvestmentHoldings,
+          inflationRatePct,
+        },
+        result,
+        cpfLifeTargetTier,
+      });
+    } catch (err) {
+      console.error("Could not generate the premium report", err);
+      window.alert("Sorry, something went wrong generating your report. Please try again.");
+    }
+  };
+
   return (
     <CalcShell
       title="👴 Retirement Calculator"
@@ -629,6 +667,38 @@ export default function RetirementCalculator() {
           emphasis
           positive={result.onTrack}
         />
+      </ResultCard>
+
+      <ResultCard title="💎 Premium Retirement Report">
+        {premiumUnlocked ? (
+          <>
+            <p className="explainer" style={{ marginTop: -2 }}>
+              Unlocked — download your personalized multi-page report: a written breakdown of where you stand,
+              retirement-age and savings scenarios, a year-by-year growth projection, and a CPF LIFE tier
+              comparison, all built from the numbers above.
+            </p>
+            <button type="button" className="dashboard-btn" onClick={handleDownloadPremiumReport}>
+              📄 Download Premium Report
+            </button>
+          </>
+        ) : (
+          <>
+            <p className="explainer" style={{ marginTop: -2 }}>
+              Go deeper than the free outlook above: a written breakdown of where you stand, side-by-side
+              scenarios for retiring earlier/later or saving more each month, a year-by-year growth projection,
+              and a CPF LIFE tier comparison — all in one personalized PDF, generated on your device.
+            </p>
+            <a
+              href={PREMIUM_REPORT_PAYMENT_LINK}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="dashboard-btn"
+              style={{ display: "inline-block", textDecoration: "none", textAlign: "center" }}
+            >
+              🔓 Unlock for {PREMIUM_REPORT_PRICE_LABEL}
+            </a>
+          </>
+        )}
       </ResultCard>
 
       {!result.onTrack && (

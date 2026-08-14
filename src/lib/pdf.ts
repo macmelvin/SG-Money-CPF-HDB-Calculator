@@ -12,19 +12,21 @@ export interface PdfSpec {
   disclaimer?: string;
 }
 
-const APP_NAME = "SG-Money-CPF-HDB-Calculator";
-const MARGIN_X = 48;
-const VALUE_X = 360;
-const PAGE_WIDTH = 595.28; // A4 pt
-const PAGE_HEIGHT = 841.89; // A4 pt
-const TOP_MARGIN = 56;
-const BOTTOM_LIMIT = 780; // leave room for the per-page footer below this
+// Exported so other PDF generators (e.g. the premium report) can share the same page
+// geometry and helpers instead of duplicating them.
+export const APP_NAME = "SG-Money-CPF-HDB-Calculator";
+export const MARGIN_X = 48;
+export const VALUE_X = 360;
+export const PAGE_WIDTH = 595.28; // A4 pt
+export const PAGE_HEIGHT = 841.89; // A4 pt
+export const TOP_MARGIN = 56;
+export const BOTTOM_LIMIT = 780; // leave room for the per-page footer below this
 
 // Adds a new page and resets to the top margin if the next `needed` points of
 // content wouldn't fit above BOTTOM_LIMIT. Every calculator's PDF used to assume
 // everything fit on one page — the retirement dashboard's added sections proved
 // that wrong, so all drawing now flows through this.
-function ensureSpace(doc: jsPDF, y: number, needed: number): number {
+export function ensureSpace(doc: jsPDF, y: number, needed: number): number {
   if (y + needed > BOTTOM_LIMIT) {
     doc.addPage();
     return TOP_MARGIN;
@@ -32,7 +34,7 @@ function ensureSpace(doc: jsPDF, y: number, needed: number): number {
   return y;
 }
 
-function drawSectionTitle(doc: jsPDF, title: string, y: number): number {
+export function drawSectionTitle(doc: jsPDF, title: string, y: number): number {
   y = ensureSpace(doc, y, 26);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(12);
@@ -41,7 +43,7 @@ function drawSectionTitle(doc: jsPDF, title: string, y: number): number {
   return y + 18;
 }
 
-function drawRows(doc: jsPDF, rows: PdfRow[], startY: number): number {
+export function drawRows(doc: jsPDF, rows: PdfRow[], startY: number): number {
   let y = startY;
   for (const row of rows) {
     // A row with no value is a sub-heading (e.g. "— Net Worth Snapshot —") — give it more air
@@ -67,7 +69,7 @@ function drawRows(doc: jsPDF, rows: PdfRow[], startY: number): number {
   return y;
 }
 
-function drawFooters(doc: jsPDF): void {
+export function drawFooters(doc: jsPDF): void {
   const pageCount = doc.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);

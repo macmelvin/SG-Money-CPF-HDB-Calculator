@@ -19,6 +19,9 @@ export const BTO_TOOL_URL = "https://bto-planning-tool.web.app/";
 // "nothing sent to a server" promise intact for its calculators.
 export const DOC_TOOLS_URL = "https://document-tools.up.railway.app/";
 
+export const PREMIUM_REPORT_PAYMENT_LINK = "https://buy.stripe.com/aFa14nfOKeDg0R8azz1ZS00";
+export const PREMIUM_REPORT_PRICE_LABEL = "S$12.90";
+
 export const CALCULATORS: CalculatorMeta[] = [
   {
     to: "/salary-calculator",
