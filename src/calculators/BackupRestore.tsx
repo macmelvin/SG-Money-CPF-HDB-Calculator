@@ -26,7 +26,7 @@ export default function BackupRestore() {
 
   const savedLabels = useSavedCalculatorLabels();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [restoreStatus, setRestoreStatus] = useState
+  const [restoreStatus, setRestoreStatus] = useState<
     { type: "success"; labels: string[] } | { type: "error"; message: string } | null
   >(null);
   const [isRestoring, setIsRestoring] = useState(false);
