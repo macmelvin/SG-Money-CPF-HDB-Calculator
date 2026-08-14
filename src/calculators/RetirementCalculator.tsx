@@ -22,7 +22,6 @@ import {
 import type { LineItem } from "../lib/dashboard";
 import { usePageMeta } from "../lib/usePageMeta";
 import { clearCalculatorData, loadCalculatorData, saveCalculatorData } from "../lib/storage";
-import { downloadCalculatorPdf } from "../lib/pdf";
 import { generatePremiumRetirementReport } from "../lib/premiumReport";
 import { consumeUnlockRedirect, isPremiumReportUnlocked } from "../lib/premiumUnlock";
 import { PREMIUM_REPORT_PAYMENT_LINK, PREMIUM_REPORT_PRICE_LABEL } from "../lib/calculators";
@@ -268,96 +267,6 @@ export default function RetirementCalculator() {
     setSavedAt(at);
   };
 
-  const handleDownloadPdf = () => {
-    downloadCalculatorPdf({
-      calculatorTitle: "Retirement Calculator",
-      inputs: [
-        { label: "Current age", value: String(currentAge) },
-        { label: "Target retirement age", value: String(retirementAge) },
-        { label: "Current savings (cash/investments)", value: formatSgd(currentSavings) },
-        { label: "Current CPF Ordinary Account (OA)", value: formatSgd(currentOA) },
-        { label: "Current CPF Special/Retirement Account (SA/RA)", value: formatSgd(currentSaRa) },
-        { label: "Current CPF MediSave (MA)", value: formatSgd(currentMA) },
-        { label: "Monthly investment", value: formatSgd(monthlyInvestment) },
-        { label: "Expected annual return (cash/investments)", value: `${expectedReturnPct}%` },
-        { label: "Desired retirement spending (today's dollars)", value: `${formatSgd(desiredMonthlySpend)}/mo` },
-        { label: "Expected inflation rate", value: `${inflationRatePct}%` },
-        ...(applyHdbScenario
-          ? [
-              { label: "Includes selling HDB today: CPF refund added to OA", value: `+${formatSgd(hdbScenario.cpfRefund)}` },
-              { label: "Includes selling HDB today: cash added to savings", value: `+${formatSgd(hdbScenario.cashProceeds)}` },
-            ]
-          : []),
-      ],
-      results: [
-        { label: "Years remaining", value: `${result.yearsToRetirement} years` },
-        { label: "Projected cash & investments", value: formatSgd(result.projectedCash) },
-        { label: "Projected CPF OA", value: formatSgd(result.projectedOA) },
-        { label: "Projected CPF SA/RA", value: formatSgd(result.projectedSaRa) },
-        {
-          label: includeInvestmentHoldings
-            ? "Projected investment & insurance holdings (grown)"
-            : "Projected investment & insurance holdings (not included)",
-          value: formatSgd(result.projectedInvestmentHoldings),
-        },
-        { label: "Projected CPF MediSave (not counted, healthcare only)", value: formatSgd(result.projectedMA) },
-        { label: "Total counted toward retirement income", value: formatSgd(result.projectedSavings) },
-        {
-          label: `Desired spending at retirement (${inflationRatePct}%/yr inflation)`,
-          value: `${formatSgd(result.desiredMonthlySpendAtRetirement)}/mo`,
-        },
-        { label: "Target required (inflation-adjusted)", value: formatSgd(result.targetRequired) },
-        {
-          label: result.onTrack ? "Surplus" : "Shortfall",
-          value: formatSgd(Math.abs(result.shortfall)),
-        },
-        ...(!result.onTrack
-          ? [{ label: "Increase monthly savings to", value: formatSgd(result.suggestedMonthlySavings) }]
-          : []),
-        {
-          label: `Retirement Account target: ${CPF_LIFE_TIER_LABEL[cpfLifeTargetTier]}`,
-          value: formatSgd(CPF_RETIREMENT_SUMS_2026[cpfLifeTargetTier]),
-        },
-        { label: "Projected OA + SA/RA set aside in RA", value: formatSgd(result.cpfLife.retirementAccountBalance) },
-        { label: "Estimated CPF LIFE Standard Plan payout (from 65)", value: `${formatSgd(result.cpfLife.estimatedMonthlyPayout)}/mo` },
-        ...(result.cpfLifeExcessCash > 0
-          ? [{ label: "Estimated cash withdrawable at 55 (above chosen tier)", value: formatSgd(result.cpfLifeExcessCash) }]
-          : []),
-        { label: "— Net Worth Snapshot —", value: "" },
-        { label: "HDB Property", value: formatSgd(hdbCurrentValue) },
-        { label: "Total CPF (OA+SA/RA+MediSave)", value: formatSgd(totalCpfToday) },
-        ...investmentItems.map((item) => ({ label: `  Investment: ${item.label || "(unlabelled)"}`, value: formatSgd(item.amount) })),
-        { label: "Total Investments & Insurance", value: formatSgd(totalInvestmentsPortfolio) },
-        { label: "TOTAL NET WORTH", value: formatSgd(netWorth) },
-        { label: "— Monthly Cash Flow —", value: "" },
-        ...incomeItems.map((item) => ({ label: `  Income: ${item.label || "(unlabelled)"}`, value: formatSgd(item.amount) })),
-        ...expenseItems.map((item) => ({ label: `  Expense: ${item.label || "(unlabelled)"}`, value: formatSgd(item.amount) })),
-        ...liabilityItems.map((item) => ({ label: `  Liability: ${item.label || "(unlabelled)"}`, value: formatSgd(item.amount) })),
-        { label: "Total Income", value: formatSgd(totalIncome) },
-        { label: "Total Expenses", value: formatSgd(totalExpenses) },
-        { label: "Total Liabilities", value: formatSgd(totalLiabilities) },
-        { label: monthlySurplus >= 0 ? "Monthly Surplus" : "Monthly Deficit", value: formatSgd(Math.abs(monthlySurplus)) },
-        ...(rightsizing
-          ? [
-              { label: "— Rightsizing Scenario —", value: "" },
-              { label: "Estimated sale proceeds", value: formatSgd(hdbCurrentValue) },
-              { label: "Less: CPF refund", value: `-${formatSgd(hdbScenario!.cpfRefund)}` },
-              { label: "Balance after CPF refund", value: formatSgd(rightsizing.balanceAfterCpfRefund) },
-              { label: "Less: replacement flat price", value: `-${formatSgd(replacementFlatPrice)}` },
-              { label: "Less: legal & moving costs", value: `-${formatSgd(legalMovingCosts)}` },
-              { label: "Cash released from rightsizing", value: formatSgd(rightsizing.cashReleased) },
-              { label: "Estimated financial assets after rightsizing", value: formatSgd(estimatedAssetsAfterRightsizing ?? 0) },
-            ]
-          : []),
-        { label: "— Retirement Health Check —", value: "" },
-        ...healthCheck.dimensions.map((d) => ({ label: d.label, value: d.status })),
-        { label: "Overall illustrative score", value: `${healthCheck.overallScore}/100` },
-      ],
-      disclaimer:
-        "Assumes 25 years in retirement and steady investment returns — actual markets fluctuate. CPF OA/SA/MediSave balances are projected at CPF's floor interest rates (OA 2.5%, SA/MA/RA 4%) with no further CPF contributions modelled. CPF LIFE payout is an indicative Standard Plan estimate for the 2026 cohort, interpolated between CPF Board's published BRS/FRS/ERS figures. The net worth, cash flow, rightsizing and health-check figures are computed only from what you typed in on this device — nothing is verified or fetched. The health check score is an illustrative self-check using simple rules of thumb, not a professional financial assessment. Not financial advice.",
-    });
-  };
-
   const dashboardExportData: DashboardExportData = {
     generatedOn: new Date().toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" }),
     currentAge,
@@ -458,7 +367,6 @@ export default function RetirementCalculator() {
       subtitle="Are you on track to retire comfortably in Singapore?"
       onClear={clearInputs}
       onSave={handleSave}
-      onDownloadPdf={handleDownloadPdf}
       savedAt={savedAt}
     >
       <div className="form-grid">
