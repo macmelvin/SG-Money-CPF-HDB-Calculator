@@ -498,6 +498,107 @@
   font-size: 16px;
 }
 
+.next-step {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  margin: 16px 0;
+}
+.next-step-prompt {
+  margin: 0 0 12px;
+  font-size: 14px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.next-step-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.next-step-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+.next-step-btn.selected {
+  border-color: var(--primary);
+  color: var(--primary);
+  font-weight: 600;
+}
+.next-step-icon {
+  font-size: 15px;
+}
+.next-step-cta {
+  display: inline-block;
+  margin-top: 14px;
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.sponsored-card {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--card);
+}
+.sponsored-label {
+  display: inline-block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+.sponsored-headline {
+  margin: 0 0 4px;
+  font-weight: 600;
+  font-size: 14px;
+}
+.sponsored-desc {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.sponsored-cta {
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.ad-slot-available {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px dashed var(--border);
+  background: transparent;
+}
+.ad-slot-text {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.ad-slot-link {
+  color: var(--text-muted);
+  font-weight: 600;
+  text-decoration: none;
+  font-size: 13px;
+}
+.ad-slot-link:hover {
+  color: var(--primary);
+}
+
 /* --- Editable line items (income / expenses / investments) --- */
 .line-items {
   display: flex;

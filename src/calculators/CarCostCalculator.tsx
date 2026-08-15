@@ -1,9 +1,13 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { BtoPromo, CalcShell, Disclaimer, NumberField, ResultCard, ResultRow } from "../components/CalcShell";
+import { NextStep } from "../components/NextStep";
 import { calculateCarCost, formatSgd } from "../lib/cpf";
 import { usePageMeta } from "../lib/usePageMeta";
 import { clearCalculatorData, loadCalculatorData, saveCalculatorData } from "../lib/storage";
 import { downloadCalculatorPdf } from "../lib/pdf";
+import { trackEvent } from "../lib/analytics";
+
+const CALCULATOR_ID = "car-cost-calculator";
 
 const STORAGE_KEY = "car-cost-calculator";
 
@@ -44,6 +48,13 @@ export default function CarCostCalculator() {
   const [monthlyGrabSpend, setMonthlyGrabSpend] = useState(initial.monthlyGrabSpend);
   const [savedAt, setSavedAt] = useState<number | null>(saved?.savedAt ?? null);
 
+  useEffect(() => {
+    trackEvent("calculator_started", { calculator: CALCULATOR_ID });
+  }, []);
+
+  const initialSnapshot = useRef(initial);
+  const hasCompletedOnce = useRef(false);
+
   const result = useMemo(
     () =>
       calculateCarCost({
@@ -62,6 +73,26 @@ export default function CarCostCalculator() {
       }),
     [carPrice, downpayment, loanAmount, loanYears, interestRatePct, monthlyPetrol, monthlyParking, monthlyErp, annualInsurance, annualRoadTax, annualMaintenance, monthlyGrabSpend]
   );
+
+  useEffect(() => {
+    const s = initialSnapshot.current;
+    const changed =
+      carPrice !== s.carPrice ||
+      downpayment !== s.downpayment ||
+      loanAmount !== s.loanAmount ||
+      loanYears !== s.loanYears ||
+      interestRatePct !== s.interestRatePct ||
+      monthlyPetrol !== s.monthlyPetrol ||
+      monthlyParking !== s.monthlyParking ||
+      monthlyErp !== s.monthlyErp ||
+      annualInsurance !== s.annualInsurance ||
+      annualRoadTax !== s.annualRoadTax ||
+      annualMaintenance !== s.annualMaintenance;
+    if (!hasCompletedOnce.current && changed) {
+      hasCompletedOnce.current = true;
+      trackEvent("calculator_completed", { calculator: CALCULATOR_ID });
+    }
+  }, [carPrice, downpayment, loanAmount, loanYears, interestRatePct, monthlyPetrol, monthlyParking, monthlyErp, annualInsurance, annualRoadTax, annualMaintenance]);
 
   const clearInputs = () => {
     setCarPrice(DEFAULTS.carPrice);
@@ -188,6 +219,8 @@ export default function CarCostCalculator() {
           </>
         )}
       </ResultCard>
+
+      <NextStep calculatorId={CALCULATOR_ID} prompt="Reduce your car expenses" />
 
       <BtoPromo />
 

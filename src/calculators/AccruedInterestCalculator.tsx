@@ -1,9 +1,13 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { BtoPromo, CalcShell, Disclaimer, NumberField, ResultCard, ResultRow } from "../components/CalcShell";
+import { NextStep } from "../components/NextStep";
 import { calculateAccruedInterest, formatSgd } from "../lib/cpf";
 import { usePageMeta } from "../lib/usePageMeta";
 import { clearCalculatorData, loadCalculatorData, saveCalculatorData } from "../lib/storage";
 import { downloadCalculatorPdf } from "../lib/pdf";
+import { trackEvent } from "../lib/analytics";
+
+const CALCULATOR_ID = "cpf-accrued-interest";
 
 const DEFAULTS = {
   principal: 180000,
@@ -25,10 +29,26 @@ export default function AccruedInterestCalculator() {
   const [yearFirstUsed, setYearFirstUsed] = useState(initial.yearFirstUsed);
   const [savedAt, setSavedAt] = useState<number | null>(saved?.savedAt ?? null);
 
+  useEffect(() => {
+    trackEvent("calculator_started", { calculator: CALCULATOR_ID });
+  }, []);
+
+  const initialSnapshot = useRef(initial);
+  const hasCompletedOnce = useRef(false);
+
   const result = useMemo(
     () => calculateAccruedInterest({ principal, yearFirstUsed, currentYear }),
     [principal, yearFirstUsed, currentYear]
   );
+
+  useEffect(() => {
+    const s = initialSnapshot.current;
+    const changed = principal !== s.principal || yearFirstUsed !== s.yearFirstUsed;
+    if (!hasCompletedOnce.current && changed) {
+      hasCompletedOnce.current = true;
+      trackEvent("calculator_completed", { calculator: CALCULATOR_ID });
+    }
+  }, [principal, yearFirstUsed]);
 
   const clearInputs = () => {
     setPrincipal(DEFAULTS.principal);
@@ -85,6 +105,8 @@ export default function AccruedInterestCalculator() {
         Accrued interest is the interest your CPF savings would have earned (at the CPF Ordinary Account rate) had
         they stayed in your CPF account instead of being used for your property.
       </p>
+
+      <NextStep calculatorId={CALCULATOR_ID} prompt="Why are you calculating this?" />
 
       <BtoPromo />
 

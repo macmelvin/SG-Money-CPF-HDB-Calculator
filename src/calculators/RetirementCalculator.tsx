@@ -107,6 +107,16 @@ export default function RetirementCalculator() {
     }
   }, []);
 
+  // Coming from HDB Sale Calculator's "Downsize" next-step option
+  // (?rightsizing=1) — pre-check the rightsizing box so the person doesn't
+  // have to find and toggle it themselves.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("rightsizing") === "1") {
+      setPlanRightsizing(true);
+    }
+  }, []);
+
   const [hdbCurrentValue, setHdbCurrentValue] = useState(initial.hdbCurrentValue);
   const [incomeItems, setIncomeItems] = useState<LineItem[]>(initial.incomeItems);
   const [expenseItems, setExpenseItems] = useState<LineItem[]>(initial.expenseItems);

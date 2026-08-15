@@ -1,9 +1,13 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { CalcShell, Disclaimer, NumberField, ResultCard, ResultRow, BtoPromo } from "../components/CalcShell";
+import { NextStep } from "../components/NextStep";
 import { calculateHdbSaleProceeds, formatSgd } from "../lib/cpf";
 import { usePageMeta } from "../lib/usePageMeta";
 import { clearCalculatorData, loadCalculatorData, saveCalculatorData } from "../lib/storage";
 import { downloadCalculatorPdf } from "../lib/pdf";
+import { trackEvent } from "../lib/analytics";
+
+const CALCULATOR_ID = "hdb-sale-proceeds";
 
 const DEFAULTS = {
   sellingPrice: 650000,
@@ -32,6 +36,13 @@ export default function HdbSaleCalculator() {
   const [otherCosts, setOtherCosts] = useState(initial.otherCosts);
   const [savedAt, setSavedAt] = useState<number | null>(saved?.savedAt ?? null);
 
+  useEffect(() => {
+    trackEvent("calculator_started", { calculator: CALCULATOR_ID });
+  }, []);
+
+  const initialSnapshot = useRef(initial);
+  const hasCompletedOnce = useRef(false);
+
   const result = useMemo(
     () =>
       calculateHdbSaleProceeds({
@@ -44,6 +55,21 @@ export default function HdbSaleCalculator() {
       }),
     [sellingPrice, outstandingLoan, cpfPrincipalUsed, cpfAccruedInterest, agentCommissionPct, otherCosts]
   );
+
+  useEffect(() => {
+    const s = initialSnapshot.current;
+    const changed =
+      sellingPrice !== s.sellingPrice ||
+      outstandingLoan !== s.outstandingLoan ||
+      cpfPrincipalUsed !== s.cpfPrincipalUsed ||
+      cpfAccruedInterest !== s.cpfAccruedInterest ||
+      agentCommissionPct !== s.agentCommissionPct ||
+      otherCosts !== s.otherCosts;
+    if (!hasCompletedOnce.current && changed) {
+      hasCompletedOnce.current = true;
+      trackEvent("calculator_completed", { calculator: CALCULATOR_ID });
+    }
+  }, [sellingPrice, outstandingLoan, cpfPrincipalUsed, cpfAccruedInterest, agentCommissionPct, otherCosts]);
 
   const clearInputs = () => {
     setSellingPrice(DEFAULTS.sellingPrice);
@@ -124,6 +150,8 @@ export default function HdbSaleCalculator() {
           <ResultRow key={b.label} label={b.label} value={`${formatSgd(b.amount)}  (${b.pct.toFixed(0)}%)`} />
         ))}
       </ResultCard>
+
+      <NextStep calculatorId={CALCULATOR_ID} />
 
       <BtoPromo
         title="Selling to upgrade to a BTO?"

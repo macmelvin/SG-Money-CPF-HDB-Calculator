@@ -1,10 +1,14 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { BtoPromo, CalcShell, Disclaimer, NumberField, ResultCard, ResultRow, SelectField } from "../components/CalcShell";
+import { NextStep } from "../components/NextStep";
 import { calculateSalaryCpf, formatSgd } from "../lib/cpf";
 import type { CitizenshipStatus } from "../lib/cpf";
 import { usePageMeta } from "../lib/usePageMeta";
 import { clearCalculatorData, loadCalculatorData, saveCalculatorData } from "../lib/storage";
 import { downloadCalculatorPdf } from "../lib/pdf";
+import { trackEvent } from "../lib/analytics";
+
+const CALCULATOR_ID = "salary-calculator";
 
 const DEFAULTS = {
   age: 35,
@@ -35,10 +39,27 @@ export default function SalaryCalculator() {
   const [status, setStatus] = useState<CitizenshipStatus>(initial.status);
   const [savedAt, setSavedAt] = useState<number | null>(saved?.savedAt ?? null);
 
+  useEffect(() => {
+    trackEvent("calculator_started", { calculator: CALCULATOR_ID });
+  }, []);
+
+  const initialSnapshot = useRef(initial);
+  const hasCompletedOnce = useRef(false);
+
   const result = useMemo(
     () => calculateSalaryCpf({ age, monthlyGross, monthlyBonus, status }),
     [age, monthlyGross, monthlyBonus, status]
   );
+
+  useEffect(() => {
+    const s = initialSnapshot.current;
+    const changed =
+      age !== s.age || monthlyGross !== s.monthlyGross || monthlyBonus !== s.monthlyBonus || status !== s.status;
+    if (!hasCompletedOnce.current && changed) {
+      hasCompletedOnce.current = true;
+      trackEvent("calculator_completed", { calculator: CALCULATOR_ID });
+    }
+  }, [age, monthlyGross, monthlyBonus, status]);
 
   const clearInputs = () => {
     setAge(DEFAULTS.age);
@@ -107,6 +128,8 @@ export default function SalaryCalculator() {
         <ResultRow label="Employer CPF" value={`+${formatSgd(result.employerCpf)}`} positive />
         <ResultRow label="Total CPF contribution" value={formatSgd(result.totalCpf)} />
       </ResultCard>
+
+      <NextStep calculatorId={CALCULATOR_ID} />
 
       <BtoPromo />
 
