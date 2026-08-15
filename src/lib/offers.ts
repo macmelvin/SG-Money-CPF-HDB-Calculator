@@ -75,7 +75,7 @@ export const NEXT_STEP_OFFERS: Record<string, NextStepIntent[]> = {
     {
       id: "retire",
       icon: "👴",
-      label: "Retirement & investment",
+      label: "Build Retirement Portfolio",
       to: "/retirement-calculator",
       adCategory: "financial-planning",
       leadFormMessage: "Leave your contact and we will have our retirement specialist contact you to understand your needs first.",
