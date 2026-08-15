@@ -66,6 +66,11 @@ const CPF_LIFE_TIER_LABEL: Record<CpfLifeTargetTier, string> = {
 };
 
 const STORAGE_KEY = "retirement-calculator";
+// Persists the "user wants to model downsizing" intent from HDB Sale's
+// Downsize next-step option, so it survives the round trip: land here with
+// no saved HDB data -> go save it on HDB Sale -> come back (no query param
+// this time) -> still get the rightsizing box pre-checked automatically.
+const DOWNSIZE_INTENT_KEY = "downsize-intent";
 // Must match the storage keys the other calculators save under — read here so the
 // Premium Report can pull in whatever the person already entered elsewhere, instead
 // of asking them to re-type it.
@@ -109,10 +114,19 @@ export default function RetirementCalculator() {
 
   // Coming from HDB Sale Calculator's "Downsize" next-step option
   // (?rightsizing=1) — pre-check the rightsizing box so the person doesn't
-  // have to find and toggle it themselves.
+  // have to find and toggle it themselves. Also queue the intent in
+  // localStorage: if they haven't saved their HDB Sale numbers yet, the
+  // checkbox below won't even be visible (it's gated on hdbScenario), so
+  // this makes sure the intent survives them going to save it and coming
+  // back later.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get("rightsizing") === "1") {
+    const cameFromDownsize = params.get("rightsizing") === "1";
+    const queuedIntent = Boolean(loadCalculatorData<{ queued: boolean }>(DOWNSIZE_INTENT_KEY)?.data?.queued);
+    if (cameFromDownsize) {
+      setPlanRightsizing(true);
+      saveCalculatorData(DOWNSIZE_INTENT_KEY, { queued: true });
+    } else if (queuedIntent) {
       setPlanRightsizing(true);
     }
   }, []);
@@ -133,6 +147,15 @@ export default function RetirementCalculator() {
   const savedHdb = loadCalculatorData<HdbSaleInput>(HDB_SALE_STORAGE_KEY);
   const hdbScenario = savedHdb?.data ? calculateHdbSaleProceeds(savedHdb.data) : null;
   const applyHdbScenario = includeHdbSale && hdbScenario !== null;
+
+  // Once the downsize intent has actually been fulfilled (HDB data exists
+  // and the box is checked), clear the queued flag so it doesn't keep
+  // re-checking the box on unrelated future visits.
+  useEffect(() => {
+    if (hdbScenario && planRightsizing) {
+      clearCalculatorData(DOWNSIZE_INTENT_KEY);
+    }
+  }, [hdbScenario, planRightsizing]);
   const effectiveOA = currentOA + (applyHdbScenario ? hdbScenario.cpfRefund : 0);
   const effectiveSavings = currentSavings + (applyHdbScenario ? hdbScenario.cashProceeds : 0);
 
@@ -576,11 +599,19 @@ export default function RetirementCalculator() {
             )}
           </>
         ) : (
-          <p className="explainer">
-            Save your numbers in the <Link to="/hdb-sale-proceeds">HDB Sale Proceeds calculator</Link> and
-            they'll show up here as a "what if I sold today" scenario — the CPF refund gets added to your OA
-            and the cash proceeds to your savings, plus you'll be able to model downsizing to a smaller flat.
-          </p>
+          <>
+            {planRightsizing && (
+              <p className="explainer" style={{ fontWeight: 500 }}>
+                Got it — you're considering downsizing. Save your numbers in the HDB Sale Proceeds calculator
+                and this section will model it for you automatically when you come back.
+              </p>
+            )}
+            <p className="explainer">
+              Save your numbers in the <Link to="/hdb-sale-proceeds">HDB Sale Proceeds calculator</Link> and
+              they'll show up here as a "what if I sold today" scenario — the CPF refund gets added to your OA
+              and the cash proceeds to your savings, plus you'll be able to model downsizing to a smaller flat.
+            </p>
+          </>
         )}
       </ResultCard>
 
