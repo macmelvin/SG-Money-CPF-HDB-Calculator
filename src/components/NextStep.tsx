@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { NEXT_STEP_OFFERS } from "../lib/offers";
 import { trackEvent } from "../lib/analytics";
@@ -46,13 +46,28 @@ export function NextStep({
     onSelect?.(id);
   };
 
-  useViewedOnce(Boolean(selected?.sponsor), () => {
-    if (selected?.sponsor) {
-      trackEvent("sponsored_offer_viewed", { calculator: calculatorId, intent: selected.id, category: selected.sponsor.category });
+  // Randomly picks one sponsor from this intent's list — a simple rotation
+  // so multiple advertisers in the same category get roughly even exposure
+  // over many page views, without any backend scheduling. Only re-picks
+  // when the selected intent actually changes, not on every re-render.
+  const pickedSponsor = useMemo(() => {
+    const sponsors = selected?.sponsors;
+    if (!sponsors || sponsors.length === 0) return null;
+    return sponsors[Math.floor(Math.random() * sponsors.length)];
+  }, [selectedId]);
+
+  useViewedOnce(Boolean(pickedSponsor), () => {
+    if (pickedSponsor) {
+      trackEvent("sponsored_offer_viewed", {
+        calculator: calculatorId,
+        intent: selected!.id,
+        category: pickedSponsor.category,
+        advertiser: pickedSponsor.advertiserId,
+      });
     }
   });
 
-  const showAdSlotFallback = Boolean(selected?.adCategory && !selected.sponsor);
+  const showAdSlotFallback = Boolean(selected?.adCategory && !pickedSponsor);
   const adSlotCompact = Boolean(selected?.to);
 
   useViewedOnce(showAdSlotFallback, () => {
@@ -84,25 +99,26 @@ export function NextStep({
         </Link>
       )}
 
-      {selected?.sponsor && (
+      {pickedSponsor && (
         <div className="sponsored-card">
           <span className="sponsored-label">Sponsored</span>
-          <p className="sponsored-headline">{selected.sponsor.headline}</p>
-          <p className="sponsored-desc">{selected.sponsor.desc}</p>
+          <p className="sponsored-headline">{pickedSponsor.headline}</p>
+          <p className="sponsored-desc">{pickedSponsor.desc}</p>
           <a
-            href={selected.sponsor.href}
+            href={pickedSponsor.href}
             target="_blank"
             rel="noopener noreferrer sponsored"
             className="sponsored-cta"
             onClick={() =>
               trackEvent("sponsored_offer_clicked", {
                 calculator: calculatorId,
-                intent: selected.id,
-                category: selected.sponsor!.category,
+                intent: selected!.id,
+                category: pickedSponsor.category,
+                advertiser: pickedSponsor.advertiserId,
               })
             }
           >
-            {selected.sponsor.ctaLabel} →
+            {pickedSponsor.ctaLabel} →
           </a>
         </div>
       )}

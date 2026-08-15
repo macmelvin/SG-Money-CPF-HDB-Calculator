@@ -5,14 +5,16 @@
 // (this file's `internal` options), and only *after* that a clearly-labelled
 // "Sponsored" card — never before the calculation.
 //
-// IMPORTANT — the `sponsor` field below is intentionally left undefined for
-// every intent right now. There is no real, vetted, Singapore-financial-
-// -services-verified advertiser wired up yet (see the plan's note on MAS/
-// Google's verification requirement for banking/loan/investment/insurance
-// ads in Singapore). Do not fill these in with placeholder company names —
-// swap in a real partner's actual headline/desc/href when one exists, and
-// the card will start rendering automatically. Until then, NextStep just
-// shows the internal option, which is honest and still useful on its own.
+// IMPORTANT — the `sponsors` field below is intentionally left undefined
+// for every intent right now. There is no real, vetted, Singapore-
+// financial-services-verified advertiser wired up yet (see the plan's
+// note on MAS/Google's verification requirement for banking/loan/
+// investment/insurance ads in Singapore). Do not fill these in with
+// placeholder company names — swap in real partners' actual headline/
+// desc/href when they exist, and the card will start rendering
+// automatically, rotating between them if more than one is listed. Until
+// then, NextStep just shows the internal option, which is honest and
+// still useful on its own.
 
 // Contact address shown on the "this ad spot is available" fallback card —
 // a real, honest CTA for advertisers, not a fake sponsor.
@@ -52,13 +54,22 @@ export interface NextStepIntent {
    * matters" hook. Only used when leadFormMessage is also set.
    */
   leadFormHeadline?: string;
-  sponsor?: {
+  /**
+   * One or more sponsors for this slot. When more than one is set, NextStep
+   * randomly picks a different one on each view — a simple rotation so
+   * multiple advertisers in the same category (e.g. 4 different savings
+   * accounts) all get roughly even exposure over time, without needing any
+   * backend scheduling logic. Each needs a unique `advertiserId` so clicks/
+   * views can be tracked per advertiser, not just per category.
+   */
+  sponsors?: {
+    advertiserId: string;
     headline: string;
     desc: string;
     ctaLabel: string;
     href: string;
     category: string; // e.g. "mortgage", "insurance" — for the advertiser DB later
-  };
+  }[];
 }
 
 export const NEXT_STEP_OFFERS: Record<string, NextStepIntent[]> = {
