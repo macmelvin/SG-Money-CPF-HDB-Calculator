@@ -113,6 +113,7 @@ export function NextStep({
           category={selected!.adCategory!}
           compact={adSlotCompact}
           showProjectPicker={selected!.showProjectPicker}
+          message={selected!.leadFormMessage}
         />
       )}
     </div>

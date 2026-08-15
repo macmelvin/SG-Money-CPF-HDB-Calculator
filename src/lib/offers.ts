@@ -40,6 +40,13 @@ export interface NextStepIntent {
    * this on genuinely property-related intents.
    */
   showProjectPicker?: boolean;
+  /**
+   * Custom copy for the lead form's body text, shown when this intent has
+   * no sponsor yet. Falls back to a generic "leave your contact" message
+   * if omitted — set this when a more specific message makes sense (e.g.
+   * naming the kind of specialist who'll follow up).
+   */
+  leadFormMessage?: string;
   sponsor?: {
     headline: string;
     desc: string;
@@ -74,9 +81,10 @@ export const NEXT_STEP_OFFERS: Record<string, NextStepIntent[]> = {
     {
       id: "retire",
       icon: "👴",
-      label: "Retire",
+      label: "Retirement",
       to: "/retirement-calculator",
       adCategory: "financial-planning",
+      leadFormMessage: "Leave your contact and we will have our retirement specialist contact you to understand your needs first.",
     },
     {
       id: "just-checking",
