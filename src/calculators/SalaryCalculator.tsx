@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BtoPromo, CalcShell, Disclaimer, NumberField, ResultCard, ResultRow, SelectField } from "../components/CalcShell";
 import { NextStep } from "../components/NextStep";
+import { AdSpot } from "../components/AdSpot";
 import { calculateSalaryCpf, formatSgd } from "../lib/cpf";
 import type { CitizenshipStatus } from "../lib/cpf";
 import { usePageMeta } from "../lib/usePageMeta";
@@ -132,6 +133,8 @@ export default function SalaryCalculator() {
       <NextStep calculatorId={CALCULATOR_ID} />
 
       <BtoPromo />
+
+      <AdSpot label="SG Money ad spot - Salary & CPF" />
 
       <Disclaimer>
         Estimate based on 2026 CPF contribution rates and the S$8,000 Ordinary Wage ceiling. PR rates are simplified
