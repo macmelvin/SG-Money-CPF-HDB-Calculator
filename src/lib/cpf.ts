@@ -31,11 +31,106 @@ export function getCpfRatesForAge(age: number): CpfRateBand {
   );
 }
 
+// Official CPF allocation ratios (how total contribution splits across OA /
+// SA-RA / MA), from 1 January 2026. Source: CPF Board's published allocation
+// table (cpf.gov.sg/content/dam/web/employer/employer-obligations/documents/
+// CPFAllocationRatesfromJanuary2026.pdf). MA is computed first, then SA/RA,
+// with OA receiving the remainder — matching CPF Board's own worked examples.
+export interface CpfAllocationBand {
+  minAge: number; // inclusive
+  maxAge: number; // exclusive (use 200 for "and above")
+  oa: number;
+  saRa: number; // Special Account below 55, Retirement Account from 55
+  ma: number;
+}
+
+export const CPF_ALLOCATION_BANDS: CpfAllocationBand[] = [
+  { minAge: 0, maxAge: 35, oa: 0.6217, saRa: 0.1621, ma: 0.2162 },
+  { minAge: 35, maxAge: 45, oa: 0.5677, saRa: 0.1891, ma: 0.2432 },
+  { minAge: 45, maxAge: 50, oa: 0.5136, saRa: 0.2162, ma: 0.2702 },
+  { minAge: 50, maxAge: 55, oa: 0.4055, saRa: 0.3108, ma: 0.2837 },
+  { minAge: 55, maxAge: 60, oa: 0.353, saRa: 0.3382, ma: 0.3088 },
+  { minAge: 60, maxAge: 65, oa: 0.14, saRa: 0.44, ma: 0.42 },
+  { minAge: 65, maxAge: 70, oa: 0.0607, saRa: 0.303, ma: 0.6363 },
+  { minAge: 70, maxAge: 200, oa: 0.08, saRa: 0.08, ma: 0.84 },
+];
+
+export function getCpfAllocationForAge(age: number): CpfAllocationBand {
+  return (
+    CPF_ALLOCATION_BANDS.find((b) => age >= b.minAge && age < b.maxAge) ??
+    CPF_ALLOCATION_BANDS[CPF_ALLOCATION_BANDS.length - 1]
+  );
+}
+
+// IRAS resident individual income tax brackets, YA2024 onwards (current for
+// YA2026 — IRAS's own page confirms these are unchanged). Each entry is the
+// marginal rate applied to income WITHIN that band, not cumulative income.
+export interface TaxBracket {
+  upTo: number; // exclusive upper bound of this band; Infinity for the top band
+  rate: number; // marginal rate applied to the portion of income in this band
+}
+
+export const INCOME_TAX_BRACKETS: TaxBracket[] = [
+  { upTo: 20000, rate: 0 },
+  { upTo: 30000, rate: 0.02 },
+  { upTo: 40000, rate: 0.035 },
+  { upTo: 80000, rate: 0.07 },
+  { upTo: 120000, rate: 0.115 },
+  { upTo: 160000, rate: 0.15 },
+  { upTo: 200000, rate: 0.18 },
+  { upTo: 240000, rate: 0.19 },
+  { upTo: 280000, rate: 0.195 },
+  { upTo: 320000, rate: 0.2 },
+  { upTo: 500000, rate: 0.22 },
+  { upTo: 1000000, rate: 0.23 },
+  { upTo: Infinity, rate: 0.24 },
+];
+
+// Earned Income Relief — a standard relief virtually every employed resident
+// gets automatically (unlike optional reliefs for spouse/parent/child/NSman
+// etc., which depend on personal circumstances this calculator has no way
+// to know). Including this gets the estimate meaningfully closer without
+// needing extra inputs.
+export function getEarnedIncomeRelief(age: number): number {
+  if (age >= 60) return 8000;
+  if (age >= 55) return 6000;
+  return 1000;
+}
+
+// Computes tax on chargeable income using IRAS's progressive brackets.
+// Does NOT include any one-off Budget rebate (e.g. YA2025's 60%-up-to-$200
+// rebate) since those are announced year to year and aren't guaranteed to
+// recur — the estimate is deliberately a touch conservative (slightly
+// overstates tax) rather than assume a rebate that may not apply.
+export function calculateIncomeTax(chargeableIncome: number): number {
+  if (chargeableIncome <= 0) return 0;
+  let tax = 0;
+  let lowerBound = 0;
+  for (const bracket of INCOME_TAX_BRACKETS) {
+    if (chargeableIncome <= lowerBound) break;
+    const amountInBand = Math.min(chargeableIncome, bracket.upTo) - lowerBound;
+    tax += amountInBand * bracket.rate;
+    lowerBound = bracket.upTo;
+  }
+  return Math.round(tax);
+}
+
 export interface SalaryCpfInput {
   age: number;
   monthlyGross: number;
+  /**
+   * Regular monthly sales commission — treated as Ordinary Wages (merged
+   * with monthlyGross for the OW ceiling), which is the standard CPF
+   * treatment for commission paid monthly as part of normal wages. If your
+   * commission is instead an irregular lump-sum payment, treat it as
+   * bonus/AW below instead.
+   */
+  monthlySalesCommission?: number;
   monthlyBonus?: number; // additional wages, simplified as flat monthly addition
   status: CitizenshipStatus;
+  /** Set true to also compute an income tax estimate (opt-in since it needs
+   *  simplifying assumptions the base CPF/take-home numbers don't). */
+  estimateIncomeTax?: boolean;
 }
 
 export interface SalaryCpfResult {
@@ -45,6 +140,20 @@ export interface SalaryCpfResult {
   employerCpf: number;
   totalCpf: number;
   ratesUsed: { employer: number; employee: number };
+  /** How this month's total CPF contribution splits across accounts. */
+  allocation: { oa: number; saRa: number; ma: number };
+  annual: {
+    grossSalary: number;
+    employeeCpf: number;
+    employerCpf: number;
+    takeHome: number;
+  };
+  /** Only set when estimateIncomeTax is true. */
+  incomeTaxEstimate?: {
+    chargeableIncome: number;
+    estimatedTax: number;
+    effectiveRate: number; // estimatedTax / annual gross, as a fraction
+  };
 }
 
 // Simplified PR graduated rates (illustrative — PR1/PR2 use graduated contribution
@@ -57,27 +166,71 @@ const PR_MULTIPLIER: Record<CitizenshipStatus, { employer: number; employee: num
 };
 
 export function calculateSalaryCpf(input: SalaryCpfInput): SalaryCpfResult {
-  const { age, monthlyGross, monthlyBonus = 0, status } = input;
+  const { age, monthlyGross, monthlySalesCommission = 0, monthlyBonus = 0, status, estimateIncomeTax } = input;
   const base = getCpfRatesForAge(age);
   const mult = PR_MULTIPLIER[status];
 
   const employerRate = base.employer * mult.employer;
   const employeeRate = base.employee * mult.employee;
 
-  // CPF only applies up to the OW ceiling for ordinary wages.
-  const cpfableWage = Math.min(monthlyGross, OW_CEILING_MONTHLY) + monthlyBonus;
+  // Regular commission is Ordinary Wages — merged with base salary before
+  // applying the OW ceiling, same as if it were just a higher salary.
+  const totalOrdinaryWage = monthlyGross + monthlySalesCommission;
+  const cpfableOw = Math.min(totalOrdinaryWage, OW_CEILING_MONTHLY);
+
+  // Additional Wage (bonus) ceiling: $102,000/year minus the OW actually
+  // subject to CPF for the year. Assumes this month's OW is representative
+  // of every month (a simplification — real AW ceilings use actual annual
+  // OW, which varies if pay changes mid-year).
+  const annualCpfableOw = cpfableOw * 12;
+  const awCeilingRemaining = Math.max(0, CPF_ANNUAL_SALARY_CEILING - annualCpfableOw);
+  const cpfableAw = Math.min(monthlyBonus, awCeilingRemaining); // simplified: treats bonus as if spread evenly
+
+  const cpfableWage = cpfableOw + cpfableAw;
 
   const employeeCpf = Math.round(cpfableWage * employeeRate);
   const employerCpf = Math.round(cpfableWage * employerRate);
-  const takeHome = monthlyGross + monthlyBonus - employeeCpf;
+  const grossSalary = monthlyGross + monthlySalesCommission + monthlyBonus;
+  const takeHome = grossSalary - employeeCpf;
+  const totalCpf = employeeCpf + employerCpf;
+
+  const allocationRates = getCpfAllocationForAge(age);
+  const maAmount = Math.round(totalCpf * allocationRates.ma);
+  const saRaAmount = Math.round(totalCpf * allocationRates.saRa);
+  const oaAmount = totalCpf - maAmount - saRaAmount; // remainder, matching CPF Board's own method
+
+  const annualGrossSalary = grossSalary * 12;
+  const annualEmployeeCpf = employeeCpf * 12;
+  const annualEmployerCpf = employerCpf * 12;
+  const annualTakeHome = takeHome * 12;
+
+  let incomeTaxEstimate;
+  if (estimateIncomeTax) {
+    const earnedIncomeRelief = getEarnedIncomeRelief(age);
+    const chargeableIncome = Math.max(0, annualGrossSalary - annualEmployeeCpf - earnedIncomeRelief);
+    const estimatedTax = calculateIncomeTax(chargeableIncome);
+    incomeTaxEstimate = {
+      chargeableIncome,
+      estimatedTax,
+      effectiveRate: annualGrossSalary > 0 ? estimatedTax / annualGrossSalary : 0,
+    };
+  }
 
   return {
-    grossSalary: monthlyGross + monthlyBonus,
+    grossSalary,
     employeeCpf,
     takeHome,
     employerCpf,
-    totalCpf: employeeCpf + employerCpf,
+    totalCpf,
     ratesUsed: { employer: employerRate, employee: employeeRate },
+    allocation: { oa: oaAmount, saRa: saRaAmount, ma: maAmount },
+    annual: {
+      grossSalary: annualGrossSalary,
+      employeeCpf: annualEmployeeCpf,
+      employerCpf: annualEmployerCpf,
+      takeHome: annualTakeHome,
+    },
+    incomeTaxEstimate,
   };
 }
 
