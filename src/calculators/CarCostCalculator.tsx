@@ -343,13 +343,6 @@ export default function CarCostCalculator() {
         <ResultRow label={`Est. depreciation (${ownershipYears}yr)`} value={`${formatSgd(result.annualDepreciation)}/year`} />
         <ResultRow label="Est. depreciation, monthly" value={formatSgd(result.monthlyDepreciation)} />
       </ResultCard>
-      <p className="explainer">
-        Depreciation is a simplified straight-line estimate (total price divided by {ownershipYears} years,
-        assuming near-zero residual value) — it ignores any PARF/COE rebate you'd get back on deregistration,
-        which depends on your car's registration date and current LTA rules (these changed substantially in
-        Budget 2026). Your real depreciation is usually lower than this once those rebates are factored in —
-        treat this as a conservative ceiling, not a precise forecast.
-      </p>
 
       <ResultCard title="COE Renewal">
         <label className="hdb-scenario-toggle">
@@ -404,6 +397,14 @@ export default function CarCostCalculator() {
         <ResultRow label="TRUE MONTHLY COST" value={formatSgd(result.totalMonthly)} emphasis />
         <ResultRow label="TRUE ANNUAL COST" value={formatSgd(result.totalAnnual)} />
       </ResultCard>
+
+      <p className="explainer">
+        Depreciation is a simplified straight-line estimate (total price divided by {ownershipYears} years,
+        assuming near-zero residual value) — it ignores any PARF/COE rebate you'd get back on deregistration,
+        which depends on your car's registration date and current LTA rules (these changed substantially in
+        Budget 2026). Your real depreciation is usually lower than this once those rebates are factored in —
+        treat this as a conservative ceiling, not a precise forecast.
+      </p>
 
       <button type="button" className="share-result-btn" onClick={handleShare} disabled={shareStatus === "generating"}>
         {shareStatus === "generating" && "Preparing image…"}
