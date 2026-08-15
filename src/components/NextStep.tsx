@@ -109,6 +109,7 @@ export function NextStep({
 
       {showAdSlotFallback && (
         <LeadForm
+          key={selected!.id}
           calculatorId={calculatorId}
           category={selected!.adCategory!}
           compact={adSlotCompact}
