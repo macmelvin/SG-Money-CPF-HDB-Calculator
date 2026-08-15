@@ -93,8 +93,7 @@ export function LeadForm({
 
   return (
     <div className={`ad-slot-available ${compact ? "compact" : ""}`}>
-      <span className="sponsored-label">No partner here yet</span>
-      <p className="ad-slot-text">Leave your contact and we'll reach out once we have one for this.</p>
+      <p className="ad-slot-text">Leave your contact and we'll reach out on your interest.</p>
       <form onSubmit={handleSubmit} className="lead-form">
         <input
           type="text"
