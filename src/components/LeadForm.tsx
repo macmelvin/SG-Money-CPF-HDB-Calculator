@@ -3,6 +3,7 @@ import { ADVERTISER_CONTACT_EMAIL } from "../lib/offers";
 import { isFirebaseConfigured, submitLead } from "../lib/leads";
 import { trackEvent } from "../lib/analytics";
 import { CONDO_PROJECTS } from "../lib/condoProjects";
+import { AdSpot } from "./AdSpot";
 
 interface SponsorInfo {
   advertiserId: string;
@@ -227,6 +228,7 @@ export function LeadForm({
           {status === "submitting" ? "Sending…" : submitLabel}
         </button>
       </form>
+      {!sponsor && <AdSpot label={`SG Money ad spot - ${category}`} />}
     </div>
   );
 }
