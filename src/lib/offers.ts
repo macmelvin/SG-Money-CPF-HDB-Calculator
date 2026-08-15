@@ -128,11 +128,6 @@ export const NEXT_STEP_OFFERS: Record<string, NextStepIntent[]> = {
       label: "Buying another property",
       adCategory: "mortgage",
     },
-    {
-      id: "just-checking",
-      icon: "👀",
-      label: "Just checking",
-    },
   ],
 
   "car-cost-calculator": [
