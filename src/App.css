@@ -614,6 +614,14 @@
   border: none;
   background: none;
 }
+.ad-slot-available.compact .sponsored-label {
+  font-size: 10px;
+  margin-bottom: 2px;
+}
+.ad-slot-available.compact .ad-slot-text {
+  font-size: 12px;
+  margin-bottom: 4px;
+}
 .ad-slot-available.compact .ad-slot-link {
   font-size: 12px;
   font-weight: 500;

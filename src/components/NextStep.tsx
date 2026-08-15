@@ -97,41 +97,24 @@ export function NextStep({
 
       {showAdSlotFallback && (
         <div className={`ad-slot-available ${adSlotCompact ? "compact" : ""}`}>
-          {adSlotCompact ? (
-            <a
-              href={`mailto:${ADVERTISER_CONTACT_EMAIL}?subject=SG%20Money%20ad%20spot`}
-              className="ad-slot-link"
-              onClick={() =>
-                trackEvent("sponsored_offer_clicked", {
-                  calculator: calculatorId,
-                  intent: selected!.id,
-                  category: selected!.adCategory!,
-                  slot: "open",
-                })
-              }
-            >
-              Ad space open — contact the owner →
-            </a>
-          ) : (
-            <>
-              <span className="sponsored-label">Ad space</span>
-              <p className="ad-slot-text">
-                This spot is open for a relevant, Singapore-verified advertiser.
-              </p>
-              <a href={`mailto:${ADVERTISER_CONTACT_EMAIL}?subject=SG%20Money%20ad%20spot`} className="ad-slot-link"
-                onClick={() =>
-                  trackEvent("sponsored_offer_clicked", {
-                    calculator: calculatorId,
-                    intent: selected!.id,
-                    category: selected!.adCategory!,
-                    slot: "open",
-                  })
-                }
-              >
-                Contact the owner →
-              </a>
-            </>
-          )}
+          <span className="sponsored-label">Ad space</span>
+          <p className="ad-slot-text">
+            This spot is open for a relevant, Singapore-verified advertiser.
+          </p>
+          <a
+            href={`mailto:${ADVERTISER_CONTACT_EMAIL}?subject=SG%20Money%20ad%20spot`}
+            className="ad-slot-link"
+            onClick={() =>
+              trackEvent("sponsored_offer_clicked", {
+                calculator: calculatorId,
+                intent: selected!.id,
+                category: selected!.adCategory!,
+                slot: "open",
+              })
+            }
+          >
+            Contact the owner →
+          </a>
         </div>
       )}
     </div>
