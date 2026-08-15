@@ -373,11 +373,21 @@ export interface CarCostResult {
   monthlyMaintenance: number;
   totalMonthly: number;
   totalAnnual: number;
+  /** One-time purchase-price GST — NOT part of totalMonthly/totalAnnual,
+   *  since it's a one-off cost, not a recurring one. */
+  gst: number;
+  totalPriceInclGst: number;
   grabComparison?: { carCost: number; grabCost: number; monthlySavings: number; annualSavings: number };
 }
 
+// Singapore's standard GST rate, effective 1 Jan 2024, confirmed unchanged
+// through 2026 (Budget 2026 confirmed no further rate change). Update here
+// if IRAS ever revises it.
+const GST_RATE = 0.09;
+
 export function calculateCarCost(input: CarCostInput): CarCostResult {
   const {
+    carPrice,
     loanAmount,
     loanYears,
     interestRatePct,
@@ -398,6 +408,9 @@ export function calculateCarCost(input: CarCostInput): CarCostResult {
   const monthlyRoadTax = Math.round(annualRoadTax / 12);
   const monthlyMaintenance = Math.round(annualMaintenance / 12);
 
+  const gst = Math.round(carPrice * GST_RATE);
+  const totalPriceInclGst = carPrice + gst;
+
   const totalMonthly =
     monthlyLoan + monthlyPetrol + monthlyParking + monthlyErp + monthlyInsurance + monthlyRoadTax + monthlyMaintenance;
   const totalAnnual = totalMonthly * 12;
@@ -413,7 +426,7 @@ export function calculateCarCost(input: CarCostInput): CarCostResult {
     };
   }
 
-  return { monthlyLoan, monthlyInsurance, monthlyRoadTax, monthlyMaintenance, totalMonthly, totalAnnual, grabComparison };
+  return { monthlyLoan, monthlyInsurance, monthlyRoadTax, monthlyMaintenance, totalMonthly, totalAnnual, gst, totalPriceInclGst, grabComparison };
 }
 
 export function formatSgd(n: number): string {

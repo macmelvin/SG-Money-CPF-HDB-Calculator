@@ -162,7 +162,9 @@ export default function CarCostCalculator() {
       calculatorTitle: "Car True Cost Calculator",
       inputs: [
         { label: "Fuel type", value: FUEL_TYPE_LABELS[fuelType] },
-        { label: "Car purchase price (incl. COE)", value: formatSgd(carPrice) },
+        { label: "Car purchase price (excl. GST)", value: formatSgd(carPrice) },
+        { label: "GST (9%)", value: formatSgd(result.gst) },
+        { label: "Total purchase price (incl. GST)", value: formatSgd(result.totalPriceInclGst) },
         { label: "Downpayment", value: formatSgd(downpayment) },
         { label: "Loan amount", value: formatSgd(loanAmount) },
         { label: "Loan duration", value: `${loanYears} years` },
@@ -219,7 +221,7 @@ export default function CarCostCalculator() {
             { value: "hybrid", label: "Petrol-electric hybrid" },
           ]}
         />
-        <NumberField label="Car purchase price (incl. COE)" value={carPrice} onChange={setCarPrice} prefix="$" step={1000} />
+        <NumberField label="Car purchase price (incl. COE, excl. GST)" value={carPrice} onChange={setCarPrice} prefix="$" step={1000} />
         <NumberField label="Downpayment" value={downpayment} onChange={setDownpayment} prefix="$" step={1000} />
         <NumberField label="Loan amount" value={loanAmount} onChange={setLoanAmount} prefix="$" step={1000} />
         <NumberField label="Loan duration" value={loanYears} onChange={setLoanYears} suffix="years" />
@@ -238,6 +240,12 @@ export default function CarCostCalculator() {
       </div>
 
       {ROAD_TAX_GUIDANCE[fuelType] && <p className="explainer">{ROAD_TAX_GUIDANCE[fuelType]}</p>}
+
+      <ResultCard title="One-Time Purchase Price">
+        <ResultRow label="Car price (excl. GST)" value={formatSgd(carPrice)} />
+        <ResultRow label="GST (9%)" value={formatSgd(result.gst)} />
+        <ResultRow label="TOTAL PRICE (INCL. GST)" value={formatSgd(result.totalPriceInclGst)} emphasis />
+      </ResultCard>
 
       <ResultCard title="Your Car Really Costs">
         <ResultRow label="Loan" value={formatSgd(result.monthlyLoan)} />
