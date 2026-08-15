@@ -114,6 +114,7 @@ export function NextStep({
           compact={adSlotCompact}
           showProjectPicker={selected!.showProjectPicker}
           message={selected!.leadFormMessage}
+          intentLabel={selected!.label}
         />
       )}
     </div>

@@ -10,12 +10,14 @@ export function LeadForm({
   compact,
   showProjectPicker,
   message,
+  intentLabel,
 }: {
   calculatorId: string;
   category: string;
   compact: boolean;
   showProjectPicker?: boolean;
   message?: string;
+  intentLabel: string;
 }) {
   const [open, setOpen] = useState(true);
   const [name, setName] = useState("");
@@ -44,13 +46,18 @@ export function LeadForm({
     setStatus("submitting");
     const selectedProject = CONDO_PROJECTS.find((p) => p.name === projectInterest.trim());
     const effectiveCategory = showProjectPicker ? selectedProject?.type ?? "Property" : category;
+    // For non-property leads there's no project dropdown to fill this in,
+    // so default it to the intent's own label (e.g. "Retirement", "Grow my
+    // savings") rather than leaving it blank — every lead should show what
+    // the person was actually interested in.
+    const effectiveProjectInterest = showProjectPicker ? projectInterest.trim() : intentLabel;
     const ok = await submitLead({
       calculator: calculatorId,
       category: effectiveCategory,
       name: name.trim(),
       phone: phone.trim(),
       email: email.trim(),
-      projectInterest: projectInterest.trim(),
+      projectInterest: effectiveProjectInterest,
       note: note.trim(),
     });
     if (ok) {
