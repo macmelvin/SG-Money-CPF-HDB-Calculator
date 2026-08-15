@@ -270,6 +270,53 @@ export function calculateHdbSaleProceeds(input: HdbSaleInput): HdbSaleResult {
   return { sellingPrice, outstandingLoan, cpfRefund, agentFee, otherCosts, cashProceeds, breakdown };
 }
 
+// HDB resale levy — a fixed-quantum charge for SECOND-time subsidised flat
+// buyers, i.e. only applies if you're buying ANOTHER new BTO/SBF/EC unit
+// after this sale. It does NOT apply if you're buying a resale flat or
+// private property instead — that covers most sellers, which is why this
+// is opt-in rather than baked into the main cash-proceeds figure.
+//
+// It's also NOT deducted from THIS sale's proceeds — it's owed separately
+// at the point of your NEXT subsidised purchase (payable from CPF OA or
+// cash then). Shown here purely so you can budget for it ahead of time.
+//
+// Fixed since 3 March 2006, confirmed unchanged across multiple current
+// 2026 sources. Singles under the SSC scheme pay half the household rate.
+export type FlatTypeForLevy = "2-room" | "3-room" | "4-room" | "5-room" | "executive";
+
+export const RESALE_LEVY_TABLE: Record<FlatTypeForLevy, number> = {
+  "2-room": 15000,
+  "3-room": 30000,
+  "4-room": 40000,
+  "5-room": 45000,
+  executive: 50000,
+};
+
+export function calculateResaleLevy(flatType: FlatTypeForLevy, isSingleScheme: boolean): number {
+  const base = RESALE_LEVY_TABLE[flatType];
+  return isSingleScheme ? Math.round(base / 2) : base;
+}
+
+// Minimum Occupation Period check — 5 years from key collection for the
+// vast majority of flat types/schemes (a few edge cases like short-lease
+// 2-room Flexi for seniors differ, which this doesn't attempt to model).
+export const MOP_YEARS = 5;
+
+export function checkMop(keyCollectionDate: Date, asOf: Date = new Date()): { metMop: boolean; monthsRemaining: number; mopDate: Date } {
+  const mopDate = new Date(keyCollectionDate);
+  mopDate.setFullYear(mopDate.getFullYear() + MOP_YEARS);
+  const metMop = asOf >= mopDate;
+  const monthsRemaining = metMop
+    ? 0
+    : Math.max(
+        0,
+        (mopDate.getFullYear() - asOf.getFullYear()) * 12 +
+          (mopDate.getMonth() - asOf.getMonth()) -
+          (asOf.getDate() > mopDate.getDate() ? 1 : 0)
+      );
+  return { metMop, monthsRemaining, mopDate };
+}
+
 export interface AccruedInterestInput {
   principal: number;
   yearFirstUsed: number;
