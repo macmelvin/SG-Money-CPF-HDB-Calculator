@@ -59,12 +59,6 @@ export interface NextStepIntent {
 export const NEXT_STEP_OFFERS: Record<string, NextStepIntent[]> = {
   "hdb-sale-proceeds": [
     {
-      id: "buy-hdb",
-      icon: "🏠",
-      label: "Buy another HDB",
-      to: "/",
-    },
-    {
       id: "buy-condo",
       icon: "🏢",
       label: "Buy a condo",
