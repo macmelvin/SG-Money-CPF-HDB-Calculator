@@ -154,7 +154,7 @@ export function LeadForm({
 
   const displayHeadline = sponsor?.headline ?? headline;
   const displayMessage = sponsor?.desc ?? message ?? "Leave your contact and we'll reach out on your interest.";
-  const submitLabel = sponsor?.ctaLabel ?? "Notify me";
+  const submitLabel = sponsor?.ctaLabel ?? "Get My Free Consultation";
 
   return (
     <div className={`ad-slot-available ${sponsor ? "sponsored" : ""} ${compact ? "compact" : ""}`}>
@@ -225,7 +225,7 @@ export function LeadForm({
         {fieldError && <p className="lead-form-error">{fieldError}</p>}
         {status === "error" && <p className="lead-form-error">Something went wrong — try again in a moment.</p>}
         <button type="submit" className="lead-form-submit" disabled={status === "submitting"}>
-          {status === "submitting" ? "Sending…" : submitLabel}
+          {status === "submitting" ? "Sending…" : `${submitLabel} →`}
         </button>
       </form>
       {!sponsor && <AdSpot label={`SG Money ad spot - ${category}`} />}
