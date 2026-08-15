@@ -9,24 +9,28 @@
 // against yet) — refresh this list periodically by asking Claude to pull
 // current listings, or maintain it by hand.
 //
-// Sourced from 99.co and Stacked Homes' 2026 new-launch coverage, current
-// as of August 2026.
+// Sourced from 99.co, Stacked Homes, and PropertyNet's 2026 new-launch
+// coverage, current as of August 15, 2026.
 
 export const CONDO_PROJECTS: string[] = [
   "Amberwood at Holland",
   "Chuan Grove Residences",
   "Coastal Cabana",
   "Dunearn House",
+  "ELTA",
   "Faber Residence",
   "Hillock Green",
+  "Hougang Central Condo",
   "Hudson Place Residences",
   "Lentor Gardens Residences",
   "Narra Residences",
   "Newport Residences",
   "Orchard Sophia",
+  "Parktown Residence",
   "Pinery Residences",
   "Pinetree Hill",
   "Promenade Peak",
+  "River Green",
   "River Modern",
   "Rivelle Tampines",
   "Terra Hill",
