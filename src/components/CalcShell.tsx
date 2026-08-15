@@ -176,9 +176,9 @@ export function ResultRow({
   );
 }
 
-export function ResultCard({ children, title }: { children: ReactNode; title?: string }) {
+export function ResultCard({ children, title, id }: { children: ReactNode; title?: string; id?: string }) {
   return (
-    <div className="result-card">
+    <div className="result-card" id={id}>
       {title && <h3>{title}</h3>}
       {children}
     </div>

@@ -33,6 +33,17 @@ const ROAD_TAX_GUIDANCE: Partial<Record<FuelType, string>> = {
     "EV road tax is based on motor power (kW), not engine capacity, plus an Additional Flat Component — a different formula entirely from petrol/diesel cars. Check LTA's EV road tax table or your OneMotoring notice for the exact figure.",
 };
 
+// VES (Vehicle Emissions Scheme) rebate/surcharge is applied by the dealer
+// BEFORE the car is priced and quoted to a buyer — it's already baked into
+// "Car purchase price" above, not an extra cost to add on top (unlike GST,
+// which genuinely is added at point of sale). This is purely informational
+// context, not a calculated line, since the exact band depends on pollutant
+// readings (CO2, HC, CO, NOx, PM) that aren't something a buyer can look up
+// from this form. Bands were revised for 2026-2027 (Budget 2026) — only EVs
+// now get a rebate; hybrids lost theirs entirely.
+const VES_NOTE =
+  "New cars also carry a Vehicle Emissions Scheme (VES) rebate or surcharge (roughly -$22,500 for the cleanest EVs down to +$35,000 for the most polluting petrol cars, 2026 rates) — but this is already factored into whatever price a dealer quotes you, not an extra cost to add here.";
+
 const DEFAULTS = {
   fuelType: "petrol" as FuelType,
   carPrice: 160000,
@@ -47,6 +58,10 @@ const DEFAULTS = {
   annualRoadTax: 740,
   annualMaintenance: 1200,
   monthlyGrabSpend: 800,
+  ownershipYears: 10,
+  planningToRenewCoe: false,
+  coeRenewalPqp: 0,
+  coeRenewalYears: 10 as 5 | 10,
 };
 
 export default function CarCostCalculator() {
@@ -70,8 +85,13 @@ export default function CarCostCalculator() {
   const [annualRoadTax, setAnnualRoadTax] = useState(initial.annualRoadTax);
   const [annualMaintenance, setAnnualMaintenance] = useState(initial.annualMaintenance);
   const [monthlyGrabSpend, setMonthlyGrabSpend] = useState(initial.monthlyGrabSpend);
+  const [ownershipYears, setOwnershipYears] = useState(initial.ownershipYears);
+  const [planningToRenewCoe, setPlanningToRenewCoe] = useState(initial.planningToRenewCoe);
+  const [coeRenewalPqp, setCoeRenewalPqp] = useState(initial.coeRenewalPqp);
+  const [coeRenewalYears, setCoeRenewalYears] = useState<5 | 10>(initial.coeRenewalYears);
   const [savedAt, setSavedAt] = useState<number | null>(saved?.savedAt ?? null);
   const [hasActiveSponsor, setHasActiveSponsor] = useState(false);
+  const [shareStatus, setShareStatus] = useState<"idle" | "generating" | "done" | "error">("idle");
 
   useEffect(() => {
     trackEvent("calculator_started", { calculator: CALCULATOR_ID });
@@ -95,8 +115,28 @@ export default function CarCostCalculator() {
         annualRoadTax,
         annualMaintenance,
         monthlyGrabSpend,
+        ownershipYears,
+        coeRenewalPqp: planningToRenewCoe ? coeRenewalPqp : undefined,
+        coeRenewalYears,
       }),
-    [carPrice, downpayment, loanAmount, loanYears, interestRatePct, monthlyPetrol, monthlyParking, monthlyErp, annualInsurance, annualRoadTax, annualMaintenance, monthlyGrabSpend]
+    [
+      carPrice,
+      downpayment,
+      loanAmount,
+      loanYears,
+      interestRatePct,
+      monthlyPetrol,
+      monthlyParking,
+      monthlyErp,
+      annualInsurance,
+      annualRoadTax,
+      annualMaintenance,
+      monthlyGrabSpend,
+      ownershipYears,
+      planningToRenewCoe,
+      coeRenewalPqp,
+      coeRenewalYears,
+    ]
   );
 
   useEffect(() => {
@@ -134,6 +174,10 @@ export default function CarCostCalculator() {
     setAnnualRoadTax(DEFAULTS.annualRoadTax);
     setAnnualMaintenance(DEFAULTS.annualMaintenance);
     setMonthlyGrabSpend(DEFAULTS.monthlyGrabSpend);
+    setOwnershipYears(DEFAULTS.ownershipYears);
+    setPlanningToRenewCoe(DEFAULTS.planningToRenewCoe);
+    setCoeRenewalPqp(DEFAULTS.coeRenewalPqp);
+    setCoeRenewalYears(DEFAULTS.coeRenewalYears);
     clearCalculatorData(STORAGE_KEY);
     setSavedAt(null);
   };
@@ -153,6 +197,10 @@ export default function CarCostCalculator() {
       annualRoadTax,
       annualMaintenance,
       monthlyGrabSpend,
+      ownershipYears,
+      planningToRenewCoe,
+      coeRenewalPqp,
+      coeRenewalYears,
     });
     setSavedAt(at);
   };
@@ -176,6 +224,7 @@ export default function CarCostCalculator() {
         { label: "Annual road tax", value: formatSgd(annualRoadTax) },
         { label: "Annual maintenance", value: formatSgd(annualMaintenance) },
         { label: "Average monthly Grab spending", value: formatSgd(monthlyGrabSpend) },
+        { label: "Intended ownership", value: `${ownershipYears} years` },
       ],
       results: [
         { label: "Loan", value: formatSgd(result.monthlyLoan) },
@@ -187,6 +236,15 @@ export default function CarCostCalculator() {
         { label: "Maintenance", value: formatSgd(result.monthlyMaintenance) },
         { label: "True Monthly Cost", value: formatSgd(result.totalMonthly) },
         { label: "True Annual Cost", value: formatSgd(result.totalAnnual) },
+        { label: "Est. Depreciation", value: `${formatSgd(result.monthlyDepreciation)}/month (${formatSgd(result.annualDepreciation)}/year)` },
+        ...(result.coeRenewal
+          ? [
+              { label: `COE renewal (${coeRenewalYears}yr)`, value: formatSgd(result.coeRenewal.cost) },
+              { label: "COE renewal, monthly equivalent", value: `${formatSgd(result.coeRenewal.monthlyEquivalent)}/month` },
+            ]
+          : []),
+        { label: "Car (vs Public Transport)", value: `${formatSgd(result.publicTransportComparison.carCost)}/month` },
+        { label: "Public Transport (Adult pass)", value: `${formatSgd(result.publicTransportComparison.ptCost)}/month` },
         ...(result.grabComparison
           ? [
               { label: "Car (vs Grab)", value: `${formatSgd(result.grabComparison.carCost)}/month` },
@@ -198,6 +256,41 @@ export default function CarCostCalculator() {
       disclaimer:
         "Estimate only. Assumes a flat-rate car loan (typical for Singapore) and does not include depreciation, COE renewal, or resale value.",
     });
+  };
+
+  const handleShare = async () => {
+    const cardEl = document.getElementById("share-card");
+    if (!cardEl) return;
+    setShareStatus("generating");
+    try {
+      const { default: html2canvas } = await import("html2canvas");
+      const canvas = await html2canvas(cardEl, { backgroundColor: "#ffffff", scale: 2 });
+      const blob: Blob | null = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+      if (!blob) throw new Error("Could not generate image");
+      const file = new File([blob], "car-true-cost.png", { type: "image/png" });
+
+      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: "My Car True Cost — SG Money",
+          text: "See what a car really costs you in Singapore, free at sgmoney (link).",
+        });
+        trackEvent("lead_submitted", { calculator: CALCULATOR_ID, category: "share" });
+      } else {
+        // Desktop / unsupported browsers — trigger a plain download instead.
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "car-true-cost.png";
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+      setShareStatus("done");
+      setTimeout(() => setShareStatus("idle"), 2500);
+    } catch {
+      setShareStatus("error");
+      setTimeout(() => setShareStatus("idle"), 2500);
+    }
   };
 
   return (
@@ -237,17 +330,70 @@ export default function CarCostCalculator() {
         <NumberField label="Annual insurance" value={annualInsurance} onChange={setAnnualInsurance} prefix="$" />
         <NumberField label="Annual road tax" value={annualRoadTax} onChange={setAnnualRoadTax} prefix="$" />
         <NumberField label="Annual maintenance" value={annualMaintenance} onChange={setAnnualMaintenance} prefix="$" />
+        <NumberField label="Intended ownership" value={ownershipYears} onChange={setOwnershipYears} suffix="years" />
       </div>
 
       {ROAD_TAX_GUIDANCE[fuelType] && <p className="explainer">{ROAD_TAX_GUIDANCE[fuelType]}</p>}
+      <p className="explainer">{VES_NOTE}</p>
 
       <ResultCard title="One-Time Purchase Price">
         <ResultRow label="Car price (excl. GST)" value={formatSgd(carPrice)} />
         <ResultRow label="GST (9%)" value={formatSgd(result.gst)} />
         <ResultRow label="TOTAL PRICE (INCL. GST)" value={formatSgd(result.totalPriceInclGst)} emphasis />
+        <ResultRow label={`Est. depreciation (${ownershipYears}yr)`} value={`${formatSgd(result.annualDepreciation)}/year`} />
+        <ResultRow label="Est. depreciation, monthly" value={formatSgd(result.monthlyDepreciation)} />
+      </ResultCard>
+      <p className="explainer">
+        Depreciation is a simplified straight-line estimate (total price divided by {ownershipYears} years,
+        assuming near-zero residual value) — it ignores any PARF/COE rebate you'd get back on deregistration,
+        which depends on your car's registration date and current LTA rules (these changed substantially in
+        Budget 2026). Your real depreciation is usually lower than this once those rebates are factored in —
+        treat this as a conservative ceiling, not a precise forecast.
+      </p>
+
+      <ResultCard title="COE Renewal">
+        <label className="hdb-scenario-toggle">
+          <input
+            type="checkbox"
+            checked={planningToRenewCoe}
+            onChange={(e) => setPlanningToRenewCoe(e.target.checked)}
+          />
+          <span>Planning to renew COE instead of deregistering?</span>
+        </label>
+        {planningToRenewCoe && (
+          <>
+            <NumberField
+              label="Estimated renewal premium (PQP)"
+              value={coeRenewalPqp}
+              onChange={setCoeRenewalPqp}
+              prefix="$"
+              step={1000}
+            />
+            <SelectField
+              label="Renewal term"
+              value={String(coeRenewalYears) as "5" | "10"}
+              onChange={(v) => setCoeRenewalYears(Number(v) as 5 | 10)}
+              options={[
+                { value: "10", label: "10 years (100% of PQP, repeatable)" },
+                { value: "5", label: "5 years (50% of PQP, one-time only)" },
+              ]}
+            />
+            <p className="explainer">
+              Check the live PQP for your vehicle category on OneMotoring before renewing — it changes every
+              bidding exercise. Renewing forfeits your PARF rebate for good, so it's worth comparing against what
+              you'd get back by deregistering instead.
+            </p>
+            {result.coeRenewal && (
+              <>
+                <ResultRow label={`Renewal cost (${coeRenewalYears}yr)`} value={formatSgd(result.coeRenewal.cost)} emphasis />
+                <ResultRow label="Monthly equivalent" value={formatSgd(result.coeRenewal.monthlyEquivalent)} />
+              </>
+            )}
+          </>
+        )}
       </ResultCard>
 
-      <ResultCard title="Your Car Really Costs">
+      <ResultCard title="Your Car Really Costs" id="share-card">
         <ResultRow label="Loan" value={formatSgd(result.monthlyLoan)} />
         <ResultRow label={fuelType === "electric" ? "Charging" : "Petrol"} value={formatSgd(monthlyPetrol)} />
         <ResultRow label="Parking" value={formatSgd(monthlyParking)} />
@@ -258,6 +404,13 @@ export default function CarCostCalculator() {
         <ResultRow label="TRUE MONTHLY COST" value={formatSgd(result.totalMonthly)} emphasis />
         <ResultRow label="TRUE ANNUAL COST" value={formatSgd(result.totalAnnual)} />
       </ResultCard>
+
+      <button type="button" className="share-result-btn" onClick={handleShare} disabled={shareStatus === "generating"}>
+        {shareStatus === "generating" && "Preparing image…"}
+        {shareStatus === "done" && "Shared ✓"}
+        {shareStatus === "error" && "Couldn't share — try again"}
+        {shareStatus === "idle" && "📤 Share my result"}
+      </button>
 
       <ResultCard title="🚕 Car vs Grab">
         <NumberField label="Your average monthly Grab spending" value={monthlyGrabSpend} onChange={setMonthlyGrabSpend} prefix="$" />
@@ -273,7 +426,26 @@ export default function CarCostCalculator() {
             />
           </>
         )}
+        <ResultRow label="Break-even Grab spend" value={`${formatSgd(result.breakEvenGrabSpend)}/month`} />
       </ResultCard>
+      <p className="explainer">
+        Spend more than {formatSgd(result.breakEvenGrabSpend)}/month on Grab and owning this car would actually
+        have been cheaper.
+      </p>
+
+      <ResultCard title="🚇 Car vs Public Transport">
+        <ResultRow label="Car" value={`${formatSgd(result.publicTransportComparison.carCost)}/month`} />
+        <ResultRow label="Public transport (Adult pass)" value={`${formatSgd(result.publicTransportComparison.ptCost)}/month`} />
+        <ResultRow
+          label="Public transport saves you approximately"
+          value={`${formatSgd(result.publicTransportComparison.annualSavings)}/year`}
+          emphasis
+          positive={result.publicTransportComparison.annualSavings >= 0}
+        />
+      </ResultCard>
+      <p className="explainer">
+        Based on the $122/month Adult Monthly Travel Pass (unlimited MRT/LRT/basic bus), current PTC rates.
+      </p>
 
       <NextStep
         calculatorId={CALCULATOR_ID}
@@ -285,9 +457,58 @@ export default function CarCostCalculator() {
       {!hasActiveSponsor && <AdSpot label="SG Money ad spot - Car Cost" />}
 
       <Disclaimer>
-        Estimate only. Assumes a flat-rate car loan (typical for Singapore) and does not include depreciation, COE
-        renewal, or resale value.
+        Estimate only. Assumes a flat-rate car loan (typical for Singapore). Depreciation and COE renewal are
+        simplified estimates (see the notes above each) — actual figures depend on PARF/COE rebates specific to
+        your car's registration date and current LTA rules, which aren't modeled here.
       </Disclaimer>
+
+      <div className="faq-section">
+        <h2 className="faq-title">Common questions about car costs in Singapore</h2>
+        <details className="faq-item">
+          <summary>How much does it really cost to own a car in Singapore?</summary>
+          <p>
+            Beyond the sticker price, owning a car in Singapore means loan repayments, petrol or charging, parking,
+            ERP, insurance, road tax and maintenance every month — plus GST and depreciation on the purchase itself.
+            Most owners underestimate the true monthly figure because they only think about the loan. Use the
+            calculator above with your own numbers to see the real total.
+          </p>
+        </details>
+        <details className="faq-item">
+          <summary>What is COE and why does it make cars so expensive?</summary>
+          <p>
+            COE (Certificate of Entitlement) is a 10-year license to own and use a vehicle in Singapore, sold
+            through a bidding system that caps the total number of cars on the road. The COE premium itself — often
+            tens of thousands of dollars — is added on top of the car's Open Market Value, which is why cars cost
+            so much more here than in most other countries.
+          </p>
+        </details>
+        <details className="faq-item">
+          <summary>Is Grab or public transport cheaper than owning a car?</summary>
+          <p>
+            For most people who don't drive daily, yes — by a wide margin. This calculator shows exactly how much
+            you'd save switching to Grab or public transport based on your own car's true monthly cost, so you can
+            see the real number instead of guessing.
+          </p>
+        </details>
+        <details className="faq-item">
+          <summary>Should I renew my COE or deregister my car?</summary>
+          <p>
+            Renewing means paying the Prevailing Quota Premium (PQP) to keep driving the same car for another 5 or
+            10 years — but you permanently give up your PARF rebate when you do. Deregistering instead lets you
+            collect both your PARF and unused COE rebate, which you can put toward a different car. The right
+            choice depends on the current PQP, your car's age, and how those rebates compare — toggle "Planning to
+            renew COE?" above to run your own numbers.
+          </p>
+        </details>
+        <details className="faq-item">
+          <summary>Does this calculator work for EVs and diesel cars?</summary>
+          <p>
+            Yes — select your fuel type above. EVs and diesel vehicles have different road tax formulas from
+            petrol cars, so instead of guessing at a number, we point you to exactly where to find your real
+            figure on OneMotoring.
+          </p>
+        </details>
+      </div>
     </CalcShell>
   );
 }

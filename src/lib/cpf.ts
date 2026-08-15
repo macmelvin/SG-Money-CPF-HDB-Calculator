@@ -364,6 +364,14 @@ export interface CarCostInput {
   annualRoadTax: number;
   annualMaintenance: number;
   monthlyGrabSpend?: number;
+  /** Years the person plans to keep the car — used for the simplified
+   *  depreciation estimate. Defaults to 10 (a full COE term) if not given. */
+  ownershipYears?: number;
+  /** If planning to renew COE instead of deregistering at the 10-year mark,
+   *  the estimated Prevailing Quota Premium (PQP) they'd pay to renew. */
+  coeRenewalPqp?: number;
+  /** 5 or 10 year renewal term — 10yr = 100% of PQP, 5yr = 50% of PQP. */
+  coeRenewalYears?: 5 | 10;
 }
 
 export interface CarCostResult {
@@ -377,13 +385,40 @@ export interface CarCostResult {
    *  since it's a one-off cost, not a recurring one. */
   gst: number;
   totalPriceInclGst: number;
+  /** Simplified straight-line depreciation: total purchase price (incl. GST)
+   *  spread evenly over the intended ownership period, assuming ~$0 residual
+   *  value. This deliberately ignores PARF/COE deregistration rebates, which
+   *  depend on the car's registration date and current LTA rules that
+   *  changed materially in Budget 2026 (see the guidance text shown with
+   *  this figure) — a real car's effective depreciation is usually LOWER
+   *  than this once those rebates are factored in. Treat as a conservative
+   *  ceiling, not a precise forecast. */
+  annualDepreciation: number;
+  monthlyDepreciation: number;
+  /** Only set if coeRenewalPqp is provided. */
+  coeRenewal?: {
+    cost: number; // the actual amount paid to renew (100% or 50% of PQP)
+    monthlyEquivalent: number; // amortized over the renewal term, for comparison
+  };
+  /** Fixed at the current Adult Monthly Travel Pass price ($122/month,
+   *  effective the 27 Dec 2025 PTC fare revision) — update if PTC revises
+   *  fares again (typically reviewed annually). */
+  publicTransportComparison: { carCost: number; ptCost: number; monthlySavings: number; annualSavings: number };
   grabComparison?: { carCost: number; grabCost: number; monthlySavings: number; annualSavings: number };
+  /** The monthly Grab spend at which owning and Grab cost exactly the same
+   *  — spend more than this on Grab and owning would have been cheaper. */
+  breakEvenGrabSpend: number;
 }
 
 // Singapore's standard GST rate, effective 1 Jan 2024, confirmed unchanged
 // through 2026 (Budget 2026 confirmed no further rate change). Update here
 // if IRAS ever revises it.
 const GST_RATE = 0.09;
+
+// PTC Adult Monthly Travel Pass — unlimited MRT/LRT/basic bus. Effective
+// since the 27 Dec 2025 PTC fare revision. PTC typically reviews fares
+// annually; update this if a new revision is announced.
+const ADULT_MONTHLY_TRAVEL_PASS = 122;
 
 export function calculateCarCost(input: CarCostInput): CarCostResult {
   const {
@@ -398,6 +433,9 @@ export function calculateCarCost(input: CarCostInput): CarCostResult {
     annualRoadTax,
     annualMaintenance,
     monthlyGrabSpend,
+    ownershipYears = 10,
+    coeRenewalPqp,
+    coeRenewalYears = 10,
   } = input;
 
   // SG car loans typically quoted as flat-rate interest.
@@ -411,9 +449,29 @@ export function calculateCarCost(input: CarCostInput): CarCostResult {
   const gst = Math.round(carPrice * GST_RATE);
   const totalPriceInclGst = carPrice + gst;
 
+  const annualDepreciation = ownershipYears > 0 ? Math.round(totalPriceInclGst / ownershipYears) : 0;
+  const monthlyDepreciation = Math.round(annualDepreciation / 12);
+
+  let coeRenewal;
+  if (coeRenewalPqp !== undefined && coeRenewalPqp > 0) {
+    const cost = coeRenewalYears === 5 ? Math.round(coeRenewalPqp * 0.5) : coeRenewalPqp;
+    const monthlyEquivalent = Math.round(cost / (coeRenewalYears * 12));
+    coeRenewal = { cost, monthlyEquivalent };
+  }
+
   const totalMonthly =
     monthlyLoan + monthlyPetrol + monthlyParking + monthlyErp + monthlyInsurance + monthlyRoadTax + monthlyMaintenance;
   const totalAnnual = totalMonthly * 12;
+
+  const breakEvenGrabSpend = totalMonthly;
+
+  const ptSavings = totalMonthly - ADULT_MONTHLY_TRAVEL_PASS;
+  const publicTransportComparison = {
+    carCost: totalMonthly,
+    ptCost: ADULT_MONTHLY_TRAVEL_PASS,
+    monthlySavings: ptSavings,
+    annualSavings: ptSavings * 12,
+  };
 
   let grabComparison;
   if (monthlyGrabSpend !== undefined) {
@@ -426,7 +484,22 @@ export function calculateCarCost(input: CarCostInput): CarCostResult {
     };
   }
 
-  return { monthlyLoan, monthlyInsurance, monthlyRoadTax, monthlyMaintenance, totalMonthly, totalAnnual, gst, totalPriceInclGst, grabComparison };
+  return {
+    monthlyLoan,
+    monthlyInsurance,
+    monthlyRoadTax,
+    monthlyMaintenance,
+    totalMonthly,
+    totalAnnual,
+    gst,
+    totalPriceInclGst,
+    annualDepreciation,
+    monthlyDepreciation,
+    coeRenewal,
+    publicTransportComparison,
+    grabComparison,
+    breakEvenGrabSpend,
+  };
 }
 
 export function formatSgd(n: number): string {
