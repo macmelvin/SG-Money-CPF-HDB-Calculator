@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CalcShell, Disclaimer, NumberField, ResultCard, ResultRow } from "../components/CalcShell";
+import { CalcShell, Disclaimer, NumberField, ResultCard, ResultRow, SelectField } from "../components/CalcShell";
 import { NextStep } from "../components/NextStep";
 import { AdSpot } from "../components/AdSpot";
 import { calculateCarCost, formatSgd } from "../lib/cpf";
+import type { FuelType } from "../lib/cpf";
 import { usePageMeta } from "../lib/usePageMeta";
 import { clearCalculatorData, loadCalculatorData, saveCalculatorData } from "../lib/storage";
 import { downloadCalculatorPdf } from "../lib/pdf";
@@ -12,7 +13,28 @@ const CALCULATOR_ID = "car-cost-calculator";
 
 const STORAGE_KEY = "car-cost-calculator";
 
+const FUEL_TYPE_LABELS: Record<FuelType, string> = {
+  petrol: "Petrol",
+  diesel: "Diesel",
+  electric: "Electric (EV)",
+  hybrid: "Petrol-electric hybrid",
+};
+
+// Road tax stays a manual input (always matches the person's actual bill),
+// but the exact formula differs a lot by fuel type, so we show guidance
+// pointing them to the right LTA reference instead of guessing at a
+// computed number — getting a government tax formula wrong is worse than
+// not showing one. Diesel's Special Tax rate depends on emission standard
+// (Euro V vs IV and below), which we have no way to know from this form.
+const ROAD_TAX_GUIDANCE: Partial<Record<FuelType, string>> = {
+  diesel:
+    "Diesel road tax works differently — it's a Special Tax based on engine capacity AND emission standard (Euro V vs Euro IV and below pay very different rates), not the standard petrol schedule. Check your OneMotoring renewal notice for the exact figure.",
+  electric:
+    "EV road tax is based on motor power (kW), not engine capacity, plus an Additional Flat Component — a different formula entirely from petrol/diesel cars. Check LTA's EV road tax table or your OneMotoring notice for the exact figure.",
+};
+
 const DEFAULTS = {
+  fuelType: "petrol" as FuelType,
   carPrice: 160000,
   downpayment: 60000,
   loanAmount: 100000,
@@ -35,6 +57,7 @@ export default function CarCostCalculator() {
   const saved = loadCalculatorData<typeof DEFAULTS>(STORAGE_KEY);
   const initial = saved?.data ?? DEFAULTS;
 
+  const [fuelType, setFuelType] = useState<FuelType>(initial.fuelType);
   const [carPrice, setCarPrice] = useState(initial.carPrice);
   const [downpayment, setDownpayment] = useState(initial.downpayment);
   const [loanAmount, setLoanAmount] = useState(initial.loanAmount);
@@ -79,6 +102,7 @@ export default function CarCostCalculator() {
   useEffect(() => {
     const s = initialSnapshot.current;
     const changed =
+      fuelType !== s.fuelType ||
       carPrice !== s.carPrice ||
       downpayment !== s.downpayment ||
       loanAmount !== s.loanAmount ||
@@ -94,9 +118,10 @@ export default function CarCostCalculator() {
       hasCompletedOnce.current = true;
       trackEvent("calculator_completed", { calculator: CALCULATOR_ID });
     }
-  }, [carPrice, downpayment, loanAmount, loanYears, interestRatePct, monthlyPetrol, monthlyParking, monthlyErp, annualInsurance, annualRoadTax, annualMaintenance]);
+  }, [fuelType, carPrice, downpayment, loanAmount, loanYears, interestRatePct, monthlyPetrol, monthlyParking, monthlyErp, annualInsurance, annualRoadTax, annualMaintenance]);
 
   const clearInputs = () => {
+    setFuelType(DEFAULTS.fuelType);
     setCarPrice(DEFAULTS.carPrice);
     setDownpayment(DEFAULTS.downpayment);
     setLoanAmount(DEFAULTS.loanAmount);
@@ -115,6 +140,7 @@ export default function CarCostCalculator() {
 
   const handleSave = () => {
     const at = saveCalculatorData(STORAGE_KEY, {
+      fuelType,
       carPrice,
       downpayment,
       loanAmount,
@@ -135,6 +161,7 @@ export default function CarCostCalculator() {
     downloadCalculatorPdf({
       calculatorTitle: "Car True Cost Calculator",
       inputs: [
+        { label: "Fuel type", value: FUEL_TYPE_LABELS[fuelType] },
         { label: "Car purchase price (incl. COE)", value: formatSgd(carPrice) },
         { label: "Downpayment", value: formatSgd(downpayment) },
         { label: "Loan amount", value: formatSgd(loanAmount) },
@@ -181,12 +208,28 @@ export default function CarCostCalculator() {
       savedAt={savedAt}
     >
       <div className="form-grid">
+        <SelectField
+          label="Fuel type"
+          value={fuelType}
+          onChange={setFuelType}
+          options={[
+            { value: "petrol", label: "Petrol" },
+            { value: "diesel", label: "Diesel" },
+            { value: "electric", label: "Electric (EV)" },
+            { value: "hybrid", label: "Petrol-electric hybrid" },
+          ]}
+        />
         <NumberField label="Car purchase price (incl. COE)" value={carPrice} onChange={setCarPrice} prefix="$" step={1000} />
         <NumberField label="Downpayment" value={downpayment} onChange={setDownpayment} prefix="$" step={1000} />
         <NumberField label="Loan amount" value={loanAmount} onChange={setLoanAmount} prefix="$" step={1000} />
         <NumberField label="Loan duration" value={loanYears} onChange={setLoanYears} suffix="years" />
         <NumberField label="Interest rate (flat)" value={interestRatePct} onChange={setInterestRatePct} suffix="%" step={0.01} />
-        <NumberField label="Monthly petrol" value={monthlyPetrol} onChange={setMonthlyPetrol} prefix="$" />
+        <NumberField
+          label={fuelType === "electric" ? "Monthly charging cost" : "Monthly petrol"}
+          value={monthlyPetrol}
+          onChange={setMonthlyPetrol}
+          prefix="$"
+        />
         <NumberField label="Monthly parking" value={monthlyParking} onChange={setMonthlyParking} prefix="$" />
         <NumberField label="Monthly ERP" value={monthlyErp} onChange={setMonthlyErp} prefix="$" />
         <NumberField label="Annual insurance" value={annualInsurance} onChange={setAnnualInsurance} prefix="$" />
@@ -194,9 +237,11 @@ export default function CarCostCalculator() {
         <NumberField label="Annual maintenance" value={annualMaintenance} onChange={setAnnualMaintenance} prefix="$" />
       </div>
 
+      {ROAD_TAX_GUIDANCE[fuelType] && <p className="explainer">{ROAD_TAX_GUIDANCE[fuelType]}</p>}
+
       <ResultCard title="Your Car Really Costs">
         <ResultRow label="Loan" value={formatSgd(result.monthlyLoan)} />
-        <ResultRow label="Petrol" value={formatSgd(monthlyPetrol)} />
+        <ResultRow label={fuelType === "electric" ? "Charging" : "Petrol"} value={formatSgd(monthlyPetrol)} />
         <ResultRow label="Parking" value={formatSgd(monthlyParking)} />
         <ResultRow label="ERP" value={formatSgd(monthlyErp)} />
         <ResultRow label="Insurance" value={formatSgd(result.monthlyInsurance)} />

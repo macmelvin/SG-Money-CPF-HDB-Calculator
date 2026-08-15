@@ -349,6 +349,8 @@ export function calculateRetirement(input: RetirementInput): RetirementResult {
   };
 }
 
+export type FuelType = "petrol" | "diesel" | "electric" | "hybrid";
+
 export interface CarCostInput {
   carPrice: number;
   downpayment: number;
