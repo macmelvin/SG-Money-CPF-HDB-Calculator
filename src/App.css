@@ -236,6 +236,16 @@
   .calc-page > .result-card {
     margin-bottom: 0;
   }
+  /* NextStep and a standalone BtoPromo (not wrapped in .promo-pair, e.g. Salary/Accrued
+     Interest/Car Cost) also flow into the auto-fit grid as their own column, same as
+     .result-card above. Grid's default align-items: stretch already matches their heights
+     to the tallest item in the row — but their mobile margin: 16px 0 was still shrinking
+     the visible box inside that stretched cell, throwing off the width AND perceived
+     height match against .result-card next to them. Reset it the same way. */
+  .calc-page > .next-step,
+  .calc-page > .bto-promo {
+    margin: 0;
+  }
   /* The input fields above the cards also stop stretching full-width — same auto-fit
      approach, just with a narrower minimum since these are single number inputs. */
   .calc-page > .form-grid {
