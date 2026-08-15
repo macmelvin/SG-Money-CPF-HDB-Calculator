@@ -115,6 +115,7 @@ export function NextStep({
           compact={adSlotCompact}
           showProjectPicker={selected!.showProjectPicker}
           message={selected!.leadFormMessage}
+          headline={selected!.leadFormHeadline}
           intentLabel={selected!.label}
         />
       )}

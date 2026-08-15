@@ -47,6 +47,11 @@ export interface NextStepIntent {
    * naming the kind of specialist who'll follow up).
    */
   leadFormMessage?: string;
+  /**
+   * Optional bold headline shown above leadFormMessage — a short "why this
+   * matters" hook. Only used when leadFormMessage is also set.
+   */
+  leadFormHeadline?: string;
   sponsor?: {
     headline: string;
     desc: string;
@@ -88,18 +93,24 @@ export const NEXT_STEP_OFFERS: Record<string, NextStepIntent[]> = {
       icon: "🏦",
       label: "Grow my savings",
       adCategory: "savings",
+      leadFormHeadline: "Every year you wait, compound interest quietly costs you thousands.",
+      leadFormMessage: "Leave your name, phone and email and our Growth Specialist will reach out to understand your goals.",
     },
     {
       id: "investing",
       icon: "📈",
       label: "Start investing",
       adCategory: "investing",
+      leadFormHeadline: "Cash sitting idle loses value to inflation every single day — investing is how you stay ahead of it.",
+      leadFormMessage: "Leave your name, phone and email and our Investment Specialist will reach out to understand your goals.",
     },
     {
       id: "insurance",
       icon: "🛡",
       label: "Review my insurance",
       adCategory: "insurance",
+      leadFormHeadline: "One uninsured emergency can undo years of careful saving.",
+      leadFormMessage: "Leave your name, phone and email and our Insurance Specialist will reach out to understand your needs.",
     },
     {
       id: "plan-retirement",

@@ -10,6 +10,7 @@ export function LeadForm({
   compact,
   showProjectPicker,
   message,
+  headline,
   intentLabel,
 }: {
   calculatorId: string;
@@ -17,6 +18,7 @@ export function LeadForm({
   compact: boolean;
   showProjectPicker?: boolean;
   message?: string;
+  headline?: string;
   intentLabel: string;
 }) {
   const [open, setOpen] = useState(true);
@@ -104,6 +106,7 @@ export function LeadForm({
 
   return (
     <div className={`ad-slot-available ${compact ? "compact" : ""}`}>
+      {headline && <p className="ad-slot-headline">{headline}</p>}
       <p className="ad-slot-text">{message ?? "Leave your contact and we'll reach out on your interest."}</p>
       <form onSubmit={handleSubmit} className="lead-form">
         <input

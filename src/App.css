@@ -594,6 +594,13 @@
   border: 1px dashed var(--border);
   background: transparent;
 }
+.ad-slot-headline {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.35;
+}
 .ad-slot-text {
   margin: 0 0 10px;
   font-size: 13px;
@@ -677,6 +684,10 @@
 }
 .ad-slot-available.compact .sponsored-label {
   font-size: 10px;
+  margin-bottom: 2px;
+}
+.ad-slot-available.compact .ad-slot-headline {
+  font-size: 13px;
   margin-bottom: 2px;
 }
 .ad-slot-available.compact .ad-slot-text {
