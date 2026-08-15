@@ -39,6 +39,7 @@ export default function SalaryCalculator() {
   const [monthlyBonus, setMonthlyBonus] = useState(initial.monthlyBonus);
   const [status, setStatus] = useState<CitizenshipStatus>(initial.status);
   const [savedAt, setSavedAt] = useState<number | null>(saved?.savedAt ?? null);
+  const [hasActiveSponsor, setHasActiveSponsor] = useState(false);
 
   useEffect(() => {
     trackEvent("calculator_started", { calculator: CALCULATOR_ID });
@@ -130,9 +131,13 @@ export default function SalaryCalculator() {
         <ResultRow label="Total CPF contribution" value={formatSgd(result.totalCpf)} />
       </ResultCard>
 
-      <NextStep calculatorId={CALCULATOR_ID} />
+      <NextStep
+        calculatorId={CALCULATOR_ID}
+        hideEmbeddedAdSpot
+        onSponsorStatusChange={setHasActiveSponsor}
+      />
 
-      <AdSpot label="SG Money ad spot - Salary & CPF" />
+      {!hasActiveSponsor && <AdSpot label="SG Money ad spot - Salary & CPF" />}
 
       <BtoPromo />
 

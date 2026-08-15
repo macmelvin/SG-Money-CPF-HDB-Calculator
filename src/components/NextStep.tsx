@@ -20,6 +20,8 @@ export function NextStep({
   calculatorId,
   prompt = "What are you planning next?",
   onSelect,
+  hideEmbeddedAdSpot,
+  onSponsorStatusChange,
 }: {
   calculatorId: string;
   prompt?: string;
@@ -32,6 +34,20 @@ export function NextStep({
    * because they never separately tapped Save first.
    */
   onSelect?: (intentId: string) => void;
+  /**
+   * Set true on calculators that already show a standalone AdSpot column
+   * elsewhere on the page (Salary & CPF, Car Cost) — suppresses the
+   * embedded "Claim this spot" pitch inside the lead form so it doesn't
+   * show twice at once. Leave unset on calculators without a standalone
+   * column (HDB Sale, CPF Accrued Interest).
+   */
+  hideEmbeddedAdSpot?: boolean;
+  /**
+   * Fires whenever whether a real sponsor is currently showing changes —
+   * lets the parent page hide/show its own standalone AdSpot column to
+   * match (only relevant alongside hideEmbeddedAdSpot).
+   */
+  onSponsorStatusChange?: (hasSponsor: boolean) => void;
 }) {
   const intents = NEXT_STEP_OFFERS[calculatorId];
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -55,6 +71,10 @@ export function NextStep({
     if (!sponsors || sponsors.length === 0) return undefined;
     return sponsors[Math.floor(Math.random() * sponsors.length)];
   }, [selectedId]);
+
+  useEffect(() => {
+    onSponsorStatusChange?.(Boolean(pickedSponsor));
+  }, [pickedSponsor, onSponsorStatusChange]);
 
   // The lead form itself now handles BOTH cases: a real sponsor (captures
   // contact info AND opens the advertiser's site on submit) and the open
@@ -114,6 +134,7 @@ export function NextStep({
           headline={selected!.leadFormHeadline}
           intentLabel={selected!.label}
           sponsor={pickedSponsor}
+          showAdSpot={!hideEmbeddedAdSpot}
         />
       )}
     </div>

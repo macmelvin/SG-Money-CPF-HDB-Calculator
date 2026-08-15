@@ -22,6 +22,7 @@ export function LeadForm({
   headline,
   intentLabel,
   sponsor,
+  showAdSpot = true,
 }: {
   calculatorId: string;
   category: string;
@@ -38,6 +39,14 @@ export function LeadForm({
    * yet" copy. Omit for the honest open-slot fallback.
    */
   sponsor?: SponsorInfo;
+  /**
+   * Set to false on calculators that already show a standalone AdSpot
+   * column elsewhere on the page (Salary & CPF, Car Cost) — avoids
+   * showing the "Claim this spot" pitch twice at once. Defaults to true
+   * so calculators without a standalone column (HDB Sale, CPF Accrued
+   * Interest) keep this as their only advertiser pitch.
+   */
+  showAdSpot?: boolean;
 }) {
   const [open, setOpen] = useState(true);
   const [name, setName] = useState("");
@@ -228,7 +237,7 @@ export function LeadForm({
           {status === "submitting" ? "Sending…" : `${submitLabel} →`}
         </button>
       </form>
-      {!sponsor && <AdSpot label={`SG Money ad spot - ${category}`} />}
+      {!sponsor && showAdSpot && <AdSpot label={`SG Money ad spot - ${category}`} />}
     </div>
   );
 }

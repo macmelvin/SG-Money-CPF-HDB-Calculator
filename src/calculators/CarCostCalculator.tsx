@@ -48,6 +48,7 @@ export default function CarCostCalculator() {
   const [annualMaintenance, setAnnualMaintenance] = useState(initial.annualMaintenance);
   const [monthlyGrabSpend, setMonthlyGrabSpend] = useState(initial.monthlyGrabSpend);
   const [savedAt, setSavedAt] = useState<number | null>(saved?.savedAt ?? null);
+  const [hasActiveSponsor, setHasActiveSponsor] = useState(false);
 
   useEffect(() => {
     trackEvent("calculator_started", { calculator: CALCULATOR_ID });
@@ -221,9 +222,14 @@ export default function CarCostCalculator() {
         )}
       </ResultCard>
 
-      <NextStep calculatorId={CALCULATOR_ID} prompt="Reduce your car expenses" />
+      <NextStep
+        calculatorId={CALCULATOR_ID}
+        prompt="Reduce your car expenses"
+        hideEmbeddedAdSpot
+        onSponsorStatusChange={setHasActiveSponsor}
+      />
 
-      <AdSpot label="SG Money ad spot - Car Cost" />
+      {!hasActiveSponsor && <AdSpot label="SG Money ad spot - Car Cost" />}
 
       <Disclaimer>
         Estimate only. Assumes a flat-rate car loan (typical for Singapore) and does not include depreciation, COE
