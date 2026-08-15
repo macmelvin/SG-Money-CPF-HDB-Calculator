@@ -1,0 +1,14 @@
+{
+  "name": "sg-money-leads-functions",
+  "description": "Emails Melvin a consolidated leads list whenever a new SG Money lead is submitted",
+  "type": "commonjs",
+  "main": "index.js",
+  "engines": {
+    "node": "20"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.7.0",
+    "firebase-functions": "^5.1.1",
+    "nodemailer": "^6.9.16"
+  }
+}
