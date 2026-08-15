@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ADVERTISER_CONTACT_EMAIL, NEXT_STEP_OFFERS } from "../lib/offers";
+import { NEXT_STEP_OFFERS } from "../lib/offers";
 import { trackEvent } from "../lib/analytics";
+import { LeadForm } from "./LeadForm";
 
 // Fires once, the first time a sponsored card actually renders on screen for
 // a given intent — not on every re-render.
@@ -107,26 +108,7 @@ export function NextStep({
       )}
 
       {showAdSlotFallback && (
-        <div className={`ad-slot-available ${adSlotCompact ? "compact" : ""}`}>
-          <span className="sponsored-label">Ad space</span>
-          <p className="ad-slot-text">
-            This spot is open for a relevant, Singapore-verified advertiser.
-          </p>
-          <a
-            href={`mailto:${ADVERTISER_CONTACT_EMAIL}?subject=SG%20Money%20ad%20spot`}
-            className="ad-slot-link"
-            onClick={() =>
-              trackEvent("sponsored_offer_clicked", {
-                calculator: calculatorId,
-                intent: selected!.id,
-                category: selected!.adCategory!,
-                slot: "open",
-              })
-            }
-          >
-            Contact the owner →
-          </a>
-        </div>
+        <LeadForm calculatorId={calculatorId} category={selected!.adCategory!} compact={adSlotCompact} />
       )}
     </div>
   );

@@ -27,7 +27,8 @@ export type SgMoneyEvent =
   | "calculator_completed"
   | "next_step_selected"
   | "sponsored_offer_viewed"
-  | "sponsored_offer_clicked";
+  | "sponsored_offer_clicked"
+  | "lead_submitted";
 
 export function trackEvent(event: SgMoneyEvent, data?: Record<string, string | number | boolean>): void {
   try {

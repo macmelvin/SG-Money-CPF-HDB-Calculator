@@ -608,6 +608,67 @@
 .ad-slot-link:hover {
   color: var(--primary);
 }
+.ad-slot-link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+}
+.lead-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+.lead-form-honeypot {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+.lead-form-input {
+  height: 38px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+}
+.lead-form-input::placeholder {
+  color: var(--text-muted);
+}
+.lead-form-error {
+  margin: 0;
+  font-size: 12px;
+  color: var(--primary);
+}
+.lead-form-submit {
+  height: 38px;
+  border-radius: 10px;
+  border: none;
+  background: var(--primary);
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+}
+.lead-form-submit:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.ad-slot-advertiser-link {
+  display: inline-block;
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--text-muted);
+  text-decoration: none;
+}
+.ad-slot-advertiser-link:hover {
+  color: var(--primary);
+}
 .ad-slot-available.compact {
   margin-top: 8px;
   padding: 0;
