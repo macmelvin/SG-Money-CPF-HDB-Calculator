@@ -40,9 +40,11 @@ export function LeadForm({
     }
     setFieldError("");
     setStatus("submitting");
+    const selectedProject = CONDO_PROJECTS.find((p) => p.name === projectInterest.trim());
+    const effectiveCategory = showProjectPicker ? selectedProject?.type ?? "Property" : category;
     const ok = await submitLead({
       calculator: calculatorId,
-      category,
+      category: effectiveCategory,
       name: name.trim(),
       phone: phone.trim(),
       email: email.trim(),
@@ -51,7 +53,7 @@ export function LeadForm({
     });
     if (ok) {
       setStatus("done");
-      trackEvent("lead_submitted", { calculator: calculatorId, category });
+      trackEvent("lead_submitted", { calculator: calculatorId, category: effectiveCategory });
     } else {
       setStatus("error");
     }
@@ -133,8 +135,8 @@ export function LeadForm({
           >
             <option value="">Interested in which project? (optional)</option>
             {CONDO_PROJECTS.map((p) => (
-              <option key={p} value={p}>
-                {p}
+              <option key={p.name} value={p.name}>
+                {p.name} ({p.type})
               </option>
             ))}
             <option value="Not sure yet">Not sure yet</option>
