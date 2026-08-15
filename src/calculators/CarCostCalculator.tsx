@@ -429,10 +429,6 @@ export default function CarCostCalculator() {
         )}
         <ResultRow label="Break-even Grab spend" value={`${formatSgd(result.breakEvenGrabSpend)}/month`} />
       </ResultCard>
-      <p className="explainer">
-        Spend more than {formatSgd(result.breakEvenGrabSpend)}/month on Grab and owning this car would actually
-        have been cheaper.
-      </p>
 
       <ResultCard title="🚇 Car vs Public Transport">
         <ResultRow label="Car" value={`${formatSgd(result.publicTransportComparison.carCost)}/month`} />
@@ -444,9 +440,6 @@ export default function CarCostCalculator() {
           positive={result.publicTransportComparison.annualSavings >= 0}
         />
       </ResultCard>
-      <p className="explainer">
-        Based on the $122/month Adult Monthly Travel Pass (unlimited MRT/LRT/basic bus), current PTC rates.
-      </p>
 
       <NextStep
         calculatorId={CALCULATOR_ID}
@@ -456,6 +449,12 @@ export default function CarCostCalculator() {
       />
 
       {!hasActiveSponsor && <AdSpot label="SG Money ad spot - Car Cost" />}
+
+      <p className="explainer">
+        Spend more than {formatSgd(result.breakEvenGrabSpend)}/month on Grab and owning this car would actually
+        have been cheaper. Public transport comparison based on the $122/month Adult Monthly Travel Pass
+        (unlimited MRT/LRT/basic bus), current PTC rates.
+      </p>
 
       <Disclaimer>
         Estimate only. Assumes a flat-rate car loan (typical for Singapore). Depreciation and COE renewal are
