@@ -1,9 +1,15 @@
 // Fires on every new document in the `leads` collection (i.e. every time
-// someone submits the "no partner here yet" form on SG Money). Rather than
-// emailing just the one new lead, it pulls the FULL current list of every
-// lead ever submitted and sends that as one table — so Melvin always has
-// an up-to-date, ready-to-forward list for whichever advertiser he's
-// talking to, without piecing together individual emails himself.
+// someone submits the "no partner here yet" form on SG Money). Each lead
+// starts life with notified: false (set client-side in src/lib/leads.ts);
+// this function queries only the leads still marked notified: false,
+// emails just those as a table, then flips them to notified: true - so
+// each email shows what's new since the last one, not the entire history
+// repeated every time.
+//
+// Note: leads submitted BEFORE this change don't have a `notified` field
+// at all, and Firestore's `== false` query doesn't match missing fields -
+// so old leads won't suddenly reappear in a future email. They were
+// already sent in the old cumulative-list emails.
 //
 // Requires the Blaze (pay-as-you-go) plan on this Firebase project —
 // Cloud Functions triggers aren't available on Spark. Realistically this
@@ -54,8 +60,19 @@ exports.emailOnNewLead = onDocumentCreated(
     secrets: [GMAIL_USER, GMAIL_APP_PASSWORD, NOTIFY_EMAIL],
   },
   async () => {
-    const snapshot = await db.collection("leads").orderBy("createdAt", "desc").get();
-    const leads = snapshot.docs.map((doc) => doc.data());
+    const snapshot = await db.collection("leads").where("notified", "==", false).get();
+
+    // Nothing unsent — likely a duplicate trigger delivery for a lead
+    // another invocation already handled. Nothing to do.
+    if (snapshot.empty) return;
+
+    // Sorted here in code rather than via Firestore's orderBy, so this
+    // stays a simple single-field equality query — combining a where()
+    // with orderBy() on a different field would need a composite index
+    // set up manually in the Firestore console first.
+    const leads = snapshot.docs
+      .map((doc) => doc.data())
+      .sort((a, b) => (a.createdAt?.toMillis() ?? 0) - (b.createdAt?.toMillis() ?? 0));
 
     const rows = leads
       .map(
@@ -73,7 +90,7 @@ exports.emailOnNewLead = onDocumentCreated(
       .join("");
 
     const html = `
-      <p>${leads.length} lead${leads.length === 1 ? "" : "s"} total on SG Money to date.</p>
+      <p>${leads.length} new lead${leads.length === 1 ? "" : "s"} since the last email.</p>
       <table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;font-family:sans-serif;font-size:13px;">
         <thead>
           <tr style="background:#f2f0eb;text-align:left;">
@@ -95,8 +112,15 @@ exports.emailOnNewLead = onDocumentCreated(
     await transporter.sendMail({
       from: GMAIL_USER.value(),
       to: NOTIFY_EMAIL.value(),
-      subject: `SG Money: new lead — ${leads.length} total`,
+      subject: `SG Money: ${leads.length} new lead${leads.length === 1 ? "" : "s"}`,
       html,
     });
+
+    // Only mark as notified after the email actually sent successfully —
+    // if sendMail throws above, these stay notified: false and get picked
+    // up (and re-sent) by the next trigger instead of silently vanishing.
+    const batch = db.batch();
+    snapshot.docs.forEach((doc) => batch.update(doc.ref, { notified: true }));
+    await batch.commit();
   }
 );
