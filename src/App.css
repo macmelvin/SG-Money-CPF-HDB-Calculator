@@ -243,7 +243,8 @@
      the visible box inside that stretched cell, throwing off the width AND perceived
      height match against .result-card next to them. Reset it the same way. */
   .calc-page > .next-step,
-  .calc-page > .bto-promo {
+  .calc-page > .bto-promo,
+  .calc-page > .ad-spot-prominent {
     margin: 0;
   }
   /* The input fields above the cards also stop stretching full-width — same auto-fit
@@ -684,6 +685,9 @@
   border: 2px solid var(--primary);
   background: color-mix(in srgb, var(--primary) 8%, var(--card));
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 .ad-spot-prominent-label {
   display: inline-block;
