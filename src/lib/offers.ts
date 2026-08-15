@@ -196,5 +196,13 @@ export const NEXT_STEP_OFFERS: Record<string, NextStepIntent[]> = {
       leadFormHeadline: "A lower interest rate on your car loan could free up real cash every month.",
       leadFormMessage: "Leave your name, phone and email and our Refinancing Specialist will reach out to see if you qualify for a better rate.",
     },
+    {
+      id: "promotions",
+      icon: "🏷️",
+      label: "Promotions",
+      adCategory: "car-promotions",
+      leadFormHeadline: "Dealers run limited-time promos most buyers never hear about.",
+      leadFormMessage: "Leave your name, phone and email and we'll notify you of the latest car deals and promotions.",
+    },
   ],
 };
