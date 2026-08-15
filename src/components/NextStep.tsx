@@ -78,7 +78,7 @@ export function NextStep({
         ))}
       </div>
 
-      {selected?.to && (
+      {selected?.to && !showAdSlotFallback && (
         <Link to={selected.to} className="next-step-cta">
           Continue →
         </Link>

@@ -155,9 +155,6 @@ export function LeadForm({
           {status === "submitting" ? "Sending…" : "Notify me"}
         </button>
       </form>
-      <a href={`mailto:${ADVERTISER_CONTACT_EMAIL}?subject=SG%20Money%20ad%20spot`} className="ad-slot-advertiser-link">
-        Advertiser? Contact the owner →
-      </a>
     </div>
   );
 }
