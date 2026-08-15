@@ -110,7 +110,7 @@ export function NextStep({
                 })
               }
             >
-              Ad space open here — contact the owner →
+              Ad space open — contact the owner →
             </a>
           ) : (
             <>
@@ -128,7 +128,7 @@ export function NextStep({
                   })
                 }
               >
-                If you're interested in this ad spot, contact the owner →
+                Contact the owner →
               </a>
             </>
           )}
