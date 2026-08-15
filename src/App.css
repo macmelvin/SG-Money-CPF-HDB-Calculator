@@ -648,6 +648,45 @@
 .lead-form-input::placeholder {
   color: var(--text-muted);
 }
+.lead-form-project-list {
+  max-height: 220px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 4px;
+  background: var(--bg);
+}
+.lead-form-project-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+.lead-form-project-item.selected {
+  background: var(--card);
+  border: 1px solid var(--primary);
+  color: var(--primary);
+  font-weight: 600;
+}
+.lead-form-project-type {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.lead-form-project-item.selected .lead-form-project-type {
+  color: var(--primary);
+}
 .lead-form-error {
   margin: 0;
   font-size: 12px;

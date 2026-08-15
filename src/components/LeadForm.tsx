@@ -44,11 +44,15 @@ export function LeadForm({
       setFieldError("Enter your name, phone and email first.");
       return;
     }
+    if (showProjectPicker && !projectInterest) {
+      setFieldError("Pick a project first.");
+      return;
+    }
     setFieldError("");
     setStatus("submitting");
     const selectedProject = CONDO_PROJECTS.find((p) => p.name === projectInterest.trim());
     const effectiveCategory = showProjectPicker ? selectedProject?.type ?? "Property" : category;
-    // For non-property leads there's no project dropdown to fill this in,
+    // For non-property leads there's no project list to fill this in,
     // so default it to the intent's own label (e.g. "Retirement", "Grow my
     // savings") rather than leaving it blank — every lead should show what
     // the person was actually interested in.
@@ -65,6 +69,15 @@ export function LeadForm({
     if (ok) {
       setStatus("done");
       trackEvent("lead_submitted", { calculator: calculatorId, category: effectiveCategory });
+      // Opens in a new tab so the "Thanks" confirmation stays visible here —
+      // a Google search rather than one hand-picked URL per project, since
+      // individual listing pages go stale/duplicate/disappear and a search
+      // always resolves to something real and current. Skipped for "Not
+      // sure yet" since there's nothing specific to search for.
+      if (selectedProject) {
+        const query = encodeURIComponent(`${selectedProject.name} Singapore condo`);
+        window.open(`https://www.google.com/search?q=${query}`, "_blank", "noopener,noreferrer");
+      }
     } else {
       setStatus("error");
     }
@@ -87,7 +100,12 @@ export function LeadForm({
   if (status === "done") {
     return (
       <div className={`ad-slot-available ${compact ? "compact" : ""}`}>
-        <p className="ad-slot-text">Thanks — we'll reach out once we have a partner for this.</p>
+        <p className="ad-slot-text">
+          Thanks — we'll reach out once we have a partner for this.
+          {showProjectPicker && projectInterest && projectInterest !== "Not sure yet"
+            ? " Opened that project's page in a new tab too."
+            : ""}
+        </p>
       </div>
     );
   }
@@ -140,19 +158,26 @@ export function LeadForm({
           className="lead-form-input"
         />
         {showProjectPicker ? (
-          <select
-            value={projectInterest}
-            onChange={(e) => setProjectInterest(e.target.value)}
-            className="lead-form-input"
-          >
-            <option value="">Interested in which project? (optional)</option>
+          <div className="lead-form-project-list">
             {CONDO_PROJECTS.map((p) => (
-              <option key={p.name} value={p.name}>
-                {p.name} ({p.type})
-              </option>
+              <button
+                type="button"
+                key={p.name}
+                className={`lead-form-project-item ${projectInterest === p.name ? "selected" : ""}`}
+                onClick={() => setProjectInterest(p.name)}
+              >
+                <span>{p.name}</span>
+                <span className="lead-form-project-type">{p.type}</span>
+              </button>
             ))}
-            <option value="Not sure yet">Not sure yet</option>
-          </select>
+            <button
+              type="button"
+              className={`lead-form-project-item ${projectInterest === "Not sure yet" ? "selected" : ""}`}
+              onClick={() => setProjectInterest("Not sure yet")}
+            >
+              <span>Not sure yet</span>
+            </button>
+          </div>
         ) : (
           <input
             type="text"
