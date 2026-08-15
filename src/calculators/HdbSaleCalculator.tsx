@@ -151,7 +151,7 @@ export default function HdbSaleCalculator() {
         ))}
       </ResultCard>
 
-      <NextStep calculatorId={CALCULATOR_ID} />
+      <NextStep calculatorId={CALCULATOR_ID} onSelect={handleSave} />
 
       <BtoPromo
         title="Selling to upgrade to a BTO?"

@@ -18,9 +18,19 @@ function useViewedOnce(fire: boolean, event: () => void) {
 export function NextStep({
   calculatorId,
   prompt = "What are you planning next?",
+  onSelect,
 }: {
   calculatorId: string;
   prompt?: string;
+  /**
+   * Called with the chosen intent's id whenever the person taps a button
+   * below, before navigation happens. Use this to auto-save the current
+   * calculator's data — e.g. HDB Sale passes its own handleSave here, so
+   * Retirement Calculator has something to read the moment the person
+   * lands there via a "Continue" link, instead of silently showing nothing
+   * because they never separately tapped Save first.
+   */
+  onSelect?: (intentId: string) => void;
 }) {
   const intents = NEXT_STEP_OFFERS[calculatorId];
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -32,6 +42,7 @@ export function NextStep({
   const handleSelect = (id: string) => {
     setSelectedId(id);
     trackEvent("next_step_selected", { calculator: calculatorId, intent: id });
+    onSelect?.(id);
   };
 
   useViewedOnce(Boolean(selected?.sponsor), () => {
