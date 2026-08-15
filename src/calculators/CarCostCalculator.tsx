@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { BtoPromo, CalcShell, Disclaimer, NumberField, ResultCard, ResultRow } from "../components/CalcShell";
+import { CalcShell, Disclaimer, NumberField, ResultCard, ResultRow } from "../components/CalcShell";
 import { NextStep } from "../components/NextStep";
+import { AdSpot } from "../components/AdSpot";
 import { calculateCarCost, formatSgd } from "../lib/cpf";
 import { usePageMeta } from "../lib/usePageMeta";
 import { clearCalculatorData, loadCalculatorData, saveCalculatorData } from "../lib/storage";
@@ -222,7 +223,7 @@ export default function CarCostCalculator() {
 
       <NextStep calculatorId={CALCULATOR_ID} prompt="Reduce your car expenses" />
 
-      <BtoPromo />
+      <AdSpot label="SG Money ad spot - Car Cost" />
 
       <Disclaimer>
         Estimate only. Assumes a flat-rate car loan (typical for Singapore) and does not include depreciation, COE
