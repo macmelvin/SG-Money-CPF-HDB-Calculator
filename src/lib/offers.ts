@@ -96,6 +96,14 @@ export const NEXT_STEP_OFFERS: Record<string, NextStepIntent[]> = {
       adCategory: "financial-planning",
       leadFormMessage: "Leave your contact and we will have our retirement specialist contact you to understand your needs first.",
     },
+    {
+      id: "refinance-loan",
+      icon: "💰",
+      label: "Refinance my loan",
+      adCategory: "home-loan-refinancing",
+      leadFormHeadline: "A lower interest rate on your home loan could save you thousands over the years.",
+      leadFormMessage: "Leave your name, phone and email and our Refinancing Specialist will reach out to see if you qualify for a better rate.",
+    },
   ],
 
   "salary-calculator": [
