@@ -4,7 +4,9 @@ export interface LeadSubmission {
   calculator: string;
   category: string;
   name: string;
-  contact: string;
+  phone: string;
+  email: string;
+  projectInterest: string;
   note: string;
 }
 

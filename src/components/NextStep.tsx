@@ -108,7 +108,12 @@ export function NextStep({
       )}
 
       {showAdSlotFallback && (
-        <LeadForm calculatorId={calculatorId} category={selected!.adCategory!} compact={adSlotCompact} />
+        <LeadForm
+          calculatorId={calculatorId}
+          category={selected!.adCategory!}
+          compact={adSlotCompact}
+          showProjectPicker={selected!.showProjectPicker}
+        />
       )}
     </div>
   );

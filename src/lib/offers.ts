@@ -34,6 +34,12 @@ export interface NextStepIntent {
    * shows an honest "this ad spot is available" card/line instead of nothing.
    */
   adCategory?: string;
+  /**
+   * Shows a "Interested in which project?" dropdown (see condoProjects.ts)
+   * on the lead form instead of the generic free-text note field. Only set
+   * this on genuinely property-related intents.
+   */
+  showProjectPicker?: boolean;
   sponsor?: {
     headline: string;
     desc: string;
@@ -57,6 +63,7 @@ export const NEXT_STEP_OFFERS: Record<string, NextStepIntent[]> = {
       label: "Buy a condo",
       to: "/retirement-calculator",
       adCategory: "mortgage",
+      showProjectPicker: true,
     },
     {
       id: "downsize",
