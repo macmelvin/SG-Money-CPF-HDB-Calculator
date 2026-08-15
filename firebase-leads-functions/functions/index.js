@@ -63,7 +63,6 @@ exports.emailOnNewLead = onDocumentCreated(
         <tr>
           <td>${escapeHtml(formatDate(lead.createdAt))}</td>
           <td>${escapeHtml(lead.calculator)}</td>
-          <td>${escapeHtml(lead.category)}</td>
           <td>${escapeHtml(lead.name)}</td>
           <td>${escapeHtml(lead.phone)}</td>
           <td>${escapeHtml(lead.email)}</td>
@@ -78,7 +77,7 @@ exports.emailOnNewLead = onDocumentCreated(
       <table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;font-family:sans-serif;font-size:13px;">
         <thead>
           <tr style="background:#f2f0eb;text-align:left;">
-            <th>Date</th><th>Calculator</th><th>Category</th><th>Name</th><th>Phone</th><th>Email</th><th>Project interest</th><th>Note</th>
+            <th>Date</th><th>Calculator</th><th>Name</th><th>Phone</th><th>Email</th><th>Project interest</th><th>Note</th>
           </tr>
         </thead>
         <tbody>${rows}</tbody>
