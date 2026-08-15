@@ -40,7 +40,8 @@ export function NextStep({
     }
   });
 
-  const showAdSlotFallback = Boolean(selected?.adCategory && !selected.to && !selected.sponsor);
+  const showAdSlotFallback = Boolean(selected?.adCategory && !selected.sponsor);
+  const adSlotCompact = Boolean(selected?.to);
 
   useViewedOnce(showAdSlotFallback, () => {
     if (selected?.adCategory) {
@@ -95,23 +96,42 @@ export function NextStep({
       )}
 
       {showAdSlotFallback && (
-        <div className="ad-slot-available">
-          <span className="sponsored-label">Ad space</span>
-          <p className="ad-slot-text">
-            This spot is open for a relevant, Singapore-verified advertiser.
-          </p>
-          <a href={`mailto:${ADVERTISER_CONTACT_EMAIL}?subject=SG%20Money%20ad%20spot`} className="ad-slot-link"
-            onClick={() =>
-              trackEvent("sponsored_offer_clicked", {
-                calculator: calculatorId,
-                intent: selected!.id,
-                category: selected!.adCategory!,
-                slot: "open",
-              })
-            }
-          >
-            If you're interested in this ad spot, contact the owner →
-          </a>
+        <div className={`ad-slot-available ${adSlotCompact ? "compact" : ""}`}>
+          {adSlotCompact ? (
+            <a
+              href={`mailto:${ADVERTISER_CONTACT_EMAIL}?subject=SG%20Money%20ad%20spot`}
+              className="ad-slot-link"
+              onClick={() =>
+                trackEvent("sponsored_offer_clicked", {
+                  calculator: calculatorId,
+                  intent: selected!.id,
+                  category: selected!.adCategory!,
+                  slot: "open",
+                })
+              }
+            >
+              Ad space open here — contact the owner →
+            </a>
+          ) : (
+            <>
+              <span className="sponsored-label">Ad space</span>
+              <p className="ad-slot-text">
+                This spot is open for a relevant, Singapore-verified advertiser.
+              </p>
+              <a href={`mailto:${ADVERTISER_CONTACT_EMAIL}?subject=SG%20Money%20ad%20spot`} className="ad-slot-link"
+                onClick={() =>
+                  trackEvent("sponsored_offer_clicked", {
+                    calculator: calculatorId,
+                    intent: selected!.id,
+                    category: selected!.adCategory!,
+                    slot: "open",
+                  })
+                }
+              >
+                If you're interested in this ad spot, contact the owner →
+              </a>
+            </>
+          )}
         </div>
       )}
     </div>

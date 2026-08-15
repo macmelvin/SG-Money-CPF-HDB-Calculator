@@ -27,11 +27,11 @@ export interface NextStepIntent {
   /**
    * Marks this intent as a genuine advertising slot (e.g. "insurance",
    * "mortgage") rather than plain browsing/dismissal ("Just checking").
-   * Only set this on intents that DON'T already have a strong internal `to`
-   * destination — if SG Money has its own good next step, that's the
-   * recommendation; don't also clutter it with an "ad space available" card.
-   * When set (and `to` is empty and `sponsor` is empty), NextStep shows an
-   * honest "this ad spot is available" card instead of nothing.
+   * Can be combined with `to` — NextStep shows both the internal
+   * recommendation and the ad slot below it, but renders the ad slot in
+   * its compact one-line form in that case so it doesn't compete visually
+   * with the internal recommendation. When set (and `sponsor` is empty),
+   * shows an honest "this ad spot is available" card/line instead of nothing.
    */
   adCategory?: string;
   sponsor?: {
@@ -56,6 +56,7 @@ export const NEXT_STEP_OFFERS: Record<string, NextStepIntent[]> = {
       icon: "🏢",
       label: "Buy a condo",
       to: "/retirement-calculator",
+      adCategory: "mortgage",
     },
     {
       id: "downsize",
@@ -68,6 +69,7 @@ export const NEXT_STEP_OFFERS: Record<string, NextStepIntent[]> = {
       icon: "👴",
       label: "Retire",
       to: "/retirement-calculator",
+      adCategory: "financial-planning",
     },
     {
       id: "just-checking",
