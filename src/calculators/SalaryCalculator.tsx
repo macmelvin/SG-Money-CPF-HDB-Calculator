@@ -132,9 +132,9 @@ export default function SalaryCalculator() {
 
       <NextStep calculatorId={CALCULATOR_ID} />
 
-      <BtoPromo />
-
       <AdSpot label="SG Money ad spot - Salary & CPF" />
+
+      <BtoPromo />
 
       <Disclaimer>
         Estimate based on 2026 CPF contribution rates and the S$8,000 Ordinary Wage ceiling. PR rates are simplified
