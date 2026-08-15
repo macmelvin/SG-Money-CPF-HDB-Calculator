@@ -15,7 +15,7 @@ export function LeadForm({
   compact: boolean;
   showProjectPicker?: boolean;
 }) {
-  const [open, setOpen] = useState(!compact);
+  const [open, setOpen] = useState(true);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -80,6 +80,8 @@ export function LeadForm({
   }
 
   if (compact && !open) {
+    // Kept as a safety fallback in case `open` is ever toggled closed again
+    // in future, though nothing currently does that.
     return (
       <div className="ad-slot-available compact">
         <button type="button" className="ad-slot-link ad-slot-link-btn" onClick={() => setOpen(true)}>
