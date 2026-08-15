@@ -676,6 +676,49 @@
 .ad-slot-advertiser-link:hover {
   color: var(--primary);
 }
+
+.ad-spot-prominent {
+  margin: 16px 0;
+  padding: 20px 18px;
+  border-radius: 14px;
+  border: 2px solid var(--primary);
+  background: color-mix(in srgb, var(--primary) 8%, var(--card));
+  text-align: center;
+}
+.ad-spot-prominent-label {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--primary);
+  margin-bottom: 8px;
+}
+.ad-spot-prominent-headline {
+  margin: 0 0 6px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+.ad-spot-prominent-text {
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+.ad-spot-prominent-cta {
+  display: inline-block;
+  padding: 10px 24px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: white;
+  font-weight: 700;
+  font-size: 14px;
+  text-decoration: none;
+}
+.ad-spot-prominent-cta:active {
+  transform: scale(0.98);
+}
 .ad-slot-available.compact {
   margin-top: 8px;
   padding: 0;

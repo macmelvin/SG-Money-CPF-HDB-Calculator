@@ -1,24 +1,27 @@
 import { ADVERTISER_CONTACT_EMAIL } from "../lib/offers";
 
-// A persistent ad slot that always shows on the page it's placed on,
-// unlike the ones inside NextStep which only appear once someone taps a
-// specific button. This is genuinely more valuable inventory — guaranteed
-// visibility to every visitor, not conditional on interaction — so it's
-// worth offering separately rather than folding it into the interactive
-// flow. Same "honest, no fake sponsor" approach as everywhere else: shows
-// a plain "this spot is open" card until a real advertiser is wired in via
-// a sponsor prop (not yet built — add if/when this actually sells).
+// A persistent, deliberately eye-catching ad slot — unlike the quiet
+// "no partner here yet" fallback inside NextStep (which stays muted on
+// purpose, since it's shown to end users mid-calculation), this one's
+// entire job is to grab an advertiser's attention. Bold border, tinted
+// background, punchy copy, real CTA button — not the honest-but-unobtrusive
+// style used elsewhere.
 export function AdSpot({ label = "SG Money ad spot" }: { label?: string }) {
   return (
-    <div className="ad-slot-available">
-      <span className="sponsored-label">Ad space</span>
-      <p className="ad-slot-text">This spot is open for a relevant, Singapore-verified advertiser.</p>
+    <div className="ad-spot-prominent">
+      <span className="ad-spot-prominent-label">📢 Advertise Here</span>
+      <p className="ad-spot-prominent-headline">Your ad could be right here.</p>
+      <p className="ad-spot-prominent-text">
+        Reach Singaporeans actively researching HDB sales, CPF, retirement and property —
+        high-intent traffic, not passive scrolling.
+      </p>
       <a
         href={`mailto:${ADVERTISER_CONTACT_EMAIL}?subject=${encodeURIComponent(label)}`}
-        className="ad-slot-link"
+        className="ad-spot-prominent-cta"
       >
-        Advertiser? Contact the owner →
+        Claim this spot →
       </a>
     </div>
   );
 }
+
