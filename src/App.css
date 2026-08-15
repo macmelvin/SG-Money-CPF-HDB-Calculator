@@ -595,6 +595,10 @@
   border: 1px dashed var(--border);
   background: transparent;
 }
+.ad-slot-available.sponsored {
+  border: 1px solid var(--border);
+  background: var(--card);
+}
 .ad-slot-headline {
   margin: 0 0 4px;
   font-size: 15px;

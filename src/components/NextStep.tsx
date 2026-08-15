@@ -52,9 +52,16 @@ export function NextStep({
   // when the selected intent actually changes, not on every re-render.
   const pickedSponsor = useMemo(() => {
     const sponsors = selected?.sponsors;
-    if (!sponsors || sponsors.length === 0) return null;
+    if (!sponsors || sponsors.length === 0) return undefined;
     return sponsors[Math.floor(Math.random() * sponsors.length)];
   }, [selectedId]);
+
+  // The lead form itself now handles BOTH cases: a real sponsor (captures
+  // contact info AND opens the advertiser's site on submit) and the open
+  // "no partner yet" fallback. Shown for any ad-category intent regardless
+  // of whether a sponsor exists — only the copy/behaviour inside differs.
+  const showLeadForm = Boolean(selected?.adCategory);
+  const adSlotCompact = Boolean(selected?.to);
 
   useViewedOnce(Boolean(pickedSponsor), () => {
     if (pickedSponsor) {
@@ -67,10 +74,7 @@ export function NextStep({
     }
   });
 
-  const showAdSlotFallback = Boolean(selected?.adCategory && !pickedSponsor);
-  const adSlotCompact = Boolean(selected?.to);
-
-  useViewedOnce(showAdSlotFallback, () => {
+  useViewedOnce(showLeadForm && !pickedSponsor, () => {
     if (selected?.adCategory) {
       trackEvent("sponsored_offer_viewed", { calculator: calculatorId, intent: selected.id, category: selected.adCategory, slot: "open" });
     }
@@ -93,46 +97,23 @@ export function NextStep({
         ))}
       </div>
 
-      {selected?.to && !showAdSlotFallback && (
+      {selected?.to && !showLeadForm && (
         <Link to={selected.to} className="next-step-cta">
           Continue →
         </Link>
       )}
 
-      {pickedSponsor && (
-        <div className="sponsored-card">
-          <span className="sponsored-label">Sponsored</span>
-          <p className="sponsored-headline">{pickedSponsor.headline}</p>
-          <p className="sponsored-desc">{pickedSponsor.desc}</p>
-          <a
-            href={pickedSponsor.href}
-            target="_blank"
-            rel="noopener noreferrer sponsored"
-            className="sponsored-cta"
-            onClick={() =>
-              trackEvent("sponsored_offer_clicked", {
-                calculator: calculatorId,
-                intent: selected!.id,
-                category: pickedSponsor.category,
-                advertiser: pickedSponsor.advertiserId,
-              })
-            }
-          >
-            {pickedSponsor.ctaLabel} →
-          </a>
-        </div>
-      )}
-
-      {showAdSlotFallback && (
+      {showLeadForm && (
         <LeadForm
           key={selected!.id}
           calculatorId={calculatorId}
-          category={selected!.adCategory!}
+          category={pickedSponsor?.category ?? selected!.adCategory!}
           compact={adSlotCompact}
           showProjectPicker={selected!.showProjectPicker}
           message={selected!.leadFormMessage}
           headline={selected!.leadFormHeadline}
           intentLabel={selected!.label}
+          sponsor={pickedSponsor}
         />
       )}
     </div>

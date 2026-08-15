@@ -4,6 +4,14 @@ import { isFirebaseConfigured, submitLead } from "../lib/leads";
 import { trackEvent } from "../lib/analytics";
 import { CONDO_PROJECTS } from "../lib/condoProjects";
 
+interface SponsorInfo {
+  advertiserId: string;
+  headline: string;
+  desc: string;
+  ctaLabel: string;
+  href: string;
+}
+
 export function LeadForm({
   calculatorId,
   category,
@@ -12,6 +20,7 @@ export function LeadForm({
   message,
   headline,
   intentLabel,
+  sponsor,
 }: {
   calculatorId: string;
   category: string;
@@ -20,6 +29,14 @@ export function LeadForm({
   message?: string;
   headline?: string;
   intentLabel: string;
+  /**
+   * When set, this slot has a real advertiser — the form still captures
+   * Name/Phone/Email as a lead (so Melvin has a contact list), but on
+   * submit ALSO opens the advertiser's actual site in a new tab and shows
+   * their real headline/desc/CTA label instead of the generic "no partner
+   * yet" copy. Omit for the honest open-slot fallback.
+   */
+  sponsor?: SponsorInfo;
 }) {
   const [open, setOpen] = useState(true);
   const [name, setName] = useState("");
@@ -69,12 +86,22 @@ export function LeadForm({
     if (ok) {
       setStatus("done");
       trackEvent("lead_submitted", { calculator: calculatorId, category: effectiveCategory });
-      // Opens in a new tab so the "Thanks" confirmation stays visible here —
-      // a Google search rather than one hand-picked URL per project, since
-      // individual listing pages go stale/duplicate/disappear and a search
-      // always resolves to something real and current. Skipped for "Not
-      // sure yet" since there's nothing specific to search for.
-      if (selectedProject) {
+      if (sponsor) {
+        // Real advertiser — send the lead's browser straight to their site,
+        // same as clicking a normal sponsored link, but we've also captured
+        // the contact details as a lead first.
+        window.open(sponsor.href, "_blank", "noopener,noreferrer");
+        trackEvent("sponsored_offer_clicked", {
+          calculator: calculatorId,
+          category: effectiveCategory,
+          advertiser: sponsor.advertiserId,
+        });
+      } else if (selectedProject) {
+        // No sponsor yet for this project slot — open a Google search
+        // instead of one hand-picked URL per project, since individual
+        // listing pages go stale/duplicate/disappear and a search always
+        // resolves to something real and current. Skipped for "Not sure
+        // yet" since there's nothing specific to search for.
         const query = encodeURIComponent(`${selectedProject.name} Singapore condo`);
         window.open(`https://www.google.com/search?q=${query}`, "_blank", "noopener,noreferrer");
       }
@@ -99,10 +126,12 @@ export function LeadForm({
 
   if (status === "done") {
     return (
-      <div className={`ad-slot-available ${compact ? "compact" : ""}`}>
+      <div className={`ad-slot-available ${sponsor ? "sponsored" : ""} ${compact ? "compact" : ""}`}>
         <p className="ad-slot-text">
-          Thanks — we'll reach out once we have a partner for this.
-          {showProjectPicker && projectInterest && projectInterest !== "Not sure yet"
+          {sponsor
+            ? "Thanks — we've opened the offer in a new tab too."
+            : "Thanks — we'll reach out once we have a partner for this."}
+          {!sponsor && showProjectPicker && projectInterest && projectInterest !== "Not sure yet"
             ? " Opened that project's page in a new tab too."
             : ""}
         </p>
@@ -122,10 +151,15 @@ export function LeadForm({
     );
   }
 
+  const displayHeadline = sponsor?.headline ?? headline;
+  const displayMessage = sponsor?.desc ?? message ?? "Leave your contact and we'll reach out on your interest.";
+  const submitLabel = sponsor?.ctaLabel ?? "Notify me";
+
   return (
-    <div className={`ad-slot-available ${compact ? "compact" : ""}`}>
-      {headline && <p className="ad-slot-headline">{headline}</p>}
-      <p className="ad-slot-text">{message ?? "Leave your contact and we'll reach out on your interest."}</p>
+    <div className={`ad-slot-available ${sponsor ? "sponsored" : ""} ${compact ? "compact" : ""}`}>
+      {sponsor && <span className="sponsored-label">Sponsored</span>}
+      {displayHeadline && <p className="ad-slot-headline">{displayHeadline}</p>}
+      <p className="ad-slot-text">{displayMessage}</p>
       <form onSubmit={handleSubmit} className="lead-form">
         <input
           type="text"
@@ -190,7 +224,7 @@ export function LeadForm({
         {fieldError && <p className="lead-form-error">{fieldError}</p>}
         {status === "error" && <p className="lead-form-error">Something went wrong — try again in a moment.</p>}
         <button type="submit" className="lead-form-submit" disabled={status === "submitting"}>
-          {status === "submitting" ? "Sending…" : "Notify me"}
+          {status === "submitting" ? "Sending…" : submitLabel}
         </button>
       </form>
     </div>
