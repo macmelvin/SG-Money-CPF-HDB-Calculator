@@ -86,11 +86,6 @@ export const NEXT_STEP_OFFERS: Record<string, NextStepIntent[]> = {
       adCategory: "financial-planning",
       leadFormMessage: "Leave your contact and we will have our retirement specialist contact you to understand your needs first.",
     },
-    {
-      id: "just-checking",
-      icon: "👀",
-      label: "Just checking",
-    },
   ],
 
   "salary-calculator": [
