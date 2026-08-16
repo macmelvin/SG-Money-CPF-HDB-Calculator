@@ -164,9 +164,10 @@ export default function RetirementCalculator() {
   // re-enter everything just to see it summarized in one place.
   const savedSalary = loadCalculatorData<SalaryCpfInput>(SALARY_STORAGE_KEY);
   const salaryResult = savedSalary?.data ? calculateSalaryCpf(savedSalary.data) : null;
-  const savedAccruedInterest = loadCalculatorData<AccruedInterestWithdrawal[]>(ACCRUED_INTEREST_STORAGE_KEY);
-  const accruedInterestResult = savedAccruedInterest?.data
-    ? calculateAccruedInterest(savedAccruedInterest.data, new Date().getFullYear())
+  const savedAccruedInterest = loadCalculatorData<{ withdrawals: AccruedInterestWithdrawal[] }>(ACCRUED_INTEREST_STORAGE_KEY);
+  const accruedInterestWithdrawals = savedAccruedInterest?.data?.withdrawals;
+  const accruedInterestResult = accruedInterestWithdrawals
+    ? calculateAccruedInterest(accruedInterestWithdrawals, new Date().getFullYear())
     : null;
   const savedCarCost = loadCalculatorData<CarCostInput>(CAR_COST_STORAGE_KEY);
   const carCostResult = savedCarCost?.data ? calculateCarCost(savedCarCost.data) : null;
@@ -416,8 +417,8 @@ export default function RetirementCalculator() {
         otherModules: {
           salary: savedSalary?.data && salaryResult ? { input: savedSalary.data, result: salaryResult, savedAt: savedSalary.savedAt } : null,
           accruedInterest:
-            savedAccruedInterest?.data && accruedInterestResult
-              ? { input: savedAccruedInterest.data, result: accruedInterestResult, savedAt: savedAccruedInterest.savedAt }
+            accruedInterestWithdrawals && accruedInterestResult
+              ? { input: accruedInterestWithdrawals, result: accruedInterestResult, savedAt: savedAccruedInterest!.savedAt }
               : null,
           carCost: savedCarCost?.data && carCostResult ? { input: savedCarCost.data, result: carCostResult, savedAt: savedCarCost.savedAt } : null,
           hdbSale: savedHdb?.data && hdbScenario ? { input: savedHdb.data, result: hdbScenario, savedAt: savedHdb.savedAt } : null,
