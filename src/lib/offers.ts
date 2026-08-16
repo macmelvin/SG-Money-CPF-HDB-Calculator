@@ -72,6 +72,14 @@ export interface Sponsor {
   ctaLabel: string;
   href: string;
   category: string; // e.g. "mortgage", "insurance" — for the advertiser DB later
+  /**
+   * Optional image for the standalone AdSpot column (e.g. a real ad creative
+   * the advertiser supplied). When set, AdSpot shows the image instead of
+   * the headline/desc text — the image is expected to already carry its own
+   * complete message, so showing both would be redundant. The embedded
+   * LeadForm card is unaffected either way and always shows the text fields.
+   */
+  imageUrl?: string;
 }
 
 export const NEXT_STEP_OFFERS: Record<string, NextStepIntent[]> = {
@@ -213,6 +221,7 @@ export const NEXT_STEP_OFFERS: Record<string, NextStepIntent[]> = {
           ctaLabel: "Explore Our Cars",
           href: "https://www.sgcarmart.com/used-cars/listing?dl=4228",
           category: "car-deals",
+          imageUrl: "/ads/78-automobile.jpg",
         },
       ],
     },

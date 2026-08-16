@@ -23,8 +23,14 @@ export function AdSpot({
     return (
       <div className="ad-spot-prominent">
         <span className="ad-spot-prominent-label">SPONSORED</span>
-        <p className="ad-spot-prominent-headline">{sponsor.headline}</p>
-        <p className="ad-spot-prominent-text">{sponsor.desc}</p>
+        {sponsor.imageUrl ? (
+          <img src={sponsor.imageUrl} alt={sponsor.headline} className="ad-spot-prominent-image" />
+        ) : (
+          <>
+            <p className="ad-spot-prominent-headline">{sponsor.headline}</p>
+            <p className="ad-spot-prominent-text">{sponsor.desc}</p>
+          </>
+        )}
         {/* Deliberately no CTA/link here — this column is purely visual/attention-grabbing.
             The only way through to the advertiser's site is via the embedded card next
             to the buttons, which requires submitting Name/Phone/Email first. Keeps lead
