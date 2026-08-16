@@ -748,9 +748,20 @@
      column much taller than the image's own proportions, causing object-fit:
      cover to crop the sides significantly) — sized by aspect-ratio instead,
      matching the actual saved image (700x623) so the full image shows with
-     no cropping. */
+     no cropping. This specifically targets GRID's block-axis (vertical)
+     stretch — see the override below for when this sits inside a flex
+     column instead, where align-self affects the opposite (horizontal) axis
+     and this same value would shrink the box instead of fixing it. */
   align-self: start;
   aspect-ratio: 700 / 623;
+}
+/* Inside .car-services-sidebar (a flex COLUMN, not a grid), align-self
+   controls the horizontal axis, not vertical — "start" there would shrink
+   the box to a tiny width instead of preventing vertical stretch. Override
+   back to full-width stretch; aspect-ratio still determines height
+   correctly either way, so the crop-prevention behaviour is unaffected. */
+.car-services-sidebar .ad-spot-prominent-has-image {
+  align-self: stretch;
 }
 .ad-spot-prominent-has-image .ad-spot-prominent-label {
   position: absolute;
