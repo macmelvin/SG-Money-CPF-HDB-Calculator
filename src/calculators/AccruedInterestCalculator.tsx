@@ -2,13 +2,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { BtoPromo, CalcShell, Disclaimer, NumberField, ResultCard, ResultRow } from "../components/CalcShell";
 import { NextStep } from "../components/NextStep";
 import { calculateAccruedInterest, formatSgd } from "../lib/cpf";
-import type { AccruedInterestWithdrawal } from "../lib/cpf";
+import type { AccruedInterestWithdrawal, HdbSaleInput } from "../lib/cpf";
 import { usePageMeta } from "../lib/usePageMeta";
 import { clearCalculatorData, loadCalculatorData, saveCalculatorData } from "../lib/storage";
 import { downloadCalculatorPdf } from "../lib/pdf";
 import { trackEvent } from "../lib/analytics";
 
 const CALCULATOR_ID = "cpf-accrued-interest";
+const HDB_SALE_STORAGE_KEY = "hdb-sale-proceeds";
 
 interface WithdrawalRow extends AccruedInterestWithdrawal {
   id: string;
@@ -17,8 +18,6 @@ interface WithdrawalRow extends AccruedInterestWithdrawal {
 const DEFAULT_WITHDRAWALS: WithdrawalRow[] = [{ id: "w1", principal: 180000, yearUsed: 2010 }];
 const DEFAULT_MANUAL_PRINCIPAL = 180000;
 const DEFAULT_MANUAL_INTEREST = 0;
-
-const STORAGE_KEY = "cpf-accrued-interest";
 
 let nextId = 2;
 
@@ -33,14 +32,27 @@ export default function AccruedInterestCalculator() {
     useManualEntry?: boolean;
     manualPrincipal?: number;
     manualAccruedInterest?: number;
-  }>(STORAGE_KEY);
+  }>(CALCULATOR_ID);
+  // HDB Sale Proceeds calculator already asks for these exact two figures directly (as a
+  // manual input there too) — if the person's already filled that in, there's no reason to
+  // make them retype the same numbers here. Only used as the DEFAULT on first visit (no own
+  // saved data yet) — doesn't override anything the person has already entered on this page.
+  const savedHdbSale = loadCalculatorData<HdbSaleInput>(HDB_SALE_STORAGE_KEY);
+  const hasOwnSavedData = Boolean(saved?.data);
+  const hdbSaleAvailable = Boolean(savedHdbSale?.data);
+
   const initial = saved?.data?.withdrawals ?? DEFAULT_WITHDRAWALS;
 
   const [withdrawals, setWithdrawals] = useState<WithdrawalRow[]>(initial);
-  const [useManualEntry, setUseManualEntry] = useState(saved?.data?.useManualEntry ?? false);
-  const [manualPrincipal, setManualPrincipal] = useState(saved?.data?.manualPrincipal ?? DEFAULT_MANUAL_PRINCIPAL);
+  const [useManualEntry, setUseManualEntry] = useState(
+    saved?.data?.useManualEntry ?? (hasOwnSavedData ? false : hdbSaleAvailable)
+  );
+  const [manualPrincipal, setManualPrincipal] = useState(
+    saved?.data?.manualPrincipal ?? (hasOwnSavedData ? DEFAULT_MANUAL_PRINCIPAL : savedHdbSale?.data?.cpfPrincipalUsed ?? DEFAULT_MANUAL_PRINCIPAL)
+  );
   const [manualAccruedInterest, setManualAccruedInterest] = useState(
-    saved?.data?.manualAccruedInterest ?? DEFAULT_MANUAL_INTEREST
+    saved?.data?.manualAccruedInterest ??
+      (hasOwnSavedData ? DEFAULT_MANUAL_INTEREST : savedHdbSale?.data?.cpfAccruedInterest ?? DEFAULT_MANUAL_INTEREST)
   );
   const [savedAt, setSavedAt] = useState<number | null>(saved?.savedAt ?? null);
 
@@ -75,12 +87,12 @@ export default function AccruedInterestCalculator() {
     setUseManualEntry(false);
     setManualPrincipal(DEFAULT_MANUAL_PRINCIPAL);
     setManualAccruedInterest(DEFAULT_MANUAL_INTEREST);
-    clearCalculatorData(STORAGE_KEY);
+    clearCalculatorData(CALCULATOR_ID);
     setSavedAt(null);
   };
 
   const handleSave = () => {
-    const at = saveCalculatorData(STORAGE_KEY, {
+    const at = saveCalculatorData(CALCULATOR_ID, {
       withdrawals,
       useManualEntry,
       manualPrincipal,
@@ -156,6 +168,19 @@ export default function AccruedInterestCalculator() {
         (including things like monthly mortgage instalments spread over many years, which a single estimated
         withdrawal date can't capture accurately). This will always be more accurate than the estimate below.
       </p>
+      {hdbSaleAvailable && (
+        <button
+          type="button"
+          className="withdrawal-add-btn"
+          onClick={() => {
+            setUseManualEntry(true);
+            setManualPrincipal(savedHdbSale!.data!.cpfPrincipalUsed);
+            setManualAccruedInterest(savedHdbSale!.data!.cpfAccruedInterest);
+          }}
+        >
+          ↻ Pull from your saved HDB Sale Proceeds calculator
+        </button>
+      )}
 
       {useManualEntry ? (
         <ResultCard title="Your Exact CPF Figures">
