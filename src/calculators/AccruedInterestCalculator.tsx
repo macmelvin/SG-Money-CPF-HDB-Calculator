@@ -97,20 +97,20 @@ export default function AccruedInterestCalculator() {
         Principal Amount Withdrawn" and "Total Accrued Interest" directly, based on your real withdrawal history.
         Enter those two figures below for the most accurate result.
       </p>
-      {hdbSaleAvailable && (
-        <button
-          type="button"
-          className="withdrawal-add-btn"
-          onClick={() => {
-            setManualPrincipal(savedHdbSale!.data!.cpfPrincipalUsed);
-            setManualAccruedInterest(savedHdbSale!.data!.cpfAccruedInterest);
-          }}
-        >
-          ↻ Pull from your saved HDB Sale Proceeds calculator
-        </button>
-      )}
 
       <ResultCard title="Your Exact CPF Figures">
+        {hdbSaleAvailable && (
+          <button
+            type="button"
+            className="withdrawal-add-btn"
+            onClick={() => {
+              setManualPrincipal(savedHdbSale!.data!.cpfPrincipalUsed);
+              setManualAccruedInterest(savedHdbSale!.data!.cpfAccruedInterest);
+            }}
+          >
+            ↻ Pull from your saved HDB Sale Proceeds calculator
+          </button>
+        )}
         <NumberField
           label="Total CPF principal used (from CPF app)"
           value={manualPrincipal}
