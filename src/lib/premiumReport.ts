@@ -18,8 +18,6 @@ import {
   formatSgd,
 } from "./cpf";
 import type {
-  AccruedInterestWithdrawal,
-  AccruedInterestResult,
   CarCostInput,
   CarCostResult,
   CpfLifeTargetTier,
@@ -38,7 +36,9 @@ import type {
 export interface OtherModulesData {
   salary?: { input: SalaryCpfInput; result: SalaryCpfResult; savedAt: number } | null;
   hdbSale?: { input: HdbSaleInput; result: HdbSaleResult; savedAt: number } | null;
-  accruedInterest?: { input: AccruedInterestWithdrawal[]; result: AccruedInterestResult; savedAt: number } | null;
+  // No `input` field — AccruedInterestCalculator now saves precomputed totals directly
+  // (respecting manual-entry mode, where there's no withdrawals array to show anyway).
+  accruedInterest?: { result: { totalPrincipal: number; totalAccruedInterest: number; totalRefund: number }; savedAt: number } | null;
   carCost?: { input: CarCostInput; result: CarCostResult; savedAt: number } | null;
 }
 
@@ -437,7 +437,7 @@ function drawOtherModulesPage(doc: jsPDF, otherModules: OtherModulesData | undef
     ? [
         { label: `CPF Accrued Interest (${savedOnLabel(accruedInterest.savedAt)})`, value: "" },
         { label: "CPF principal used for property", value: formatSgd(accruedInterest.result.totalPrincipal) },
-        { label: "Number of withdrawals", value: `${accruedInterest.input.length}` },
+        { label: "Total accrued interest", value: formatSgd(accruedInterest.result.totalAccruedInterest) },
         { label: "Estimated CPF refund owed on sale", value: formatSgd(accruedInterest.result.totalRefund) },
       ]
     : notProvided("CPF Accrued Interest Calculator");

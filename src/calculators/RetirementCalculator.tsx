@@ -11,7 +11,6 @@ import {
   CPF_RETIREMENT_SUMS_2026,
   RSTU_SELF_RELIEF_CAP,
   RSTU_COMBINED_RELIEF_CAP,
-  calculateAccruedInterest,
   calculateCarCost,
   calculateHdbSaleProceeds,
   calculateRetirement,
@@ -20,7 +19,6 @@ import {
   formatSgd,
 } from "../lib/cpf";
 import type {
-  AccruedInterestWithdrawal,
   CarCostInput,
   CpfLifeTargetTier,
   HdbSaleInput,
@@ -171,11 +169,23 @@ export default function RetirementCalculator() {
   // re-enter everything just to see it summarized in one place.
   const savedSalary = loadCalculatorData<SalaryCpfInput>(SALARY_STORAGE_KEY);
   const salaryResult = savedSalary?.data ? calculateSalaryCpf(savedSalary.data) : null;
-  const savedAccruedInterest = loadCalculatorData<{ withdrawals: AccruedInterestWithdrawal[] }>(ACCRUED_INTEREST_STORAGE_KEY);
-  const accruedInterestWithdrawals = savedAccruedInterest?.data?.withdrawals;
-  const accruedInterestResult = accruedInterestWithdrawals
-    ? calculateAccruedInterest(accruedInterestWithdrawals, new Date().getFullYear())
-    : null;
+  // Reads the precomputed totals directly (saved by AccruedInterestCalculator.tsx alongside
+  // its raw inputs) rather than recomputing from withdrawals — this correctly respects manual
+  // entry mode too (when the person types in their exact figures from the CPF app instead of
+  // estimating from withdrawal dates), and avoids re-implementing that calculator's logic here.
+  const savedAccruedInterest = loadCalculatorData<{
+    totalPrincipal?: number;
+    totalAccruedInterest?: number;
+    totalRefund?: number;
+  }>(ACCRUED_INTEREST_STORAGE_KEY);
+  const accruedInterestResult =
+    savedAccruedInterest?.data?.totalRefund !== undefined
+      ? {
+          totalPrincipal: savedAccruedInterest.data.totalPrincipal ?? 0,
+          totalAccruedInterest: savedAccruedInterest.data.totalAccruedInterest ?? 0,
+          totalRefund: savedAccruedInterest.data.totalRefund,
+        }
+      : null;
   const savedCarCost = loadCalculatorData<CarCostInput>(CAR_COST_STORAGE_KEY);
   const carCostResult = savedCarCost?.data ? calculateCarCost(savedCarCost.data) : null;
 
@@ -439,8 +449,8 @@ export default function RetirementCalculator() {
         otherModules: {
           salary: savedSalary?.data && salaryResult ? { input: savedSalary.data, result: salaryResult, savedAt: savedSalary.savedAt } : null,
           accruedInterest:
-            accruedInterestWithdrawals && accruedInterestResult
-              ? { input: accruedInterestWithdrawals, result: accruedInterestResult, savedAt: savedAccruedInterest!.savedAt }
+            accruedInterestResult
+              ? { result: accruedInterestResult, savedAt: savedAccruedInterest!.savedAt }
               : null,
           carCost: savedCarCost?.data && carCostResult ? { input: savedCarCost.data, result: carCostResult, savedAt: savedCarCost.savedAt } : null,
           hdbSale: savedHdb?.data && hdbScenario ? { input: savedHdb.data, result: hdbScenario, savedAt: savedHdb.savedAt } : null,
