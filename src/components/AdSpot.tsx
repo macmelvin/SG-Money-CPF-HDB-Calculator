@@ -1,6 +1,5 @@
 import { ADVERTISER_CONTACT_EMAIL } from "../lib/offers";
 import type { Sponsor } from "../lib/offers";
-import { trackEvent } from "../lib/analytics";
 
 // A persistent, deliberately eye-catching ad slot — unlike the quiet
 // "no partner here yet" fallback inside NextStep (which stays muted on
@@ -16,12 +15,9 @@ import { trackEvent } from "../lib/analytics";
 export function AdSpot({
   label = "SG Money ad spot",
   sponsor,
-  calculatorId,
 }: {
   label?: string;
   sponsor?: Sponsor;
-  /** Only needed when `sponsor` is set, for click tracking. */
-  calculatorId?: string;
 }) {
   if (sponsor) {
     return (
@@ -29,22 +25,12 @@ export function AdSpot({
         <span className="ad-spot-prominent-label">SPONSORED</span>
         <p className="ad-spot-prominent-headline">{sponsor.headline}</p>
         <p className="ad-spot-prominent-text">{sponsor.desc}</p>
-        <a
-          href={sponsor.href}
-          target="_blank"
-          rel="noopener noreferrer sponsored"
-          className="ad-spot-prominent-cta"
-          onClick={() =>
-            trackEvent("sponsored_offer_clicked", {
-              calculator: calculatorId ?? "",
-              category: sponsor.category,
-              advertiser: sponsor.advertiserId,
-              slot: "standalone",
-            })
-          }
-        >
-          {sponsor.ctaLabel} →
-        </a>
+        {/* Deliberately no link here — this column is purely visual/attention-grabbing.
+            The only way through to the advertiser's site is via the embedded card next
+            to the buttons, which requires submitting Name/Phone/Email first. Keeps lead
+            capture as a required step rather than letting people bypass it by clicking
+            straight through from here. */}
+        <span className="ad-spot-prominent-cta ad-spot-prominent-cta-static">{sponsor.ctaLabel} ↓</span>
       </div>
     );
   }

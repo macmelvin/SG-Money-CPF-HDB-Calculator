@@ -769,6 +769,13 @@
 .ad-spot-prominent-cta:active {
   transform: scale(0.98);
 }
+.ad-spot-prominent-cta-static {
+  cursor: default;
+  opacity: 0.85;
+}
+.ad-spot-prominent-cta-static:active {
+  transform: none;
+}
 
 .share-result-btn {
   width: 100%;

@@ -222,7 +222,7 @@ export default function SalaryCalculator() {
         onActiveSponsorChange={setActiveSponsor}
       />
 
-      <AdSpot label="SG Money ad spot - Salary & CPF" sponsor={activeSponsor} calculatorId={CALCULATOR_ID} />
+      <AdSpot label="SG Money ad spot - Salary & CPF" sponsor={activeSponsor} />
 
       <BtoPromo />
 

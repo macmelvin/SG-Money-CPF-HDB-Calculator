@@ -449,7 +449,7 @@ export default function CarCostCalculator() {
         onActiveSponsorChange={setActiveSponsor}
       />
 
-      <AdSpot label="SG Money ad spot - Car Cost" sponsor={activeSponsor} calculatorId={CALCULATOR_ID} />
+      <AdSpot label="SG Money ad spot - Car Cost" sponsor={activeSponsor} />
 
       <p className="explainer">
         Spend more than {formatSgd(result.breakEvenGrabSpend)}/month on Grab and owning this car would actually
