@@ -24,12 +24,11 @@ let nextId = 2;
 export default function AccruedInterestCalculator() {
   usePageMeta(
     "CPF Accrued Interest Calculator",
-    "Estimate — or enter exactly — the CPF accrued interest you'll need to refund when selling a property in Singapore. Supports multiple CPF withdrawals, or manual entry if you already know your exact figure from the CPF app."
+    "Enter — or estimate — the CPF accrued interest you'll need to refund when selling a property in Singapore. Auto-fills from your HDB Sale Proceeds calculator if you've already entered it there."
   );
   const currentYear = new Date().getFullYear();
   const saved = loadCalculatorData<{
     withdrawals: WithdrawalRow[];
-    useManualEntry?: boolean;
     manualPrincipal?: number;
     manualAccruedInterest?: number;
   }>(CALCULATOR_ID);
@@ -44,9 +43,6 @@ export default function AccruedInterestCalculator() {
   const initial = saved?.data?.withdrawals ?? DEFAULT_WITHDRAWALS;
 
   const [withdrawals, setWithdrawals] = useState<WithdrawalRow[]>(initial);
-  const [useManualEntry, setUseManualEntry] = useState(
-    saved?.data?.useManualEntry ?? (hasOwnSavedData ? false : hdbSaleAvailable)
-  );
   const [manualPrincipal, setManualPrincipal] = useState(
     saved?.data?.manualPrincipal ?? (hasOwnSavedData ? DEFAULT_MANUAL_PRINCIPAL : savedHdbSale?.data?.cpfPrincipalUsed ?? DEFAULT_MANUAL_PRINCIPAL)
   );
@@ -63,14 +59,14 @@ export default function AccruedInterestCalculator() {
   const initialSnapshot = useRef(initial);
   const hasCompletedOnce = useRef(false);
 
+  // The withdrawal estimator below is a reference tool to help figure out what to type into
+  // the fields above if you don't already know your exact figure — it doesn't feed into the
+  // total directly. Manual entry (pre-filled from HDB Sale when available) is the primary,
+  // authoritative source now.
   const estimatedResult = useMemo(() => calculateAccruedInterest(withdrawals, currentYear), [withdrawals, currentYear]);
 
-  // When manual entry is on, this replaces the withdrawal-based estimate entirely — CPF's own
-  // app/statement is always more accurate than any estimate here, since it knows your exact
-  // withdrawal dates (including things like monthly mortgage instalments spread over years,
-  // which are easy to under/overstate if lumped into a single estimated withdrawal date).
-  const effectivePrincipal = useManualEntry ? manualPrincipal : estimatedResult.totalPrincipal;
-  const effectiveAccruedInterest = useManualEntry ? manualAccruedInterest : estimatedResult.totalAccruedInterest;
+  const effectivePrincipal = manualPrincipal;
+  const effectiveAccruedInterest = manualAccruedInterest;
   const effectiveRefund = effectivePrincipal + effectiveAccruedInterest;
 
   useEffect(() => {
@@ -84,7 +80,6 @@ export default function AccruedInterestCalculator() {
 
   const clearInputs = () => {
     setWithdrawals(DEFAULT_WITHDRAWALS);
-    setUseManualEntry(false);
     setManualPrincipal(DEFAULT_MANUAL_PRINCIPAL);
     setManualAccruedInterest(DEFAULT_MANUAL_INTEREST);
     clearCalculatorData(CALCULATOR_ID);
@@ -94,12 +89,10 @@ export default function AccruedInterestCalculator() {
   const handleSave = () => {
     const at = saveCalculatorData(CALCULATOR_ID, {
       withdrawals,
-      useManualEntry,
       manualPrincipal,
       manualAccruedInterest,
       // Precomputed totals, saved alongside the raw inputs — downstream consumers (Retirement
-      // Calculator's Premium Report) read these directly instead of recomputing from withdrawals,
-      // so manual-entry mode is respected everywhere, not just on this page.
+      // Calculator's Premium Report) read these directly rather than recomputing.
       totalPrincipal: effectivePrincipal,
       totalAccruedInterest: effectiveAccruedInterest,
       totalRefund: effectiveRefund,
@@ -122,30 +115,16 @@ export default function AccruedInterestCalculator() {
   const handleDownloadPdf = () => {
     downloadCalculatorPdf({
       calculatorTitle: "CPF Accrued Interest Calculator",
-      inputs: useManualEntry
-        ? [
-            { label: "Entry method", value: "Manual (from CPF app)" },
-            { label: "Total CPF principal used", value: formatSgd(manualPrincipal) },
-            { label: "Total accrued interest", value: formatSgd(manualAccruedInterest) },
-          ]
-        : withdrawals.map((w, i) => ({
-            label: `Withdrawal ${i + 1}`,
-            value: `${formatSgd(w.principal)} in ${w.yearUsed}`,
-          })),
+      inputs: [
+        { label: "Total CPF principal used", value: formatSgd(manualPrincipal) },
+        { label: "Total accrued interest", value: formatSgd(manualAccruedInterest) },
+      ],
       results: [
         { label: "Total CPF Principal Used", value: formatSgd(effectivePrincipal) },
-        { label: useManualEntry ? "Total Accrued Interest" : "Total Estimated Accrued Interest", value: formatSgd(effectiveAccruedInterest) },
-        { label: useManualEntry ? "CPF REFUND" : "ESTIMATED CPF REFUND", value: formatSgd(effectiveRefund) },
-        ...(!useManualEntry
-          ? estimatedResult.perWithdrawal.map((p, i) => ({
-              label: `Withdrawal ${i + 1} (${p.years} yrs)`,
-              value: `${formatSgd(p.principal)} + ${formatSgd(p.accruedInterest)} interest = ${formatSgd(p.refund)}`,
-            }))
-          : []),
+        { label: "Total Accrued Interest", value: formatSgd(effectiveAccruedInterest) },
+        { label: "CPF REFUND", value: formatSgd(effectiveRefund) },
       ],
-      disclaimer: useManualEntry
-        ? "Figures entered directly from your CPF app/statement — no estimation involved."
-        : "Simple estimate only — each withdrawal compounded annually at 2.5% from its own year. Real CPF accrued interest is calculated based on actual dates and prevailing rates, which can change over time. For an exact figure, check your CPF statement or myTax Portal.",
+      disclaimer: "Figures entered directly (or pulled from your HDB Sale Proceeds calculator) — no estimation involved unless you used the withdrawal estimator as a reference.",
     });
   };
 
@@ -158,22 +137,16 @@ export default function AccruedInterestCalculator() {
       onDownloadPdf={handleDownloadPdf}
       savedAt={savedAt}
     >
-      <label className="hdb-scenario-toggle">
-        <input type="checkbox" checked={useManualEntry} onChange={(e) => setUseManualEntry(e.target.checked)} />
-        <span>I already know my exact figures (from the CPF app)</span>
-      </label>
       <p className="explainer">
         Open the CPF app → Dashboard → scroll to the "Housing" tab under Quick Access — it shows your exact "Total
-        Principal Amount Withdrawn" and "Total Accrued Interest" directly, based on your real withdrawal history
-        (including things like monthly mortgage instalments spread over many years, which a single estimated
-        withdrawal date can't capture accurately). This will always be more accurate than the estimate below.
+        Principal Amount Withdrawn" and "Total Accrued Interest" directly, based on your real withdrawal history.
+        Enter those two figures below for the most accurate result.
       </p>
       {hdbSaleAvailable && (
         <button
           type="button"
           className="withdrawal-add-btn"
           onClick={() => {
-            setUseManualEntry(true);
             setManualPrincipal(savedHdbSale!.data!.cpfPrincipalUsed);
             setManualAccruedInterest(savedHdbSale!.data!.cpfAccruedInterest);
           }}
@@ -182,61 +155,27 @@ export default function AccruedInterestCalculator() {
         </button>
       )}
 
-      {useManualEntry ? (
-        <ResultCard title="Your Exact CPF Figures">
-          <NumberField
-            label="Total CPF principal used (from CPF app)"
-            value={manualPrincipal}
-            onChange={setManualPrincipal}
-            prefix="$"
-            step={1000}
-          />
-          <NumberField
-            label="Total accrued interest (from CPF app)"
-            value={manualAccruedInterest}
-            onChange={setManualAccruedInterest}
-            prefix="$"
-            step={1000}
-          />
-        </ResultCard>
-      ) : (
-        <ResultCard title="CPF Withdrawals (estimate)">
-          <p className="explainer" style={{ marginTop: -2 }}>
-            Add one row per CPF withdrawal — most owners used CPF more than once (e.g. the initial purchase, then a
-            later top-up). Each withdrawal accrues interest separately from its own year.
-          </p>
-          {withdrawals.map((w, i) => (
-            <div key={w.id} className="withdrawal-row">
-              <NumberField
-                label={`Withdrawal ${i + 1} — amount`}
-                value={w.principal}
-                onChange={(v) => updateWithdrawal(w.id, "principal", v)}
-                prefix="$"
-                step={1000}
-              />
-              <NumberField
-                label="Year used"
-                value={w.yearUsed}
-                onChange={(v) => updateWithdrawal(w.id, "yearUsed", v)}
-                step={1}
-              />
-              {withdrawals.length > 1 && (
-                <button type="button" className="withdrawal-remove-btn" onClick={() => removeWithdrawal(w.id)}>
-                  Remove
-                </button>
-              )}
-            </div>
-          ))}
-          <button type="button" className="withdrawal-add-btn" onClick={addWithdrawal}>
-            + Add another withdrawal
-          </button>
-        </ResultCard>
-      )}
+      <ResultCard title="Your Exact CPF Figures">
+        <NumberField
+          label="Total CPF principal used (from CPF app)"
+          value={manualPrincipal}
+          onChange={setManualPrincipal}
+          prefix="$"
+          step={1000}
+        />
+        <NumberField
+          label="Total accrued interest (from CPF app)"
+          value={manualAccruedInterest}
+          onChange={setManualAccruedInterest}
+          prefix="$"
+          step={1000}
+        />
+      </ResultCard>
 
-      <ResultCard title={useManualEntry ? "Total CPF Refund" : "Total CPF Refund (estimate)"}>
+      <ResultCard title="Total CPF Refund">
         <ResultRow label="Total CPF Principal Used" value={formatSgd(effectivePrincipal)} />
-        <ResultRow label={useManualEntry ? "Total Accrued Interest" : "Total Estimated Accrued Interest"} value={formatSgd(effectiveAccruedInterest)} />
-        <ResultRow label={useManualEntry ? "CPF REFUND" : "ESTIMATED CPF REFUND"} value={formatSgd(effectiveRefund)} emphasis />
+        <ResultRow label="Total Accrued Interest" value={formatSgd(effectiveAccruedInterest)} />
+        <ResultRow label="CPF REFUND" value={formatSgd(effectiveRefund)} emphasis />
       </ResultCard>
 
       <NextStep calculatorId={CALCULATOR_ID} prompt="Why are you calculating this?" />
@@ -248,10 +187,47 @@ export default function AccruedInterestCalculator() {
         they stayed in your CPF account instead of being used for your property.
       </p>
 
+      <ResultCard title="Not sure of your exact figure? Estimate it here">
+        <p className="explainer" style={{ marginTop: -2 }}>
+          Add one row per CPF withdrawal to get a rough estimate — most owners used CPF more than once (e.g. the
+          initial purchase, then a later top-up). This is a reference tool only; it doesn't automatically fill in
+          "Your Exact CPF Figures" above, since checking your CPF app directly is always more accurate.
+        </p>
+        {withdrawals.map((w, i) => (
+          <div key={w.id} className="withdrawal-row">
+            <NumberField
+              label={`Withdrawal ${i + 1} — amount`}
+              value={w.principal}
+              onChange={(v) => updateWithdrawal(w.id, "principal", v)}
+              prefix="$"
+              step={1000}
+            />
+            <NumberField
+              label="Year used"
+              value={w.yearUsed}
+              onChange={(v) => updateWithdrawal(w.id, "yearUsed", v)}
+              step={1}
+            />
+            {withdrawals.length > 1 && (
+              <button type="button" className="withdrawal-remove-btn" onClick={() => removeWithdrawal(w.id)}>
+                Remove
+              </button>
+            )}
+          </div>
+        ))}
+        <button type="button" className="withdrawal-add-btn" onClick={addWithdrawal}>
+          + Add another withdrawal
+        </button>
+        <ResultRow label="Estimated Principal" value={formatSgd(estimatedResult.totalPrincipal)} />
+        <ResultRow label="Estimated Accrued Interest" value={formatSgd(estimatedResult.totalAccruedInterest)} />
+        <ResultRow label="Estimated Refund" value={formatSgd(estimatedResult.totalRefund)} emphasis />
+      </ResultCard>
+
       <Disclaimer>
-        {useManualEntry
-          ? "Figures entered directly from your own CPF app/statement — no estimation involved on this calculator's part."
-          : "Simple estimate only — each withdrawal is compounded annually at 2.5% from its own year of use. Real CPF accrued interest is calculated based on actual dates and prevailing rates, which can change over time. For an exact figure, check your CPF statement or myTax Portal."}
+        Figures entered directly from your own CPF app/statement (or pulled from your HDB Sale Proceeds calculator)
+        are used for the total above — no estimation involved unless you're using the withdrawal estimator as a
+        reference. The estimator itself is a simple approximation: each withdrawal compounded annually at 2.5%
+        from its own year of use.
       </Disclaimer>
 
       <div className="faq-section">
@@ -273,13 +249,13 @@ export default function AccruedInterestCalculator() {
           </p>
         </details>
         <details className="faq-item">
-          <summary>Why is the estimate so different from what my CPF app shows?</summary>
+          <summary>Why is the estimator so different from what my CPF app shows?</summary>
           <p>
             The estimator assumes each withdrawal happened on one specific date you enter. In reality, many owners
             used CPF gradually — an initial lump sum at purchase, then years of monthly mortgage instalments
             deducted from CPF-OA. If you lump all of that into one estimated date, the estimate can be
-            significantly off. Toggle "I already know my exact figures" above and enter what your CPF app shows
-            instead — it's always more accurate.
+            significantly off. Always prefer entering the exact figure from your CPF app in "Your Exact CPF
+            Figures" above instead.
           </p>
         </details>
         <details className="faq-item">
