@@ -21,7 +21,7 @@ export function AdSpot({
 }) {
   if (sponsor) {
     return (
-      <div className="ad-spot-prominent">
+      <div className={`ad-spot-prominent ${sponsor.imageUrl ? "ad-spot-prominent-has-image" : ""}`}>
         <span className="ad-spot-prominent-label">SPONSORED</span>
         {sponsor.imageUrl ? (
           <img src={sponsor.imageUrl} alt={sponsor.headline} className="ad-spot-prominent-image" />

@@ -735,6 +735,26 @@
   flex-direction: column;
   justify-content: center;
 }
+/* Image-sponsor variant: fills the full stretched card edge-to-edge instead of
+   centering a shorter block of content within it, per the padded/centered
+   layout above (which stays as the default for text-only sponsors and the
+   generic "Claim this spot" pitch). */
+.ad-spot-prominent-has-image {
+  padding: 0;
+  display: block;
+  position: relative;
+  overflow: hidden;
+}
+.ad-spot-prominent-has-image .ad-spot-prominent-label {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 1;
+  margin: 0;
+  background: rgba(255, 255, 255, 0.92);
+  padding: 4px 10px;
+  border-radius: 999px;
+}
 .ad-spot-prominent-label {
   display: inline-block;
   font-size: 12px;
@@ -752,9 +772,11 @@
 }
 .ad-spot-prominent-image {
   width: 100%;
-  border-radius: 10px;
+  height: 100%;
+  min-height: 260px;
+  object-fit: cover;
   display: block;
-  margin-top: 4px;
+  margin: 0;
 }
 .ad-spot-prominent-text {
   margin: 0 0 16px;
