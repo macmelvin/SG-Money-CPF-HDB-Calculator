@@ -747,13 +747,17 @@
   /* Opts out of the grid's default row-height stretch (which was forcing this
      column much taller than the image's own proportions, causing object-fit:
      cover to crop the sides significantly) — sized by aspect-ratio instead,
-     matching the actual saved image (700x623) so the full image shows with
+     matching the actual saved image so the full image shows with
      no cropping. This specifically targets GRID's block-axis (vertical)
      stretch — see the override below for when this sits inside a flex
      column instead, where align-self affects the opposite (horizontal) axis
      and this same value would shrink the box instead of fixing it. */
   align-self: start;
-  aspect-ratio: 700 / 623;
+  /* Matches the actual saved image's dimensions (600x848, full poster) so
+     the complete image shows with no cropping, whether via cover or
+     contain. Update this if a future sponsor's image has different
+     proportions. */
+  aspect-ratio: 600 / 848;
 }
 /* Inside .car-services-sidebar (a flex COLUMN, not a grid), align-self
    controls the horizontal axis, not vertical — "start" there would shrink
