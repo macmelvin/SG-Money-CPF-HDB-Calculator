@@ -25,12 +25,10 @@ export function AdSpot({
         <span className="ad-spot-prominent-label">SPONSORED</span>
         <p className="ad-spot-prominent-headline">{sponsor.headline}</p>
         <p className="ad-spot-prominent-text">{sponsor.desc}</p>
-        {/* Deliberately no link here — this column is purely visual/attention-grabbing.
+        {/* Deliberately no CTA/link here — this column is purely visual/attention-grabbing.
             The only way through to the advertiser's site is via the embedded card next
             to the buttons, which requires submitting Name/Phone/Email first. Keeps lead
-            capture as a required step rather than letting people bypass it by clicking
-            straight through from here. */}
-        <span className="ad-spot-prominent-cta ad-spot-prominent-cta-static">{sponsor.ctaLabel} ↓</span>
+            capture as a required step rather than letting people bypass it from here. */}
       </div>
     );
   }
