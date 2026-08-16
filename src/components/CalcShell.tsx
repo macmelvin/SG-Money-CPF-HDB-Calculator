@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { CALCULATORS, BTO_TOOL_URL, DOC_TOOLS_URL } from "../lib/calculators";
 
@@ -106,26 +106,67 @@ export function NumberField({
   onChange,
   prefix,
   suffix,
-  step,
 }: {
   label: string;
   value: number;
   onChange: (v: number) => void;
   prefix?: string;
   suffix?: string;
+  /** No longer used — kept so existing call sites (step={1000} etc.) don't need
+   *  updating. type="number"'s native spinner (which this drove) is gone now;
+   *  see the note below on why. */
   step?: number;
 }) {
+  // Deliberately type="text" + inputMode="decimal", not type="number". The native
+  // number input has real, well-documented cross-browser/mobile quirks — most
+  // relevantly here, inconsistent text-selection-on-focus behaviour on mobile
+  // keyboards, which caused digits to get prepended onto an existing value (e.g.
+  // typing into a field showing "178937.76" could produce "0178937.76") instead of
+  // replacing it. A plain text input with a numeric keyboard sidesteps that
+  // entirely, at the cost of losing the native up/down spinner arrows.
+  //
+  // Keeps its own text state so the person can type freely (including an
+  // in-progress decimal like "178937." or a temporarily empty field) without the
+  // display snapping back to a reformatted number after every keystroke. Only
+  // re-syncs from the external `value` prop when it changes from OUTSIDE this
+  // input (e.g. a "Pull from..." button elsewhere setting the value) — not while
+  // the person is actively typing in this exact field.
+  const [text, setText] = useState(() => (Number.isNaN(value) ? "" : String(value)));
+  const isFocused = useRef(false);
+
+  useEffect(() => {
+    if (!isFocused.current) {
+      setText(Number.isNaN(value) ? "" : String(value));
+    }
+  }, [value]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const cleaned = e.target.value.replace(/[^0-9.]/g, "");
+    const parts = cleaned.split(".");
+    const normalized = parts.length > 2 ? `${parts[0]}.${parts.slice(1).join("")}` : cleaned;
+    setText(normalized);
+    const parsed = parseFloat(normalized);
+    onChange(Number.isNaN(parsed) ? 0 : parsed);
+  };
+
   return (
     <label className="field">
       <span className="field-label">{label}</span>
       <div className="field-input">
         {prefix && <span className="affix">{prefix}</span>}
         <input
-          type="number"
-          value={Number.isNaN(value) ? "" : value}
-          step={step ?? 1}
-          onChange={(e) => onChange(e.target.value === "" ? 0 : parseFloat(e.target.value))}
-          onFocus={(e) => e.target.select()}
+          type="text"
+          inputMode="decimal"
+          value={text}
+          onFocus={(e) => {
+            isFocused.current = true;
+            e.target.select();
+          }}
+          onBlur={() => {
+            isFocused.current = false;
+            setText(Number.isNaN(value) ? "" : String(value));
+          }}
+          onChange={handleChange}
         />
         {suffix && <span className="affix">{suffix}</span>}
       </div>
