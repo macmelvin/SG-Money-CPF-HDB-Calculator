@@ -432,6 +432,64 @@ export function estimateCpfLifePayout(
   };
 }
 
+export interface CpfLifeAllPlansEstimate {
+  standard: CpfLifeEstimate;
+  /** Approximation: Basic pays ~10-15% less than Standard (using the ~12.5%
+   *  midpoint), with a larger bequest — CPF Board doesn't publish an exact
+   *  formula, only the reduction range, so treat this as illustrative. */
+  basic: CpfLifeEstimate;
+  /** Approximation: Escalating starts ~20% lower than Standard at 65, then
+   *  rises 2%/year for life. escalatingAtRetirement is the starting payout;
+   *  escalatingCrossoverYear estimates when it overtakes Standard (commonly
+   *  cited as around year 15, consistent with 20% lower growing at 2%/year
+   *  against a flat baseline). */
+  escalating: CpfLifeEstimate & { crossoverYear: number };
+}
+
+const BASIC_PLAN_FACTOR = 0.875; // ~12.5% lower than Standard (midpoint of the commonly-cited 10-15% range)
+const ESCALATING_PLAN_START_FACTOR = 0.8; // ~20% lower than Standard at the start
+const ESCALATING_ANNUAL_GROWTH = 0.02; // 2%/year for life
+
+export function estimateCpfLifeAllPlans(
+  raBalance: number,
+  capAmount: number = CPF_RETIREMENT_SUMS_2026.ers
+): CpfLifeAllPlansEstimate {
+  const standard = estimateCpfLifePayout(raBalance, capAmount);
+  const basic: CpfLifeEstimate = {
+    ...standard,
+    estimatedMonthlyPayout: Math.round(standard.estimatedMonthlyPayout * BASIC_PLAN_FACTOR),
+  };
+  const escalatingStart = Math.round(standard.estimatedMonthlyPayout * ESCALATING_PLAN_START_FACTOR);
+  // Years until (start * 1.02^y) >= standardPayout, i.e. the crossover point.
+  const crossoverYear =
+    standard.estimatedMonthlyPayout > 0 && escalatingStart > 0
+      ? Math.ceil(Math.log(standard.estimatedMonthlyPayout / escalatingStart) / Math.log(1 + ESCALATING_ANNUAL_GROWTH))
+      : 0;
+  const escalating = {
+    ...standard,
+    estimatedMonthlyPayout: escalatingStart,
+    crossoverYear,
+  };
+
+  return { standard, basic, escalating };
+}
+
+// Retirement Sum Topping-Up Scheme (RSTU) — voluntary cash top-ups to SA
+// (below 55) / RA (55+), earning the same 4% floor rate as other SA/RA
+// savings. Tax relief is capped at $8,000/year for self top-ups (up to
+// $16,000/year combined with top-ups to a loved one's account) — this
+// function models the RETIREMENT BALANCE impact only, not the tax saving
+// itself (that depends on the person's marginal tax rate, which this
+// calculator doesn't collect).
+export const RSTU_SELF_RELIEF_CAP = 8000;
+export const RSTU_COMBINED_RELIEF_CAP = 16000;
+
+export function projectRstuTopUpGrowth(annualTopUp: number, years: number): number {
+  if (annualTopUp <= 0 || years <= 0) return 0;
+  // Future value of an ordinary annuity, one contribution per year at CPF_SMRA_RATE.
+  return Math.round((annualTopUp * (Math.pow(1 + CPF_SMRA_RATE, years) - 1)) / CPF_SMRA_RATE);
+}
+
 export interface RetirementInput {
   currentAge: number;
   retirementAge: number;
@@ -450,6 +508,10 @@ export interface RetirementInput {
   // and again across every year of retirement, so targetRequired stays in the same nominal-dollars-at-retirement
   // terms as projectedSavings. 2.5% sits within MAS's implicit ~2-3% long-run core inflation range and matches
   // the default other SG retirement calculators use.
+  /** Optional voluntary RSTU top-up to SA/RA, per year, from now until retirement.
+   *  Defaults to 0 — fully backward compatible, doesn't change any existing
+   *  behaviour when omitted. */
+  annualRstuTopUp?: number;
 }
 
 export interface RetirementResult {
@@ -467,6 +529,8 @@ export interface RetirementResult {
   suggestedMonthlySavings: number;
   cpfLife: CpfLifeEstimate;
   cpfLifeExcessCash: number; // projected OA+SA/RA beyond the chosen tier — withdrawable as cash at 55
+  /** How much of projectedSaRa came from voluntary RSTU top-ups (0 if none entered). */
+  rstuTopUpGrowth: number;
 }
 
 export function calculateRetirement(input: RetirementInput): RetirementResult {
@@ -484,6 +548,7 @@ export function calculateRetirement(input: RetirementInput): RetirementResult {
     cpfLifeTargetTier = "ers",
     investmentHoldingsValue = 0,
     inflationRatePct = 2.5,
+    annualRstuTopUp = 0,
   } = input;
 
   const yearsToRetirement = Math.max(0, retirementAge - currentAge);
@@ -501,9 +566,14 @@ export function calculateRetirement(input: RetirementInput): RetirementResult {
   const projectedCash = Math.round(fvLumpSumCash + fvContributions);
 
   // CPF balances grow at their own fixed floor rates, not the user's investment assumption.
-  // This does not model further CPF contributions between now and retirement.
+  // This does not model further mandatory CPF contributions between now and retirement.
   const projectedOA = Math.round(currentOA * Math.pow(1 + rOA, n));
-  const projectedSaRa = Math.round(currentSaRa * Math.pow(1 + rSmra, n));
+  const projectedSaRaBeforeTopUp = Math.round(currentSaRa * Math.pow(1 + rSmra, n));
+  // Voluntary RSTU top-ups, if any — future value of a yearly annuity at the SA/RA rate,
+  // added on top of the existing balance's own growth (kept separate so the UI can show
+  // "how much of your projected balance came from topping up" transparently).
+  const rstuTopUpGrowth = projectRstuTopUpGrowth(annualRstuTopUp, yearsToRetirement);
+  const projectedSaRa = projectedSaRaBeforeTopUp + rstuTopUpGrowth;
   const projectedMA = Math.round(currentMA * Math.pow(1 + rSmra, n));
 
   // Investment/insurance holdings are a one-time lump sum today (no ongoing monthly top-up modelled
@@ -562,6 +632,7 @@ export function calculateRetirement(input: RetirementInput): RetirementResult {
     suggestedMonthlySavings,
     cpfLife,
     cpfLifeExcessCash,
+    rstuTopUpGrowth,
   };
 }
 

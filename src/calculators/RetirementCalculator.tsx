@@ -9,11 +9,14 @@ import { captureNodeAsCanvas, downloadCanvasAsPng } from "../lib/dashboardImage"
 import {
   CPF_LIFE_STANDARD_PAYOUT_2026,
   CPF_RETIREMENT_SUMS_2026,
+  RSTU_SELF_RELIEF_CAP,
+  RSTU_COMBINED_RELIEF_CAP,
   calculateAccruedInterest,
   calculateCarCost,
   calculateHdbSaleProceeds,
   calculateRetirement,
   calculateSalaryCpf,
+  estimateCpfLifeAllPlans,
   formatSgd,
 } from "../lib/cpf";
 import type {
@@ -57,6 +60,8 @@ const DEFAULTS = {
   legalMovingCosts: 15000,
   cpfLifeTargetTier: "ers" as CpfLifeTargetTier,
   includeInvestmentHoldings: true,
+  yearsInRetirement: 25,
+  annualRstuTopUp: 0,
 };
 
 const CPF_LIFE_TIER_LABEL: Record<CpfLifeTargetTier, string> = {
@@ -141,6 +146,8 @@ export default function RetirementCalculator() {
   const [legalMovingCosts, setLegalMovingCosts] = useState(initial.legalMovingCosts);
   const [cpfLifeTargetTier, setCpfLifeTargetTier] = useState<CpfLifeTargetTier>(initial.cpfLifeTargetTier);
   const [includeInvestmentHoldings, setIncludeInvestmentHoldings] = useState(initial.includeInvestmentHoldings);
+  const [yearsInRetirement, setYearsInRetirement] = useState(initial.yearsInRetirement ?? DEFAULTS.yearsInRetirement);
+  const [annualRstuTopUp, setAnnualRstuTopUp] = useState(initial.annualRstuTopUp ?? DEFAULTS.annualRstuTopUp);
 
   // Pull whatever the user last saved in the HDB Sale Proceeds calculator (if anything) so this
   // page can offer a "what if I sold today" scenario without asking them to re-enter numbers.
@@ -192,6 +199,8 @@ export default function RetirementCalculator() {
         cpfLifeTargetTier,
         investmentHoldingsValue: effectiveInvestmentHoldings,
         inflationRatePct,
+        yearsInRetirement,
+        annualRstuTopUp,
       }),
     [
       currentAge,
@@ -206,7 +215,14 @@ export default function RetirementCalculator() {
       cpfLifeTargetTier,
       effectiveInvestmentHoldings,
       inflationRatePct,
+      yearsInRetirement,
+      annualRstuTopUp,
     ]
+  );
+
+  const cpfLifePlans = useMemo(
+    () => estimateCpfLifeAllPlans(result.cpfLife.retirementAccountBalance, CPF_RETIREMENT_SUMS_2026[cpfLifeTargetTier]),
+    [result.cpfLife.retirementAccountBalance, cpfLifeTargetTier]
   );
 
   // --- Net worth snapshot ---
@@ -299,6 +315,8 @@ export default function RetirementCalculator() {
     setLegalMovingCosts(DEFAULTS.legalMovingCosts);
     setCpfLifeTargetTier(DEFAULTS.cpfLifeTargetTier);
     setIncludeInvestmentHoldings(DEFAULTS.includeInvestmentHoldings);
+    setYearsInRetirement(DEFAULTS.yearsInRetirement);
+    setAnnualRstuTopUp(DEFAULTS.annualRstuTopUp);
     clearCalculatorData(STORAGE_KEY);
     setSavedAt(null);
   };
@@ -325,6 +343,8 @@ export default function RetirementCalculator() {
       legalMovingCosts,
       cpfLifeTargetTier,
       includeInvestmentHoldings,
+      yearsInRetirement,
+      annualRstuTopUp,
     });
     setSavedAt(at);
   };
@@ -410,6 +430,8 @@ export default function RetirementCalculator() {
           cpfLifeTargetTier,
           investmentHoldingsValue: effectiveInvestmentHoldings,
           inflationRatePct,
+          yearsInRetirement,
+          annualRstuTopUp,
         },
         result,
         cpfLifeTargetTier,
@@ -473,7 +495,16 @@ export default function RetirementCalculator() {
         <NumberField label="Expected annual return (cash/investments)" value={expectedReturnPct} onChange={setExpectedReturnPct} suffix="%" step={0.5} />
         <NumberField label="Desired retirement spending" value={desiredMonthlySpend} onChange={setDesiredMonthlySpend} prefix="$" suffix="/mo" step={100} />
         <NumberField label="Expected inflation rate" value={inflationRatePct} onChange={setInflationRatePct} suffix="%" step={0.5} />
+        <NumberField label="Years in retirement" value={yearsInRetirement} onChange={setYearsInRetirement} suffix="years" step={1} />
+        <NumberField label="Annual RSTU top-up to SA/RA" value={annualRstuTopUp} onChange={setAnnualRstuTopUp} prefix="$" step={500} />
       </div>
+      <p className="explainer">
+        "Years in retirement" drives how long your savings need to last — try 30 or 35 instead of the default 25
+        to see how much more you'd need if you live longer than planned. Voluntary top-ups to SA/RA under the
+        RSTU scheme earn 4% p.a. and qualify for up to $8,000/year in tax relief (up to $16,000/year combined with
+        top-ups to a loved one's account) — not modeled as a tax saving here since that depends on your marginal
+        tax rate, but the retirement-balance growth from topping up is reflected below.
+      </p>
 
       <ResultCard title="📊 Net Worth Snapshot">
         <NumberField label="Current HDB value" value={hdbCurrentValue} onChange={setHdbCurrentValue} prefix="$" step={5000} />
@@ -772,6 +803,46 @@ export default function RetirementCalculator() {
         </p>
       </ResultCard>
 
+      <ResultCard title="⚖️ Compare CPF LIFE Plans">
+        <p className="explainer" style={{ marginTop: -2 }}>
+          Plan choice is locked 12 months after joining CPF LIFE — worth comparing before you decide. These are
+          approximations (CPF Board publishes the ~10-15% and ~20% reduction ranges below, not an exact formula),
+          based on the same {formatSgd(result.cpfLife.retirementAccountBalance)} Retirement Account balance as above.
+        </p>
+        <ResultRow
+          label="Standard — steady payout, smaller bequest"
+          value={`${formatSgd(cpfLifePlans.standard.estimatedMonthlyPayout)}/mo`}
+          emphasis
+        />
+        <ResultRow
+          label="Basic — ~12.5% lower, largest bequest"
+          value={`${formatSgd(cpfLifePlans.basic.estimatedMonthlyPayout)}/mo`}
+        />
+        <ResultRow
+          label="Escalating — starts ~20% lower, +2%/yr for life"
+          value={`${formatSgd(cpfLifePlans.escalating.estimatedMonthlyPayout)}/mo`}
+        />
+        <p className="explainer">
+          At this rate, Escalating overtakes Standard's payout around year {cpfLifePlans.escalating.crossoverYear} of
+          retirement (roughly age {65 + cpfLifePlans.escalating.crossoverYear}) — worth considering if you expect a
+          long retirement and want built-in inflation protection. Basic suits those prioritising a larger legacy for
+          beneficiaries over maximum lifetime income.
+        </p>
+      </ResultCard>
+
+      {annualRstuTopUp > 0 && (
+        <ResultCard title="💰 RSTU Top-Up Impact">
+          <ResultRow label="Extra in SA/RA from topping up" value={formatSgd(result.rstuTopUpGrowth)} emphasis positive />
+          <p className="explainer">
+            Topping up {formatSgd(annualRstuTopUp)}/year from now to retirement grows to an estimated{" "}
+            {formatSgd(result.rstuTopUpGrowth)} extra in your SA/RA (already included in the projections above),
+            on top of up to {formatSgd(RSTU_SELF_RELIEF_CAP)}/year in tax relief for topping up yourself (up to{" "}
+            {formatSgd(RSTU_COMBINED_RELIEF_CAP)}/year combined with a top-up to a loved one's account) — the actual
+            dollar tax saving depends on your marginal tax rate, which isn't modeled here.
+          </p>
+        </ResultCard>
+      )}
+
       <ResultCard title="✅ Retirement Health Check">
         <div className="score-ring">
           <div className="score-number">
@@ -837,6 +908,56 @@ export default function RetirementCalculator() {
           assessment. Not financial advice.
         </p>
       </Disclaimer>
+
+      <div className="faq-section">
+        <h2 className="faq-title">Common questions about retirement planning in Singapore</h2>
+        <details className="faq-item">
+          <summary>Which CPF LIFE plan should I choose?</summary>
+          <p>
+            Standard gives you the highest steady monthly payout with a smaller bequest — good if maximising
+            lifetime income is your priority. Basic pays less but leaves the largest inheritance for your
+            beneficiaries. Escalating starts lowest but grows 2% every year, which can overtake Standard's payout
+            after a decade or more — worth considering if you expect a long retirement. The choice is locked 12
+            months after joining, so compare carefully first.
+          </p>
+        </details>
+        <details className="faq-item">
+          <summary>How much should I have in my CPF Retirement Account?</summary>
+          <p>
+            CPF Board publishes three reference sums: Basic (BRS), Full (FRS), and Enhanced (ERS) Retirement Sum.
+            FRS is the default most people aim for. BRS works if you're pledging your property (or already own
+            one) — you can set aside less and withdraw the rest as cash at 55. ERS gets you the highest CPF LIFE
+            payout if you have the savings to reach it.
+          </p>
+        </details>
+        <details className="faq-item">
+          <summary>What is RSTU and is it worth doing?</summary>
+          <p>
+            The Retirement Sum Topping-Up Scheme lets you voluntarily add cash to your SA/RA, earning a guaranteed
+            4% p.a. and up to $8,000/year in tax relief ($16,000/year combined with topping up a loved one's
+            account). It's generally worth it if you're confident you won't need that cash before retirement — CPF
+            top-ups are locked in and can't be withdrawn early.
+          </p>
+        </details>
+        <details className="faq-item">
+          <summary>What if I live longer than expected?</summary>
+          <p>
+            This is exactly why CPF LIFE exists — it pays for as long as you live, regardless of how long your CPF
+            balance would otherwise last. For savings and investments outside CPF, try increasing "Years in
+            retirement" above (e.g. to 30 or 35) to see how much more you'd need to fund a longer retirement from
+            your own savings.
+          </p>
+        </details>
+        <details className="faq-item">
+          <summary>How accurate is this retirement projection?</summary>
+          <p>
+            It's a planning tool, not a guarantee — it assumes a constant investment return and inflation rate
+            every year, which real markets never actually deliver. Treat the output as a reasonable ballpark to
+            guide saving decisions, not a precise forecast, and revisit it periodically as your actual numbers
+            change.
+          </p>
+        </details>
+      </div>
 
       {/* Rendered off-screen (not display:none, so html2canvas can lay it out) purely so the
           Premium Report generator can capture it and fold it in as an appendix. */}
