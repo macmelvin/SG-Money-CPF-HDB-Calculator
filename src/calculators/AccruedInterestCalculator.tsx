@@ -142,18 +142,6 @@ export default function AccruedInterestCalculator() {
         Principal Amount Withdrawn" and "Total Accrued Interest" directly, based on your real withdrawal history.
         Enter those two figures below for the most accurate result.
       </p>
-      {hdbSaleAvailable && (
-        <button
-          type="button"
-          className="withdrawal-add-btn"
-          onClick={() => {
-            setManualPrincipal(savedHdbSale!.data!.cpfPrincipalUsed);
-            setManualAccruedInterest(savedHdbSale!.data!.cpfAccruedInterest);
-          }}
-        >
-          ↻ Pull from your saved HDB Sale Proceeds calculator
-        </button>
-      )}
 
       <ResultCard title="Your Exact CPF Figures">
         <NumberField
@@ -186,6 +174,19 @@ export default function AccruedInterestCalculator() {
         Accrued interest is the interest your CPF savings would have earned (at the CPF Ordinary Account rate) had
         they stayed in your CPF account instead of being used for your property.
       </p>
+
+      {hdbSaleAvailable && (
+        <button
+          type="button"
+          className="withdrawal-add-btn"
+          onClick={() => {
+            setManualPrincipal(savedHdbSale!.data!.cpfPrincipalUsed);
+            setManualAccruedInterest(savedHdbSale!.data!.cpfAccruedInterest);
+          }}
+        >
+          ↻ Pull from your saved HDB Sale Proceeds calculator
+        </button>
+      )}
 
       <ResultCard title="Not sure of your exact figure? Estimate it here">
         <p className="explainer" style={{ marginTop: -2 }}>
