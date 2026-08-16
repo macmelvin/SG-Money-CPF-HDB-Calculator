@@ -199,10 +199,20 @@ export const NEXT_STEP_OFFERS: Record<string, NextStepIntent[]> = {
     {
       id: "promotions",
       icon: "🏷️",
-      label: "Promotions",
-      adCategory: "car-promotions",
+      label: "Car deals",
+      adCategory: "car-deals",
       leadFormHeadline: "Dealers run limited-time promos most buyers never hear about.",
       leadFormMessage: "Leave your name, phone and email and we'll notify you of the latest car deals and promotions.",
+      sponsors: [
+        {
+          advertiserId: "78-automobile",
+          headline: "Your happiness is what matters.",
+          desc: "Buy smart, sell easy with 78 Automobile.",
+          ctaLabel: "Explore Our Cars",
+          href: "https://www.sgcarmart.com/used-cars/listing?dl=4228",
+          category: "car-deals",
+        },
+      ],
     },
   ],
 };
