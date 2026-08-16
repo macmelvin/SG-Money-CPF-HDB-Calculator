@@ -4,6 +4,7 @@ import { NextStep } from "../components/NextStep";
 import { AdSpot } from "../components/AdSpot";
 import { calculateCarCost, formatSgd } from "../lib/cpf";
 import type { FuelType } from "../lib/cpf";
+import type { Sponsor } from "../lib/offers";
 import { usePageMeta } from "../lib/usePageMeta";
 import { clearCalculatorData, loadCalculatorData, saveCalculatorData } from "../lib/storage";
 import { downloadCalculatorPdf } from "../lib/pdf";
@@ -90,7 +91,7 @@ export default function CarCostCalculator() {
   const [coeRenewalPqp, setCoeRenewalPqp] = useState(initial.coeRenewalPqp);
   const [coeRenewalYears, setCoeRenewalYears] = useState<5 | 10>(initial.coeRenewalYears);
   const [savedAt, setSavedAt] = useState<number | null>(saved?.savedAt ?? null);
-  const [hasActiveSponsor, setHasActiveSponsor] = useState(false);
+  const [activeSponsor, setActiveSponsor] = useState<Sponsor | undefined>(undefined);
   const [shareStatus, setShareStatus] = useState<"idle" | "generating" | "done" | "error">("idle");
 
   useEffect(() => {
@@ -445,10 +446,10 @@ export default function CarCostCalculator() {
         calculatorId={CALCULATOR_ID}
         prompt="Car services & deals"
         hideEmbeddedAdSpot
-        onSponsorStatusChange={setHasActiveSponsor}
+        onActiveSponsorChange={setActiveSponsor}
       />
 
-      {!hasActiveSponsor && <AdSpot label="SG Money ad spot - Car Cost" />}
+      <AdSpot label="SG Money ad spot - Car Cost" sponsor={activeSponsor} calculatorId={CALCULATOR_ID} />
 
       <p className="explainer">
         Spend more than {formatSgd(result.breakEvenGrabSpend)}/month on Grab and owning this car would actually

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { NEXT_STEP_OFFERS } from "../lib/offers";
+import type { Sponsor } from "../lib/offers";
 import { trackEvent } from "../lib/analytics";
 import { LeadForm } from "./LeadForm";
 
@@ -21,7 +22,7 @@ export function NextStep({
   prompt = "What are you planning next?",
   onSelect,
   hideEmbeddedAdSpot,
-  onSponsorStatusChange,
+  onActiveSponsorChange,
 }: {
   calculatorId: string;
   prompt?: string;
@@ -43,11 +44,14 @@ export function NextStep({
    */
   hideEmbeddedAdSpot?: boolean;
   /**
-   * Fires whenever whether a real sponsor is currently showing changes —
-   * lets the parent page hide/show its own standalone AdSpot column to
-   * match (only relevant alongside hideEmbeddedAdSpot).
+   * Fires whenever the currently-active sponsor changes (including to/from
+   * undefined) — lets the parent page swap its own standalone AdSpot column
+   * between the generic "Claim this spot" pitch and this same sponsor's
+   * content, so a real sponsor gets shown loudly in BOTH places at once,
+   * not just the quieter embedded card. Only relevant alongside
+   * hideEmbeddedAdSpot.
    */
-  onSponsorStatusChange?: (hasSponsor: boolean) => void;
+  onActiveSponsorChange?: (sponsor: Sponsor | undefined) => void;
 }) {
   const intents = NEXT_STEP_OFFERS[calculatorId];
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -73,8 +77,8 @@ export function NextStep({
   }, [selectedId]);
 
   useEffect(() => {
-    onSponsorStatusChange?.(Boolean(pickedSponsor));
-  }, [pickedSponsor, onSponsorStatusChange]);
+    onActiveSponsorChange?.(pickedSponsor);
+  }, [pickedSponsor, onActiveSponsorChange]);
 
   // The lead form itself now handles BOTH cases: a real sponsor (captures
   // contact info AND opens the advertiser's site on submit) and the open

@@ -62,14 +62,16 @@ export interface NextStepIntent {
    * backend scheduling logic. Each needs a unique `advertiserId` so clicks/
    * views can be tracked per advertiser, not just per category.
    */
-  sponsors?: {
-    advertiserId: string;
-    headline: string;
-    desc: string;
-    ctaLabel: string;
-    href: string;
-    category: string; // e.g. "mortgage", "insurance" — for the advertiser DB later
-  }[];
+  sponsors?: Sponsor[];
+}
+
+export interface Sponsor {
+  advertiserId: string;
+  headline: string;
+  desc: string;
+  ctaLabel: string;
+  href: string;
+  category: string; // e.g. "mortgage", "insurance" — for the advertiser DB later
 }
 
 export const NEXT_STEP_OFFERS: Record<string, NextStepIntent[]> = {

@@ -4,6 +4,7 @@ import { NextStep } from "../components/NextStep";
 import { AdSpot } from "../components/AdSpot";
 import { calculateSalaryCpf, formatSgd } from "../lib/cpf";
 import type { CitizenshipStatus } from "../lib/cpf";
+import type { Sponsor } from "../lib/offers";
 import { usePageMeta } from "../lib/usePageMeta";
 import { clearCalculatorData, loadCalculatorData, saveCalculatorData } from "../lib/storage";
 import { downloadCalculatorPdf } from "../lib/pdf";
@@ -47,7 +48,7 @@ export default function SalaryCalculator() {
     initial.estimateIncomeTax ?? DEFAULTS.estimateIncomeTax
   );
   const [savedAt, setSavedAt] = useState<number | null>(saved?.savedAt ?? null);
-  const [hasActiveSponsor, setHasActiveSponsor] = useState(false);
+  const [activeSponsor, setActiveSponsor] = useState<Sponsor | undefined>(undefined);
 
   useEffect(() => {
     trackEvent("calculator_started", { calculator: CALCULATOR_ID });
@@ -218,10 +219,10 @@ export default function SalaryCalculator() {
       <NextStep
         calculatorId={CALCULATOR_ID}
         hideEmbeddedAdSpot
-        onSponsorStatusChange={setHasActiveSponsor}
+        onActiveSponsorChange={setActiveSponsor}
       />
 
-      {!hasActiveSponsor && <AdSpot label="SG Money ad spot - Salary & CPF" />}
+      <AdSpot label="SG Money ad spot - Salary & CPF" sponsor={activeSponsor} calculatorId={CALCULATOR_ID} />
 
       <BtoPromo />
 
