@@ -222,6 +222,13 @@ export default function AccruedInterestCalculator() {
         <ResultRow label="Estimated Principal" value={formatSgd(estimatedResult.totalPrincipal)} />
         <ResultRow label="Estimated Accrued Interest" value={formatSgd(estimatedResult.totalAccruedInterest)} />
         <ResultRow label="Estimated Refund" value={formatSgd(estimatedResult.totalRefund)} emphasis />
+        <p className="explainer">
+          Your real figure from the CPF app can come out noticeably lower than this estimate. That's usually
+          because the principal wasn't withdrawn as one lump sum on the year entered — it was drawn out gradually
+          over a period of years (e.g. an initial purchase, then years of monthly mortgage instalments from CPF-OA).
+          Each of those smaller withdrawals only accrues interest from its own date, not from the earliest year, so
+          spreading $X over Y years accrues meaningfully less interest than withdrawing all of $X in year one.
+        </p>
       </ResultCard>
 
       <Disclaimer>
