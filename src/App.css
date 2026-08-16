@@ -822,6 +822,12 @@
   transform: none;
 }
 
+.car-services-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
 .share-result-btn {
   width: 100%;
   height: 44px;

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CalcShell, Disclaimer, NumberField, ResultCard, ResultRow, SelectField } from "../components/CalcShell";
 import { NextStep } from "../components/NextStep";
+import type { LeadFormRenderInfo } from "../components/NextStep";
+import { LeadForm } from "../components/LeadForm";
 import { AdSpot } from "../components/AdSpot";
 import { calculateCarCost, formatSgd } from "../lib/cpf";
 import type { FuelType } from "../lib/cpf";
@@ -92,6 +94,7 @@ export default function CarCostCalculator() {
   const [coeRenewalYears, setCoeRenewalYears] = useState<5 | 10>(initial.coeRenewalYears);
   const [savedAt, setSavedAt] = useState<number | null>(saved?.savedAt ?? null);
   const [activeSponsor, setActiveSponsor] = useState<Sponsor | undefined>(undefined);
+  const [selectionInfo, setSelectionInfo] = useState<LeadFormRenderInfo | null>(null);
   const [shareStatus, setShareStatus] = useState<"idle" | "generating" | "done" | "error">("idle");
 
   useEffect(() => {
@@ -446,10 +449,30 @@ export default function CarCostCalculator() {
         calculatorId={CALCULATOR_ID}
         prompt="Car services & deals"
         hideEmbeddedAdSpot
+        hideLeadForm
         onActiveSponsorChange={setActiveSponsor}
+        onSelectionInfoChange={setSelectionInfo}
       />
 
-      <AdSpot label="SG Money ad spot - Car Cost" sponsor={activeSponsor} />
+      {/* Form + image stacked together as one column, sitting beside the
+          buttons instead of directly under them — the standalone ad and the
+          lead-capture form now read as one combined sponsored unit. */}
+      <div className="car-services-sidebar">
+        {selectionInfo && (
+          <LeadForm
+            calculatorId={selectionInfo.calculatorId}
+            category={selectionInfo.category}
+            compact={selectionInfo.compact}
+            showProjectPicker={selectionInfo.showProjectPicker}
+            message={selectionInfo.message}
+            headline={selectionInfo.headline}
+            intentLabel={selectionInfo.intentLabel}
+            sponsor={selectionInfo.sponsor}
+            showAdSpot={false}
+          />
+        )}
+        <AdSpot label="SG Money ad spot - Car Cost" sponsor={activeSponsor} />
+      </div>
 
       <p className="explainer">
         Spend more than {formatSgd(result.breakEvenGrabSpend)}/month on Grab and owning this car would actually

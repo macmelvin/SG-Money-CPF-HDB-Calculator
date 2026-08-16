@@ -17,12 +17,28 @@ function useViewedOnce(fire: boolean, event: () => void) {
   }, [fire, fired, event]);
 }
 
+// Everything a <LeadForm> needs to render itself — exposed so a parent page
+// can render the form somewhere OTHER than directly under the buttons (see
+// hideLeadForm below), e.g. stacked with a standalone AdSpot column instead.
+export interface LeadFormRenderInfo {
+  calculatorId: string;
+  category: string;
+  compact: boolean;
+  showProjectPicker?: boolean;
+  message?: string;
+  headline?: string;
+  intentLabel: string;
+  sponsor?: Sponsor;
+}
+
 export function NextStep({
   calculatorId,
   prompt = "What are you planning next?",
   onSelect,
   hideEmbeddedAdSpot,
+  hideLeadForm,
   onActiveSponsorChange,
+  onSelectionInfoChange,
 }: {
   calculatorId: string;
   prompt?: string;
@@ -44,6 +60,14 @@ export function NextStep({
    */
   hideEmbeddedAdSpot?: boolean;
   /**
+   * Set true to stop NextStep rendering the LeadForm itself under the
+   * buttons — instead use onSelectionInfoChange to get everything needed
+   * to render a <LeadForm> elsewhere on the page (e.g. Car Cost stacks it
+   * with the standalone AdSpot image in a separate column). Leave unset
+   * for the normal inline-under-the-buttons layout.
+   */
+  hideLeadForm?: boolean;
+  /**
    * Fires whenever the currently-active sponsor changes (including to/from
    * undefined) — lets the parent page swap its own standalone AdSpot column
    * between the generic "Claim this spot" pitch and this same sponsor's
@@ -52,6 +76,13 @@ export function NextStep({
    * hideEmbeddedAdSpot.
    */
   onActiveSponsorChange?: (sponsor: Sponsor | undefined) => void;
+  /**
+   * Fires with everything needed to render a <LeadForm> whenever the
+   * selection changes (null when nothing selected, or the selected intent
+   * has no lead form at all e.g. a plain "Continue" link). Only relevant
+   * alongside hideLeadForm.
+   */
+  onSelectionInfoChange?: (info: LeadFormRenderInfo | null) => void;
 }) {
   const intents = NEXT_STEP_OFFERS[calculatorId];
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -104,6 +135,25 @@ export function NextStep({
     }
   });
 
+  useEffect(() => {
+    if (!onSelectionInfoChange) return;
+    if (!showLeadForm || !selected) {
+      onSelectionInfoChange(null);
+      return;
+    }
+    onSelectionInfoChange({
+      calculatorId,
+      category: pickedSponsor?.category ?? selected.adCategory!,
+      compact: adSlotCompact,
+      showProjectPicker: selected.showProjectPicker,
+      message: selected.leadFormMessage,
+      headline: selected.leadFormHeadline,
+      intentLabel: selected.label,
+      sponsor: pickedSponsor,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showLeadForm, selected, pickedSponsor, adSlotCompact, calculatorId, onSelectionInfoChange]);
+
   return (
     <div className="next-step">
       <h3 className="next-step-prompt">{prompt}</h3>
@@ -127,7 +177,7 @@ export function NextStep({
         </Link>
       )}
 
-      {showLeadForm && (
+      {showLeadForm && !hideLeadForm && (
         <LeadForm
           key={selected!.id}
           calculatorId={calculatorId}
