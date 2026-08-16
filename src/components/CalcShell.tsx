@@ -125,6 +125,7 @@ export function NumberField({
           value={Number.isNaN(value) ? "" : value}
           step={step ?? 1}
           onChange={(e) => onChange(e.target.value === "" ? 0 : parseFloat(e.target.value))}
+          onFocus={(e) => e.target.select()}
         />
         {suffix && <span className="affix">{suffix}</span>}
       </div>
