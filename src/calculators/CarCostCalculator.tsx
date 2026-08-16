@@ -443,7 +443,7 @@ export default function CarCostCalculator() {
 
       <NextStep
         calculatorId={CALCULATOR_ID}
-        prompt="Reduce your car expenses"
+        prompt="Car services & deals"
         hideEmbeddedAdSpot
         onSponsorStatusChange={setHasActiveSponsor}
       />
