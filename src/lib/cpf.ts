@@ -317,34 +317,50 @@ export function checkMop(keyCollectionDate: Date, asOf: Date = new Date()): { me
   return { metMop, monthsRemaining, mopDate };
 }
 
-export interface AccruedInterestInput {
+export interface AccruedInterestWithdrawal {
   principal: number;
-  yearFirstUsed: number;
-  currentYear: number;
-  interestRate?: number; // default 2.5% p.a., matching CPF OA rate
+  yearUsed: number;
+}
+
+export interface AccruedInterestWithdrawalDetail extends AccruedInterestWithdrawal {
+  years: number;
+  accruedInterest: number;
+  refund: number;
 }
 
 export interface AccruedInterestResult {
-  principal: number;
-  years: number;
-  accruedInterest: number;
+  totalPrincipal: number;
+  totalAccruedInterest: number;
   totalRefund: number;
+  perWithdrawal: AccruedInterestWithdrawalDetail[];
 }
 
-// SIMPLE ESTIMATE ONLY: assumes one lump-sum withdrawal, compounded annually at a flat
-// rate. Real CPF accrued interest is computed per-withdrawal, compounded based on the
-// actual dates funds were used, and the rate can vary. Treat this as a rough estimate.
-export function calculateAccruedInterest(input: AccruedInterestInput): AccruedInterestResult {
-  const { principal, yearFirstUsed, currentYear, interestRate = 0.025 } = input;
-  const years = Math.max(0, currentYear - yearFirstUsed);
-  const totalWithInterest = principal * Math.pow(1 + interestRate, years);
-  const accruedInterest = totalWithInterest - principal;
+// SIMPLE ESTIMATE ONLY: each withdrawal is compounded annually at a flat rate from its
+// own year of use — a real improvement over treating multiple CPF draws (e.g. initial
+// purchase, then a later top-up) as a single lump sum, since each actually accrues
+// interest separately from its own date. Real CPF accrued interest is still computed
+// with more precision (exact dates, rate changes over time) than this monthly/annual
+// approximation — treat this as a rough estimate either way.
+export function calculateAccruedInterest(
+  withdrawals: AccruedInterestWithdrawal[],
+  currentYear: number,
+  interestRate: number = 0.025
+): AccruedInterestResult {
+  const perWithdrawal: AccruedInterestWithdrawalDetail[] = withdrawals.map((w) => {
+    const years = Math.max(0, currentYear - w.yearUsed);
+    const refund = w.principal * Math.pow(1 + interestRate, years);
+    const accruedInterest = refund - w.principal;
+    return { ...w, years, accruedInterest: Math.round(accruedInterest), refund: Math.round(refund) };
+  });
+
+  const totalPrincipal = withdrawals.reduce((sum, w) => sum + w.principal, 0);
+  const totalAccruedInterest = perWithdrawal.reduce((sum, p) => sum + p.accruedInterest, 0);
 
   return {
-    principal,
-    years,
-    accruedInterest: Math.round(accruedInterest),
-    totalRefund: Math.round(totalWithInterest),
+    totalPrincipal,
+    totalAccruedInterest,
+    totalRefund: totalPrincipal + totalAccruedInterest,
+    perWithdrawal,
   };
 }
 

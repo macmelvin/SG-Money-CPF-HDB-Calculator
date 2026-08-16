@@ -17,7 +17,7 @@ import {
   formatSgd,
 } from "../lib/cpf";
 import type {
-  AccruedInterestInput,
+  AccruedInterestWithdrawal,
   CarCostInput,
   CpfLifeTargetTier,
   HdbSaleInput,
@@ -164,9 +164,9 @@ export default function RetirementCalculator() {
   // re-enter everything just to see it summarized in one place.
   const savedSalary = loadCalculatorData<SalaryCpfInput>(SALARY_STORAGE_KEY);
   const salaryResult = savedSalary?.data ? calculateSalaryCpf(savedSalary.data) : null;
-  const savedAccruedInterest = loadCalculatorData<Omit<AccruedInterestInput, "currentYear">>(ACCRUED_INTEREST_STORAGE_KEY);
+  const savedAccruedInterest = loadCalculatorData<AccruedInterestWithdrawal[]>(ACCRUED_INTEREST_STORAGE_KEY);
   const accruedInterestResult = savedAccruedInterest?.data
-    ? calculateAccruedInterest({ ...savedAccruedInterest.data, currentYear: new Date().getFullYear() })
+    ? calculateAccruedInterest(savedAccruedInterest.data, new Date().getFullYear())
     : null;
   const savedCarCost = loadCalculatorData<CarCostInput>(CAR_COST_STORAGE_KEY);
   const carCostResult = savedCarCost?.data ? calculateCarCost(savedCarCost.data) : null;

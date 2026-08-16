@@ -818,6 +818,45 @@
   color: var(--text-muted);
   line-height: 1.6;
 }
+
+.withdrawal-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.withdrawal-row .field {
+  flex: 1;
+}
+.withdrawal-remove-btn {
+  height: 38px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.withdrawal-remove-btn:hover {
+  color: var(--primary);
+  border-color: var(--primary);
+}
+.withdrawal-add-btn {
+  width: 100%;
+  height: 40px;
+  border-radius: 10px;
+  border: 1px dashed var(--primary);
+  background: transparent;
+  color: var(--primary);
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  margin-top: 4px;
+}
 .ad-slot-available.compact {
   margin-top: 8px;
   padding: 0;
