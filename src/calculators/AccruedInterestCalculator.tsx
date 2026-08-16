@@ -143,14 +143,14 @@ export default function AccruedInterestCalculator() {
         <ResultRow label="ESTIMATED CPF REFUND" value={formatSgd(result.totalRefund)} emphasis />
       </ResultCard>
 
+      <NextStep calculatorId={CALCULATOR_ID} prompt="Why are you calculating this?" />
+
+      <BtoPromo />
+
       <p className="explainer">
         Accrued interest is the interest your CPF savings would have earned (at the CPF Ordinary Account rate) had
         they stayed in your CPF account instead of being used for your property.
       </p>
-
-      <NextStep calculatorId={CALCULATOR_ID} prompt="Why are you calculating this?" />
-
-      <BtoPromo />
 
       <Disclaimer>
         Simple estimate only — each withdrawal is compounded annually at 2.5% from its own year of use. Real CPF
