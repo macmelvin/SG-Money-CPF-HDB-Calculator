@@ -47,9 +47,18 @@ const ROAD_TAX_GUIDANCE: Partial<Record<FuelType, string>> = {
 const VES_NOTE =
   "New cars also carry a Vehicle Emissions Scheme (VES) rebate or surcharge (roughly -$22,500 for the cleanest EVs down to +$35,000 for the most polluting petrol cars, 2026 rates) — but this is already factored into whatever price a dealer quotes you, not an extra cost to add here.";
 
+// GST is a manual field, not auto-computed at a fixed rate, because not every
+// car sale actually charges it — e.g. a private sale between individuals, or
+// a deal with a seller who isn't GST-registered. Defaults to 9% of the price
+// above (the standard rate for a GST-registered dealer) but should be
+// adjusted (or set to $0) to match what's actually on your quote/invoice.
+const GST_NOTE =
+  "Not every car sale charges GST — e.g. private sales or deals with a non-GST-registered seller often don't. This defaults to 9% of the price above (the standard rate for a GST-registered dealer); check your actual quote or invoice and adjust it, or set it to $0 if GST doesn't apply.";
+
 const DEFAULTS = {
   fuelType: "petrol" as FuelType,
   carPrice: 160000,
+  gst: 14400,
   downpayment: 60000,
   loanAmount: 100000,
   loanYears: 7,
@@ -77,6 +86,9 @@ export default function CarCostCalculator() {
 
   const [fuelType, setFuelType] = useState<FuelType>(initial.fuelType);
   const [carPrice, setCarPrice] = useState(initial.carPrice);
+  // Falls back to 9% of the saved car price for data saved before GST became
+  // a manual field, so returning users don't suddenly see $0 GST.
+  const [gst, setGst] = useState(initial.gst ?? Math.round(initial.carPrice * 0.09));
   const [downpayment, setDownpayment] = useState(initial.downpayment);
   const [loanAmount, setLoanAmount] = useState(initial.loanAmount);
   const [loanYears, setLoanYears] = useState(initial.loanYears);
@@ -108,6 +120,7 @@ export default function CarCostCalculator() {
     () =>
       calculateCarCost({
         carPrice,
+        gst,
         downpayment,
         loanAmount,
         loanYears,
@@ -125,6 +138,7 @@ export default function CarCostCalculator() {
       }),
     [
       carPrice,
+      gst,
       downpayment,
       loanAmount,
       loanYears,
@@ -148,6 +162,7 @@ export default function CarCostCalculator() {
     const changed =
       fuelType !== s.fuelType ||
       carPrice !== s.carPrice ||
+      gst !== s.gst ||
       downpayment !== s.downpayment ||
       loanAmount !== s.loanAmount ||
       loanYears !== s.loanYears ||
@@ -162,11 +177,12 @@ export default function CarCostCalculator() {
       hasCompletedOnce.current = true;
       trackEvent("calculator_completed", { calculator: CALCULATOR_ID });
     }
-  }, [fuelType, carPrice, downpayment, loanAmount, loanYears, interestRatePct, monthlyPetrol, monthlyParking, monthlyErp, annualInsurance, annualRoadTax, annualMaintenance]);
+  }, [fuelType, carPrice, gst, downpayment, loanAmount, loanYears, interestRatePct, monthlyPetrol, monthlyParking, monthlyErp, annualInsurance, annualRoadTax, annualMaintenance]);
 
   const clearInputs = () => {
     setFuelType(DEFAULTS.fuelType);
     setCarPrice(DEFAULTS.carPrice);
+    setGst(DEFAULTS.gst);
     setDownpayment(DEFAULTS.downpayment);
     setLoanAmount(DEFAULTS.loanAmount);
     setLoanYears(DEFAULTS.loanYears);
@@ -190,6 +206,7 @@ export default function CarCostCalculator() {
     const at = saveCalculatorData(STORAGE_KEY, {
       fuelType,
       carPrice,
+      gst,
       downpayment,
       loanAmount,
       loanYears,
@@ -215,7 +232,7 @@ export default function CarCostCalculator() {
       inputs: [
         { label: "Fuel type", value: FUEL_TYPE_LABELS[fuelType] },
         { label: "Car purchase price (excl. GST)", value: formatSgd(carPrice) },
-        { label: "GST (9%)", value: formatSgd(result.gst) },
+        { label: "GST", value: formatSgd(result.gst) },
         { label: "Total purchase price (incl. GST)", value: formatSgd(result.totalPriceInclGst) },
         { label: "Downpayment", value: formatSgd(downpayment) },
         { label: "Loan amount", value: formatSgd(loanAmount) },
@@ -319,6 +336,7 @@ export default function CarCostCalculator() {
           ]}
         />
         <NumberField label="Car purchase price (incl. COE, excl. GST)" value={carPrice} onChange={setCarPrice} prefix="$" step={1000} />
+        <NumberField label="GST" value={gst} onChange={setGst} prefix="$" step={100} />
         <NumberField label="Downpayment" value={downpayment} onChange={setDownpayment} prefix="$" step={1000} />
         <NumberField label="Loan amount" value={loanAmount} onChange={setLoanAmount} prefix="$" step={1000} />
         <NumberField label="Loan duration" value={loanYears} onChange={setLoanYears} suffix="years" />
@@ -339,10 +357,11 @@ export default function CarCostCalculator() {
 
       {ROAD_TAX_GUIDANCE[fuelType] && <p className="explainer">{ROAD_TAX_GUIDANCE[fuelType]}</p>}
       <p className="explainer">{VES_NOTE}</p>
+      <p className="explainer">{GST_NOTE}</p>
 
       <ResultCard title="One-Time Purchase Price">
         <ResultRow label="Car price (excl. GST)" value={formatSgd(carPrice)} />
-        <ResultRow label="GST (9%)" value={formatSgd(result.gst)} />
+        <ResultRow label="GST" value={formatSgd(result.gst)} />
         <ResultRow label="TOTAL PRICE (INCL. GST)" value={formatSgd(result.totalPriceInclGst)} emphasis />
         <ResultRow label={`Est. depreciation (${ownershipYears}yr)`} value={`${formatSgd(result.annualDepreciation)}/year`} />
         <ResultRow label="Est. depreciation, monthly" value={formatSgd(result.monthlyDepreciation)} />

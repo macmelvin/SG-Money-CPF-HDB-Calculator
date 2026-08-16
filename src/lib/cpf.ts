@@ -640,6 +640,12 @@ export type FuelType = "petrol" | "diesel" | "electric" | "hybrid";
 
 export interface CarCostInput {
   carPrice: number;
+  /** One-time purchase-price GST. Manually entered rather than auto-computed
+   *  at a fixed 9%, since not every car sale actually charges GST — e.g. a
+   *  private sale or a deal with a non-GST-registered dealer. Optional for
+   *  backward compatibility with data saved before this became a manual
+   *  field: falls back to 9% of carPrice (the old fixed rate) when omitted. */
+  gst?: number;
   downpayment: number;
   loanAmount: number;
   loanYears: number;
@@ -698,8 +704,9 @@ export interface CarCostResult {
 }
 
 // Singapore's standard GST rate, effective 1 Jan 2024, confirmed unchanged
-// through 2026 (Budget 2026 confirmed no further rate change). Update here
-// if IRAS ever revises it.
+// through 2026 (Budget 2026 confirmed no further rate change). Only used as
+// the default/fallback for the manual GST field below — not every car sale
+// actually charges GST, so this is no longer applied automatically.
 const GST_RATE = 0.09;
 
 // PTC Adult Monthly Travel Pass — unlimited MRT/LRT/basic bus. Effective
@@ -710,6 +717,7 @@ const ADULT_MONTHLY_TRAVEL_PASS = 122;
 export function calculateCarCost(input: CarCostInput): CarCostResult {
   const {
     carPrice,
+    gst: inputGst,
     loanAmount,
     loanYears,
     interestRatePct,
@@ -733,7 +741,7 @@ export function calculateCarCost(input: CarCostInput): CarCostResult {
   const monthlyRoadTax = Math.round(annualRoadTax / 12);
   const monthlyMaintenance = Math.round(annualMaintenance / 12);
 
-  const gst = Math.round(carPrice * GST_RATE);
+  const gst = inputGst ?? Math.round(carPrice * GST_RATE);
   const totalPriceInclGst = carPrice + gst;
 
   const annualDepreciation = ownershipYears > 0 ? Math.round(totalPriceInclGst / ownershipYears) : 0;
