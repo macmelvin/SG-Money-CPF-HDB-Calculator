@@ -197,6 +197,17 @@ export const NEXT_STEP_OFFERS: Record<string, NextStepIntent[]> = {
       adCategory: "car-loan-refinancing",
       leadFormHeadline: "A lower interest rate on your car loan could free up real cash every month.",
       leadFormMessage: "Leave your name, phone and email and our Refinancing Specialist will reach out to see if you qualify for a better rate.",
+      sponsors: [
+        {
+          advertiserId: "78-automobile-refinance",
+          headline: "Refinance Your Car Loan",
+          desc: "Lower your interest. Drive more. Worry less — with 78 Automobile.",
+          ctaLabel: "Get a Free Consultation",
+          href: "https://wa.me/6596324314",
+          category: "car-loan-refinancing",
+          imageUrl: "/ads/78-automobile-refinance.jpg",
+        },
+      ],
     },
     {
       id: "promotions",
