@@ -46,6 +46,12 @@
 .tool-card:active {
   transform: scale(0.98);
 }
+.tool-card-expandable {
+  width: 100%;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
 .tool-icon {
   font-size: 26px;
 }

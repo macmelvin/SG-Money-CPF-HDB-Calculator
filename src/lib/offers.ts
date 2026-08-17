@@ -85,14 +85,6 @@ export interface Sponsor {
 export const NEXT_STEP_OFFERS: Record<string, NextStepIntent[]> = {
   "hdb-sale-proceeds": [
     {
-      id: "buy-condo",
-      icon: "🏢",
-      label: "Buy a condo",
-      to: "/retirement-calculator",
-      adCategory: "mortgage",
-      showProjectPicker: true,
-    },
-    {
       id: "downsize",
       icon: "📉",
       label: "Downsize",
