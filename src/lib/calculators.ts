@@ -53,4 +53,10 @@ export const CALCULATORS: CalculatorMeta[] = [
     title: "Car Cost",
     desc: "What's your true monthly car cost?",
   },
+  {
+    to: "/property-listings",
+    icon: "🏘️",
+    title: "Property Listings",
+    desc: "Browse or list properties by district",
+  },
 ];

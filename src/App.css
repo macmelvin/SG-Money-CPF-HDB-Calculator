@@ -919,6 +919,58 @@
   cursor: pointer;
   margin-top: 4px;
 }
+
+.listing-textarea {
+  height: auto;
+  min-height: 76px;
+  padding: 10px 12px;
+  resize: vertical;
+  font-family: inherit;
+}
+.listing-row {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.listing-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+.listing-row-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+.listing-row-type {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+.listing-row-price {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+}
+.listing-row-unit {
+  margin: 0 0 4px;
+  font-size: 14px;
+  color: var(--text);
+}
+.listing-row-desc {
+  margin: 0 0 6px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.listing-row-agent {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
 .ad-slot-available.compact {
   margin-top: 8px;
   padding: 0;

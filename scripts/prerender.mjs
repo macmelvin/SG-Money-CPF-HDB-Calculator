@@ -73,6 +73,12 @@ const routes = [
       "Calculate the true monthly cost of owning a car in Singapore, including loan, petrol, parking, ERP, insurance, road tax and maintenance — plus how it compares to Grab.",
   },
   {
+    path: "property-listings",
+    title: "Property Listings by District | SG-Money-CPF-HDB-Calculator",
+    description:
+      "Browse Singapore property listings by postal district (D01–D28), or list your property for free as a CEA-registered agent.",
+  },
+  {
     path: "backup",
     title: "Backup & Restore Your Data | SG-Money-CPF-HDB-Calculator",
     description:
