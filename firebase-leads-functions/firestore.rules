@@ -1,0 +1,26 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /leads/{leadId} {
+      allow create: if request.resource.data.keys().hasAll(['calculator', 'category', 'name', 'phone', 'email', 'createdAt'])
+        && request.resource.data.name is string && request.resource.data.name.size() < 200
+        && request.resource.data.phone is string && request.resource.data.phone.size() < 50
+        && request.resource.data.email is string && request.resource.data.email.size() < 200
+        && request.resource.data.projectInterest is string && request.resource.data.projectInterest.size() < 200
+        && request.resource.data.note is string && request.resource.data.note.size() < 1000;
+      allow read, update, delete: if false;
+    }
+
+    match /listings/{listingId} {
+      allow create: if request.resource.data.keys().hasAll(['agentName', 'ceaRegNumber', 'agentPhone', 'agentEmail', 'postalCode', 'district', 'propertyType', 'unitDescription', 'price', 'description', 'status'])
+        && request.resource.data.agentName is string && request.resource.data.agentName.size() < 200
+        && request.resource.data.ceaRegNumber is string && request.resource.data.ceaRegNumber.size() < 20
+        && request.resource.data.agentPhone is string && request.resource.data.agentPhone.size() < 50
+        && request.resource.data.agentEmail is string && request.resource.data.agentEmail.size() < 200
+        && request.resource.data.price is number
+        && request.resource.data.status == 'active';
+      allow read: if resource.data.status == 'active';
+      allow update, delete: if false;
+    }
+  }
+}
