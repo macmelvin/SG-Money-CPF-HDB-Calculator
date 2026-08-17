@@ -1003,6 +1003,9 @@
   gap: 8px;
   margin: 4px 0 10px;
 }
+.listing-large-photo-warning {
+  color: var(--primary);
+}
 .listing-photo-preview {
   position: relative;
   aspect-ratio: 1;

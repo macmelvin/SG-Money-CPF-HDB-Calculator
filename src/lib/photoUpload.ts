@@ -3,6 +3,12 @@ import { getStorageInstance, isFirebaseConfigured } from "./firebase";
 export { isFirebaseConfigured };
 
 export const MAX_LISTING_PHOTOS = 8;
+// A heads-up threshold shown to the person at selection time — NOT a hard
+// reject. Compression below handles any input size fine either way; this
+// is purely so someone selecting an unusually large file (e.g. a
+// high-res/burst photo) knows upfront it'll take a moment longer to
+// compress and upload, rather than wondering why one photo is slow.
+export const LARGE_PHOTO_WARNING_MB = 10;
 // Compressed target — raw phone photos are often 5-10MB; this keeps listing
 // pages fast to load and Storage costs low without visibly hurting quality
 // at the size photos actually display (property listing thumbnails/cards,

@@ -3,7 +3,7 @@ import { CalcShell, NumberField, SelectField, Disclaimer, ResultCard } from "../
 import { SG_POSTAL_DISTRICTS, getDistrictFromPostalCode, getDistrictInfo } from "../lib/postalDistricts";
 import { submitListing, fetchListingsByDistrict, isFirebaseConfigured } from "../lib/listings";
 import type { PropertyType, Listing } from "../lib/listings";
-import { uploadListingPhotos, MAX_LISTING_PHOTOS } from "../lib/photoUpload";
+import { uploadListingPhotos, MAX_LISTING_PHOTOS, LARGE_PHOTO_WARNING_MB } from "../lib/photoUpload";
 import { ADVERTISER_CONTACT_EMAIL } from "../lib/offers";
 import { usePageMeta } from "../lib/usePageMeta";
 import { trackEvent } from "../lib/analytics";
@@ -46,6 +46,7 @@ export default function PropertyListings() {
   const [description, setDescription] = useState("");
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
+  const [largePhotoWarning, setLargePhotoWarning] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
   const [company, setCompany] = useState(""); // honeypot
   const [formError, setFormError] = useState("");
@@ -69,6 +70,14 @@ export default function PropertyListings() {
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = Array.from(e.target.files ?? []);
     e.target.value = ""; // lets the same file be re-selected later if removed then re-added
+
+    const largeOnes = selected.filter((f) => f.size > LARGE_PHOTO_WARNING_MB * 1024 * 1024);
+    setLargePhotoWarning(
+      largeOnes.length > 0
+        ? `${largeOnes.length === 1 ? "1 photo is" : `${largeOnes.length} photos are`} larger than ${LARGE_PHOTO_WARNING_MB}MB — they'll be compressed automatically before upload, which may take a bit longer.`
+        : ""
+    );
+
     setPhotoFiles((prev) => {
       const combined = [...prev, ...selected].slice(0, MAX_LISTING_PHOTOS);
       return combined;
@@ -279,6 +288,7 @@ export default function PropertyListings() {
                   disabled={photoFiles.length >= MAX_LISTING_PHOTOS}
                 />
               </label>
+              {largePhotoWarning && <p className="explainer listing-large-photo-warning">{largePhotoWarning}</p>}
               {photoPreviews.length > 0 && (
                 <div className="listing-photo-preview-grid">
                   {photoPreviews.map((src, i) => (
