@@ -20,6 +20,15 @@ export interface ListingSubmission {
   price: number;
   floorAreaSqft?: number;
   description: string;
+  /** Already-uploaded Storage download URLs (see photoUpload.ts) — uploaded
+   *  BEFORE this submission, not as part of it. Max 8, enforced in the UI. */
+  photoUrls?: string[];
+  /** A link (YouTube, Instagram Reel, etc.), not a raw uploaded file — real
+   *  estate portals generally do this too rather than hosting video
+   *  directly, since video files are large/slow to upload and expensive to
+   *  store/serve at scale. Loosely validated as a URL, not checked against
+   *  a specific platform. */
+  videoUrl?: string;
 }
 
 export interface Listing extends ListingSubmission {

@@ -3,6 +3,7 @@ import { CalcShell, NumberField, SelectField, Disclaimer, ResultCard } from "../
 import { SG_POSTAL_DISTRICTS, getDistrictFromPostalCode, getDistrictInfo } from "../lib/postalDistricts";
 import { submitListing, fetchListingsByDistrict, isFirebaseConfigured } from "../lib/listings";
 import type { PropertyType, Listing } from "../lib/listings";
+import { uploadListingPhotos, MAX_LISTING_PHOTOS } from "../lib/photoUpload";
 import { ADVERTISER_CONTACT_EMAIL } from "../lib/offers";
 import { usePageMeta } from "../lib/usePageMeta";
 import { trackEvent } from "../lib/analytics";
@@ -43,9 +44,12 @@ export default function PropertyListings() {
   const [price, setPrice] = useState(0);
   const [floorAreaSqft, setFloorAreaSqft] = useState(0);
   const [description, setDescription] = useState("");
+  const [photoFiles, setPhotoFiles] = useState<File[]>([]);
+  const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
+  const [videoUrl, setVideoUrl] = useState("");
   const [company, setCompany] = useState(""); // honeypot
   const [formError, setFormError] = useState("");
-  const [formStatus, setFormStatus] = useState<"idle" | "submitting" | "done" | "error">("idle");
+  const [formStatus, setFormStatus] = useState<"idle" | "uploading" | "submitting" | "done" | "error">("idle");
 
   const configured = isFirebaseConfigured();
   const derivedDistrict = postalCode ? getDistrictFromPostalCode(postalCode) : null;
@@ -61,6 +65,25 @@ export default function PropertyListings() {
       setLoading(false);
     });
   }, [selectedDistrict]);
+
+  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = Array.from(e.target.files ?? []);
+    e.target.value = ""; // lets the same file be re-selected later if removed then re-added
+    setPhotoFiles((prev) => {
+      const combined = [...prev, ...selected].slice(0, MAX_LISTING_PHOTOS);
+      return combined;
+    });
+  };
+
+  useEffect(() => {
+    const urls = photoFiles.map((f) => URL.createObjectURL(f));
+    setPhotoPreviews(urls);
+    return () => urls.forEach((u) => URL.revokeObjectURL(u));
+  }, [photoFiles]);
+
+  const removePhoto = (index: number) => {
+    setPhotoFiles((prev) => prev.filter((_, i) => i !== index));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,7 +107,22 @@ export default function PropertyListings() {
       setFormError("Enter the unit type and an asking price.");
       return;
     }
+    if (videoUrl.trim() && !/^https?:\/\//i.test(videoUrl.trim())) {
+      setFormError("Video link should be a full URL starting with https://");
+      return;
+    }
     setFormError("");
+    let photoUrls: string[] = [];
+    if (photoFiles.length > 0) {
+      setFormStatus("uploading");
+      try {
+        photoUrls = await uploadListingPhotos(photoFiles);
+      } catch {
+        setFormStatus("error");
+        setFormError("Couldn't upload one or more photos — try again, or submit without photos for now.");
+        return;
+      }
+    }
     setFormStatus("submitting");
     const ok = await submitListing({
       agentName: agentName.trim(),
@@ -98,6 +136,8 @@ export default function PropertyListings() {
       price,
       floorAreaSqft: floorAreaSqft || undefined,
       description: description.trim(),
+      photoUrls: photoUrls.length > 0 ? photoUrls : undefined,
+      videoUrl: videoUrl.trim() || undefined,
     });
     if (ok) {
       setFormStatus("done");
@@ -133,12 +173,24 @@ export default function PropertyListings() {
         {!loading &&
           listings.map((l) => (
             <div key={l.id} className="listing-row">
+              {l.photoUrls && l.photoUrls.length > 0 && (
+                <div className="listing-photo-strip">
+                  {l.photoUrls.map((url) => (
+                    <img key={url} src={url} alt={l.unitDescription} />
+                  ))}
+                </div>
+              )}
               <div className="listing-row-header">
                 <span className="listing-row-type">{l.propertyType}</span>
                 <span className="listing-row-price">{formatSgd(l.price)}</span>
               </div>
               <p className="listing-row-unit">{l.unitDescription}{l.floorAreaSqft ? ` · ${l.floorAreaSqft} sqft` : ""}</p>
               {l.description && <p className="listing-row-desc">{l.description}</p>}
+              {l.videoUrl && (
+                <a href={l.videoUrl} target="_blank" rel="noopener noreferrer" className="listing-video-link">
+                  ▶ Watch video
+                </a>
+              )}
               <p className="listing-row-agent">
                 {l.agentName} · CEA {l.ceaRegNumber} · {l.agentPhone}
               </p>
@@ -217,10 +269,39 @@ export default function PropertyListings() {
                 className="lead-form-input listing-textarea"
                 rows={3}
               />
+              <label className="field">
+                <span className="field-label">Photos (optional, up to {MAX_LISTING_PHOTOS})</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handlePhotoSelect}
+                  disabled={photoFiles.length >= MAX_LISTING_PHOTOS}
+                />
+              </label>
+              {photoPreviews.length > 0 && (
+                <div className="listing-photo-preview-grid">
+                  {photoPreviews.map((src, i) => (
+                    <div key={src} className="listing-photo-preview">
+                      <img src={src} alt={`Preview ${i + 1}`} />
+                      <button type="button" onClick={() => removePhoto(i)} aria-label="Remove photo">
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <input
+                type="text"
+                placeholder="Video link (optional) — YouTube or Instagram Reel URL"
+                value={videoUrl}
+                onChange={(e) => setVideoUrl(e.target.value)}
+                className="lead-form-input"
+              />
               {formError && <p className="lead-form-error">{formError}</p>}
               {formStatus === "error" && <p className="lead-form-error">Something went wrong — try again in a moment.</p>}
-              <button type="submit" className="lead-form-submit" disabled={formStatus === "submitting"}>
-                {formStatus === "submitting" ? "Submitting…" : "Submit Listing"}
+              <button type="submit" className="lead-form-submit" disabled={formStatus === "uploading" || formStatus === "submitting"}>
+                {formStatus === "uploading" ? "Uploading photos…" : formStatus === "submitting" ? "Submitting…" : "Submit Listing"}
               </button>
             </form>
           )}

@@ -40,12 +40,34 @@ export function getDb(): Promise<import("firebase/firestore").Firestore> | null 
   if (!isFirebaseConfigured()) return null;
   if (!dbPromise) {
     dbPromise = Promise.all([import("firebase/app"), import("firebase/firestore")]).then(
-      ([{ initializeApp }, { getFirestore }]) => {
-        const app = initializeApp(firebaseConfig);
-        return getFirestore(app);
+      ([{ initializeApp, getApps, getApp }, { initializeFirestore }]) => {
+        const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+        // ignoreUndefinedProperties: without this, Firestore throws at write time
+        // if ANY field is `undefined` (e.g. an optional field like floorAreaSqft
+        // or videoUrl that the person left blank) — easy to trip over since
+        // that's valid, normal JS, not an error condition from the caller's side.
+        return initializeFirestore(app, { ignoreUndefinedProperties: true });
       }
     );
   }
   return dbPromise;
+}
+
+let storagePromise: Promise<import("firebase/storage").FirebaseStorage> | null = null;
+
+// Same lazy-load-once pattern as getDb() — only touched by the Property
+// Listings photo upload flow, so most page loads never pull in the Storage
+// SDK either.
+export function getStorageInstance(): Promise<import("firebase/storage").FirebaseStorage> | null {
+  if (!isFirebaseConfigured()) return null;
+  if (!storagePromise) {
+    storagePromise = Promise.all([import("firebase/app"), import("firebase/storage")]).then(
+      ([{ initializeApp, getApps, getApp }, { getStorage }]) => {
+        const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+        return getStorage(app);
+      }
+    );
+  }
+  return storagePromise;
 }
 

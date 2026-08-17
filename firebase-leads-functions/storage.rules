@@ -1,0 +1,18 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Listing photos are uploaded BEFORE the Firestore listing document
+    // exists (see photoUpload.ts) — there's no way to correlate an upload
+    // with a legitimate submission at write time, since this app has no
+    // accounts/auth at all by design. This is a known, accepted tradeoff
+    // (consistent with the rest of the app's no-auth trust model) rather
+    // than an oversight — someone could in principle upload images without
+    // ever creating a listing. Size/type limits below are the only real
+    // guardrail against abuse.
+    match /listings/{folderId}/{fileName} {
+      allow read: if true;
+      allow write: if request.resource.size < 3 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+  }
+}
