@@ -200,10 +200,10 @@ export const NEXT_STEP_OFFERS: Record<string, NextStepIntent[]> = {
       sponsors: [
         {
           advertiserId: "78-automobile-refinance",
-          headline: "Refinance Your Car Loan",
-          desc: "Lower your interest. Drive more. Worry less — with 78 Automobile.",
-          ctaLabel: "Get a Free Consultation",
-          href: "https://wa.me/6596324314",
+          headline: "Pay Less. Drive More. Refinance Today.",
+          desc: "Lower your monthly payments and enjoy better cash flow.",
+          ctaLabel: "Get a Free Quote",
+          href: "https://www.sgcarmart.com/used-cars/listing?dl=4228",
           category: "car-loan-refinancing",
           imageUrl: "/ads/78-automobile-refinance.jpg",
         },
