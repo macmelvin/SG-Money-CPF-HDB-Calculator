@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { CALCULATORS, BTO_TOOL_URL, DOC_TOOLS_URL } from "../lib/calculators";
 import { WhatsAppButton } from "./WhatsAppButton";
+import { SponsorBanner } from "./SponsorBanner";
 
 function formatSavedAt(savedAt: number): string {
   const diffMs = Date.now() - savedAt;
@@ -43,6 +44,13 @@ export function CalcShell({
 }) {
   const { pathname } = useLocation();
   const otherCalculators = CALCULATORS.filter((c) => c.to !== pathname);
+  // Matches the calculatorId convention used everywhere else (STORAGE_KEY,
+  // trackEvent's `calculator` field, NEXT_STEP_OFFERS' keys) — the route
+  // path with its leading slash stripped, e.g. "/car-cost-calculator" ->
+  // "car-cost-calculator". Derived here rather than passed in as a prop so
+  // every page automatically gets the right sponsor banner (or none) for
+  // free, without needing its own wiring.
+  const calculatorId = pathname.replace(/^\//, "");
   const [justSaved, setJustSaved] = useState(false);
 
   const handleSave = () => {
@@ -58,6 +66,8 @@ export function CalcShell({
       </Link>
       <h1>{title}</h1>
       <p className="subtitle">{subtitle}</p>
+
+      <SponsorBanner calculatorId={calculatorId} />
 
       {(onClear || onSave || onDownloadPdf || extraActions) && (
         <div className="privacy-note">

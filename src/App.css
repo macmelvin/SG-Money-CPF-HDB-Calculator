@@ -1402,3 +1402,94 @@
     height: 48px;
   }
 }
+
+/* Landing sponsor banner (SponsorBanner) — shown right under the title,
+   before any results, on calculators that have a real sponsor configured.
+   Deliberately quieter than .ad-spot-prominent below: thin border instead of
+   a bold one, no tinted background, small type — it's meant to be noticed,
+   not to compete with the calculator itself for attention. */
+.sponsor-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 0 16px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+}
+.sponsor-banner-label {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 5px;
+}
+.sponsor-banner-content {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.sponsor-banner-headline {
+  font-size: 13.5px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sponsor-banner-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sponsor-banner-cta {
+  flex-shrink: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--primary);
+  border: 1px solid var(--primary);
+  border-radius: 6px;
+  padding: 5px 10px;
+  white-space: nowrap;
+  text-decoration: none;
+}
+.sponsor-banner-cta:hover {
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+}
+.sponsor-banner-dismiss {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1;
+  padding: 4px;
+  cursor: pointer;
+}
+.sponsor-banner-dismiss:hover {
+  color: var(--text);
+}
+@media (max-width: 520px) {
+  .sponsor-banner {
+    flex-wrap: wrap;
+  }
+  .sponsor-banner-content {
+    order: 2;
+    flex-basis: 100%;
+  }
+  .sponsor-banner-headline,
+  .sponsor-banner-desc {
+    white-space: normal;
+  }
+  .sponsor-banner-cta {
+    order: 3;
+  }
+}
