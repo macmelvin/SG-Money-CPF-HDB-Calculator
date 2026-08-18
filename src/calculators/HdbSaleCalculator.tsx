@@ -169,6 +169,7 @@ export default function HdbSaleCalculator() {
     <CalcShell
       title="🏠 HDB Sale Proceeds Calculator"
       subtitle="See how much cash you'll walk away with after selling your HDB flat."
+      whatsappTopic="HDB Sale Proceeds Calculator"
       onClear={clearInputs}
       onSave={handleSave}
       onDownloadPdf={handleDownloadPdf}

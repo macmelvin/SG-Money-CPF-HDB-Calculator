@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { CALCULATORS, BTO_TOOL_URL, DOC_TOOLS_URL } from "../lib/calculators";
+import { WhatsAppButton } from "./WhatsAppButton";
 
 function formatSavedAt(savedAt: number): string {
   const diffMs = Date.now() - savedAt;
@@ -21,6 +22,7 @@ export function CalcShell({
   onDownloadPdf,
   savedAt,
   extraActions,
+  whatsappTopic,
   children,
 }: {
   title: string;
@@ -32,6 +34,11 @@ export function CalcShell({
   // Slot for calculator-specific action buttons (e.g. Retirement Calculator's "Download
   // Dashboard") that don't belong in CalcShell's generic save/PDF/clear API.
   extraActions?: ReactNode;
+  // Opt-in per page: when set, shows a floating WhatsApp button pre-filled with a
+  // message naming this topic (e.g. "Salary & CPF Calculator"). Left unset on pages
+  // that shouldn't have it (e.g. Property Listings) rather than defaulting it on
+  // everywhere CalcShell is used.
+  whatsappTopic?: string;
   children: ReactNode;
 }) {
   const { pathname } = useLocation();
@@ -96,6 +103,8 @@ export function CalcShell({
           ))}
         </div>
       </nav>
+
+      {whatsappTopic && <WhatsAppButton topic={whatsappTopic} />}
     </div>
   );
 }

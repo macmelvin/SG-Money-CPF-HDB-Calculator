@@ -137,6 +137,7 @@ export default function SalaryCalculator() {
     <CalcShell
       title="💰 Salary & CPF Calculator"
       subtitle="Find your estimated take-home pay and CPF contributions."
+      whatsappTopic="Salary & CPF Calculator"
       onClear={clearInputs}
       onSave={handleSave}
       onDownloadPdf={handleDownloadPdf}

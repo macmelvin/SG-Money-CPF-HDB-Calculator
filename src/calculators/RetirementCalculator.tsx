@@ -490,6 +490,7 @@ export default function RetirementCalculator() {
     <CalcShell
       title="👴 Retirement Calculator"
       subtitle="Are you on track to retire comfortably in Singapore?"
+      whatsappTopic="Retirement Calculator"
       onClear={clearInputs}
       onSave={handleSave}
       savedAt={savedAt}

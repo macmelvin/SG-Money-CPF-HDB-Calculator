@@ -87,6 +87,7 @@ export default function AccruedInterestCalculator() {
     <CalcShell
       title="📈 CPF Accrued Interest Calculator"
       subtitle="Estimate how much CPF you'll need to refund when you sell your property."
+      whatsappTopic="CPF Accrued Interest Calculator"
       onClear={clearInputs}
       onSave={handleSave}
       onDownloadPdf={handleDownloadPdf}
