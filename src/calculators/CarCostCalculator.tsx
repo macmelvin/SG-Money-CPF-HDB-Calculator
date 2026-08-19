@@ -319,6 +319,7 @@ export default function CarCostCalculator() {
       title="🚗 Car True Cost Calculator"
       subtitle="What does owning a car in Singapore really cost you each month?"
       whatsappTopic="Car True Cost Calculator"
+      showAppSuiteFooter
       onClear={clearInputs}
       onSave={handleSave}
       onDownloadPdf={handleDownloadPdf}

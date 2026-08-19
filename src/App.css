@@ -229,6 +229,7 @@
   .calc-page > .faq-section,
   .calc-page > .disclaimer,
   .calc-page > .other-calcs,
+  .calc-page > .app-suite-footer,
   .calc-page > .promo-pair {
     grid-column: 1 / -1;
   }
@@ -1493,4 +1494,61 @@
   .sponsor-banner-cta {
     order: 3;
   }
+}
+
+/* AppSuiteFooter — the "share + signature + sister apps" block shared across
+   Melvin's other apps, shown at the bottom of each calculator. Sits below
+   the "Other calculators" nav, so it reads as the true end of the page. */
+.app-suite-footer {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+  text-align: center;
+}
+.app-suite-share-btn {
+  display: inline-block;
+  margin: 0 auto 16px;
+  padding: 10px 20px;
+  border: 1px dashed var(--border);
+  border-radius: 999px;
+  background: none;
+  color: var(--text);
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.app-suite-share-btn:hover {
+  border-color: var(--primary);
+}
+.app-suite-signature {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 2px;
+}
+.app-suite-signature a {
+  color: var(--primary);
+  text-decoration: none;
+}
+.app-suite-signature a:hover {
+  text-decoration: underline;
+}
+.app-suite-phone {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin: 0 0 12px;
+}
+.app-suite-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 14px;
+  font-size: 12.5px;
+}
+.app-suite-links a {
+  color: var(--primary);
+  text-decoration: none;
+}
+.app-suite-links a:hover {
+  text-decoration: underline;
 }

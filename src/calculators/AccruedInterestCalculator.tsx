@@ -88,6 +88,7 @@ export default function AccruedInterestCalculator() {
       title="📈 CPF Accrued Interest Calculator"
       subtitle="Estimate how much CPF you'll need to refund when you sell your property."
       whatsappTopic="CPF Accrued Interest Calculator"
+      showAppSuiteFooter
       onClear={clearInputs}
       onSave={handleSave}
       onDownloadPdf={handleDownloadPdf}

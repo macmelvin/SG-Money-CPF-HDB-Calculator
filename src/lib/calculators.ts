@@ -19,6 +19,17 @@ export const BTO_TOOL_URL = "https://bto-planning-tool.web.app/";
 // "nothing sent to a server" promise intact for its calculators.
 export const DOC_TOOLS_URL = "https://document-tools.up.railway.app/";
 
+// Two more sister apps in the same "built by the same person, free, no
+// login" family — cross-linked from the app-suite footer (AppSuiteFooter,
+// src/components/CalcShell.tsx) alongside Document Tools and BTO Planning
+// Tool above.
+export const WARRANTY_TRACKER_URL = "https://warrantytracker.web.app/";
+export const PROTEIN_TRACKER_URL = "https://protein-tracker-for-50s.web.app/protein-tracker";
+
+// Melvin's own Facebook post — the "Good Lobang must share" link in the
+// app-suite footer points here rather than to a generic profile/page.
+export const LOBANG_SHARE_URL = "https://www.facebook.com/share/1EsHK8JzEM/";
+
 export const PREMIUM_REPORT_PAYMENT_LINK = "https://buy.stripe.com/aFa14nfOKeDg0R8azz1ZS00";
 export const PREMIUM_REPORT_PRICE_LABEL = "S$12.90";
 

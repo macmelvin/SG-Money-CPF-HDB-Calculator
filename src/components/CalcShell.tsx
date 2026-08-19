@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { CALCULATORS, BTO_TOOL_URL, DOC_TOOLS_URL } from "../lib/calculators";
 import { WhatsAppButton } from "./WhatsAppButton";
 import { SponsorBanner } from "./SponsorBanner";
+import { AppSuiteFooter } from "./AppSuiteFooter";
 
 function formatSavedAt(savedAt: number): string {
   const diffMs = Date.now() - savedAt;
@@ -24,6 +25,7 @@ export function CalcShell({
   savedAt,
   extraActions,
   whatsappTopic,
+  showAppSuiteFooter,
   children,
 }: {
   title: string;
@@ -40,6 +42,11 @@ export function CalcShell({
   // that shouldn't have it (e.g. Property Listings) rather than defaulting it on
   // everywhere CalcShell is used.
   whatsappTopic?: string;
+  // Opt-in per page: shows the "Share this app" + signature + sister-apps
+  // footer block (AppSuiteFooter). Currently only set on the 5 core
+  // calculators, not Property Listings — same opt-in reasoning as
+  // whatsappTopic above.
+  showAppSuiteFooter?: boolean;
   children: ReactNode;
 }) {
   const { pathname } = useLocation();
@@ -113,6 +120,8 @@ export function CalcShell({
           ))}
         </div>
       </nav>
+
+      {showAppSuiteFooter && <AppSuiteFooter />}
 
       {whatsappTopic && <WhatsAppButton topic={whatsappTopic} />}
     </div>

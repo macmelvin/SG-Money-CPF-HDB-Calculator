@@ -491,6 +491,7 @@ export default function RetirementCalculator() {
       title="👴 Retirement Calculator"
       subtitle="Are you on track to retire comfortably in Singapore?"
       whatsappTopic="Retirement Calculator"
+      showAppSuiteFooter
       onClear={clearInputs}
       onSave={handleSave}
       savedAt={savedAt}
