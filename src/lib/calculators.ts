@@ -23,7 +23,9 @@ export const DOC_TOOLS_URL = "https://document-tools.up.railway.app/";
 // login" family — cross-linked from the app-suite footer (AppSuiteFooter,
 // src/components/CalcShell.tsx) alongside Document Tools and BTO Planning
 // Tool above.
-export const WARRANTY_TRACKER_URL = "https://warrantytracker.web.app/";
+// Renamed from "Warranty Tracker" to "Expiry Tracker" and moved to its
+// production Railway URL (was warrantytracker.web.app).
+export const EXPIRY_TRACKER_URL = "https://waypoint-production-0307.up.railway.app/";
 export const PROTEIN_TRACKER_URL = "https://protein-tracker-for-50s.web.app/protein-tracker";
 
 // Melvin's own Facebook post — the "Good Lobang must share" link in the

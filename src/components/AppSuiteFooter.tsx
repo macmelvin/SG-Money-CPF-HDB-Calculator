@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { BTO_TOOL_URL, DOC_TOOLS_URL, WARRANTY_TRACKER_URL, PROTEIN_TRACKER_URL, LOBANG_SHARE_URL } from "../lib/calculators";
+import { BTO_TOOL_URL, DOC_TOOLS_URL, EXPIRY_TRACKER_URL, PROTEIN_TRACKER_URL, LOBANG_SHARE_URL } from "../lib/calculators";
 import { trackEvent } from "../lib/analytics";
 
 // The same "share + signature + sister apps" block Melvin uses across his
-// other apps (Document Tools, BTO Planning Tool, Warranty Tracker, Protein
+// other apps (Document Tools, BTO Planning Tool, Expiry Tracker, Protein
 // Tracker) — added here so SG Money matches and cross-promotes the rest of
 // the suite. Opt-in per page via CalcShell's showAppSuiteFooter prop (see
 // there), currently only the 5 core calculators.
@@ -61,8 +61,8 @@ export function AppSuiteFooter() {
         <a href={BTO_TOOL_URL} target="_blank" rel="noopener noreferrer">
           BTO Planning Tool
         </a>
-        <a href={WARRANTY_TRACKER_URL} target="_blank" rel="noopener noreferrer">
-          Warranty Tracker
+        <a href={EXPIRY_TRACKER_URL} target="_blank" rel="noopener noreferrer">
+          Expiry Tracker
         </a>
         <a href={PROTEIN_TRACKER_URL} target="_blank" rel="noopener noreferrer">
           Protein Tracker
