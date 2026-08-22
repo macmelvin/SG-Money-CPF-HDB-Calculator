@@ -204,16 +204,14 @@ export default function GeoArbitrageCalculator() {
     const projectedAssets = Math.max(0, projectedAssetsBeforeMove - projectedRelocationCost);
     const destinationMonthlyCosts = bangkokRent + bangkokFood + bangkokHealthcare + bangkokTransport + bangkokLifestyle + bangkokUtilitiesVisa;
     const totalMonthlyCostsToday = destinationMonthlyCosts + retainedSingaporeCosts;
-    // Keep the monthly retirement budget in today's dollars so it matches the
-    // figures the user entered (e.g. $500 retained in Singapore stays $500).
-    // Inflation is still applied year by year during retirement below.
-    const monthlyCostsAtRetirement = totalMonthlyCostsToday;
+    const monthlyCostsBeforeInflation = totalMonthlyCostsToday;
+    const monthlyCostsAtRetirement = totalMonthlyCostsToday * Math.pow(1 + inflationPct / 100, yearsToRetirement);
     const passiveIncome = cpfLifeIncome + rentalIncome + pensionIncome + otherPassiveIncome;
     const netMonthlySpend = Math.max(0, monthlyCostsAtRetirement - passiveIncome);
     const requiredNestEgg = growingAnnuityPresentValue(netMonthlySpend * 12, expectedReturnPct / 100, inflationPct / 100, retirementYears);
     const surplus = projectedAssets - requiredNestEgg;
     const lastsYears = estimateMoneyLastsYears(projectedAssets, netMonthlySpend * 12, expectedReturnPct / 100, inflationPct / 100, 100);
-    return { yearsToRetirement, retirementYears, startingAssets, projectedRelocationCost, projectedAssets, destinationMonthlyCosts, monthlyCostsAtRetirement, passiveIncome, netMonthlySpend, requiredNestEgg, surplus, lastsYears };
+    return { yearsToRetirement, retirementYears, startingAssets, projectedRelocationCost, projectedAssets, destinationMonthlyCosts, monthlyCostsBeforeInflation, monthlyCostsAtRetirement, passiveIncome, netMonthlySpend, requiredNestEgg, surplus, lastsYears };
   }, [currentAge, retirementAge, lifeExpectancy, cashSavings, investments, accessibleCpf, propertyProceeds, monthlyContributions, expectedReturnPct, inflationPct, relocationCost, bangkokRent, bangkokFood, bangkokHealthcare, bangkokTransport, bangkokLifestyle, bangkokUtilitiesVisa, retainedSingaporeCosts, cpfLifeIncome, rentalIncome, pensionIncome, otherPassiveIncome]);
 
   const save = () => {
@@ -288,7 +286,7 @@ export default function GeoArbitrageCalculator() {
         <ul>
           <li><b>Projected assets:</b> your current assets grown at the expected return, plus monthly contributions, less the relocation cost.</li>
           <li><b>Required nest egg:</b> the amount needed at retirement to fund net spending until your life expectancy, allowing for return and inflation.</li>
-          <li><b>Net monthly spend:</b> today's destination costs plus retained Singapore costs, less passive income.</li>
+          <li><b>Net monthly spend:</b> the after-inflation retirement cost, less passive income.</li>
           <li><b>Surplus / shortfall:</b> projected assets minus the required nest egg.</li>
           <li><b>Money-lasts horizon:</b> a year-by-year projection as assets earn returns and spending rises with inflation.</li>
         </ul>
@@ -377,7 +375,8 @@ export default function GeoArbitrageCalculator() {
         <NumberField label="Enter your one-time relocation cost today" value={relocationCost} onChange={setRelocationCost} prefix="$" />
         <div className="retirement-cost-details">
           <ResultRow label="1× RELOCATION COST" value={formatSgd(result.projectedRelocationCost)} />
-          <ResultRow label="MONTHLY RETIREMENT COST" value={`${formatSgd(result.monthlyCostsAtRetirement)}/mo`} />
+          <ResultRow label="MONTHLY RETIREMENT COST (BEFORE INFLATION)" value={`${formatSgd(result.monthlyCostsBeforeInflation)}/mo`} />
+          <ResultRow label="MONTHLY RETIREMENT COST (AFTER INFLATION)" value={`${formatSgd(result.monthlyCostsAtRetirement)}/mo`} />
           <ResultRow label="NET MONTHLY SPEND" value={`${formatSgd(result.netMonthlySpend)}/mo`} emphasis />
         </div>
       </ResultCard>
