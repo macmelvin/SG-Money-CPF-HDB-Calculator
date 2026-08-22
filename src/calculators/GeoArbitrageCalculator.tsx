@@ -217,10 +217,11 @@ export default function GeoArbitrageCalculator() {
     const monthlyCostsAtRetirement = totalMonthlyCostsToday * Math.pow(1 + inflationPct / 100, yearsToRetirement);
     const passiveIncome = cpfLifeIncome + rentalIncome + pensionIncome + otherPassiveIncome;
     const netMonthlySpend = Math.max(0, monthlyCostsAtRetirement - passiveIncome);
+    const monthlyIncomeSurplus = Math.max(0, passiveIncome - monthlyCostsAtRetirement);
     const requiredNestEgg = growingAnnuityPresentValue(netMonthlySpend * 12, expectedReturnPct / 100, inflationPct / 100, retirementYears);
     const surplus = projectedAssets - requiredNestEgg;
     const lastsYears = estimateMoneyLastsYears(projectedAssets, netMonthlySpend * 12, expectedReturnPct / 100, inflationPct / 100, 100);
-    return { yearsToRetirement, retirementYears, startingAssets, projectedRelocationCost, projectedAssets, destinationMonthlyCosts, monthlyCostsBeforeInflation, monthlyCostsAtRetirement, passiveIncome, netMonthlySpend, requiredNestEgg, surplus, lastsYears };
+    return { yearsToRetirement, retirementYears, startingAssets, projectedRelocationCost, projectedAssets, destinationMonthlyCosts, monthlyCostsBeforeInflation, monthlyCostsAtRetirement, passiveIncome, netMonthlySpend, monthlyIncomeSurplus, requiredNestEgg, surplus, lastsYears };
   }, [currentAge, retirementAge, lifeExpectancy, cashSavings, investments, accessibleCpf, propertyProceeds, monthlyContributions, expectedReturnPct, inflationPct, relocationCost, bangkokRent, bangkokFood, bangkokHealthcare, bangkokTransport, bangkokLifestyle, bangkokUtilitiesVisa, retainedSingaporeCosts, cpfLifeIncome, rentalIncome, pensionIncome, otherPassiveIncome]);
 
   const save = () => {
@@ -259,6 +260,8 @@ export default function GeoArbitrageCalculator() {
     : Infinity;
   const incomeIfRetireNow = rentalIncome + pensionIncome + otherPassiveIncome;
   const incomeFromAge65 = incomeIfRetireNow + cpfLifeIncome;
+  const monthlyBalanceLabel = result.monthlyIncomeSurplus > 0 ? "Net monthly surplus" : "Net monthly spend";
+  const monthlyBalanceAmount = result.monthlyIncomeSurplus > 0 ? result.monthlyIncomeSurplus : result.netMonthlySpend;
 
   return (
     <CalcShell
@@ -288,7 +291,7 @@ export default function GeoArbitrageCalculator() {
       <div className="geo-summary-grid" aria-label="Retirement summary">
         <div className="geo-summary-card"><span>Projected assets</span><strong>{formatSgd(result.projectedAssets)}</strong><small>After relocation cost</small></div>
         <div className="geo-summary-card"><span>Required nest egg</span><strong>{formatSgd(result.requiredNestEgg)}</strong><small>To age {lifeExpectancy}</small></div>
-        <div className="geo-summary-card"><span>Net monthly spend</span><strong>{formatSgd(result.netMonthlySpend)}</strong><small>At retirement, after income</small></div>
+        <div className="geo-summary-card"><span>{monthlyBalanceLabel}</span><strong>{formatSgd(monthlyBalanceAmount)}</strong><small>At retirement, after income</small></div>
         <div className={`geo-summary-card ${result.surplus >= 0 ? "positive" : "negative"}`}><span>{result.surplus >= 0 ? "Surplus" : "Shortfall"}</span><strong>{formatSgd(Math.abs(result.surplus))}</strong><small>{result.surplus >= 0 ? "Above target" : "Below target"}</small></div>
         <div className="geo-summary-card"><span>Money-lasts horizon</span><strong>{horizon}</strong><small>Based on entered assumptions</small></div>
       </div>
@@ -399,7 +402,8 @@ export default function GeoArbitrageCalculator() {
           <ResultRow label="1× RELOCATION COST" value={formatSgd(result.projectedRelocationCost)} />
           <ResultRow label="MONTHLY RETIREMENT COST (BEFORE INFLATION)" value={`${formatSgd(result.monthlyCostsBeforeInflation)}/mo`} />
           <ResultRow label="MONTHLY RETIREMENT COST (AFTER INFLATION)" value={`${formatSgd(result.monthlyCostsAtRetirement)}/mo`} />
-          <ResultRow label="NET MONTHLY SPEND" value={`${formatSgd(result.netMonthlySpend)}/mo`} emphasis />
+          <ResultRow label="LESS: PASSIVE INCOME" value={`${formatSgd(result.passiveIncome)}/mo`} />
+          <ResultRow label={monthlyBalanceLabel.toUpperCase()} value={`${formatSgd(monthlyBalanceAmount)}/mo`} emphasis positive={result.monthlyIncomeSurplus > 0 ? true : undefined} />
         </div>
       </ResultCard>
 
