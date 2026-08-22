@@ -82,6 +82,7 @@ interface SavedRetirementData {
   expectedReturnPct?: number;
   inflationRatePct?: number;
   investmentItems?: Array<{ amount: number }>;
+  incomeItems?: Array<{ label: string; amount: number }>;
   cpfLifeMonthlyIncome?: number;
 }
 
@@ -120,6 +121,12 @@ export default function GeoArbitrageCalculator() {
   const liveRetirement = loadCalculatorData<SavedRetirementData>(RETIREMENT_LIVE_STORAGE_KEY);
   const retirementSource = liveRetirement ?? savedRetirement;
   const hasLinkedCpfLife = retirementSource?.data.cpfLifeMonthlyIncome !== undefined;
+  const hasLinkedIncomeItems = retirementSource?.data.incomeItems !== undefined;
+  const linkedRentalIncome = roundCurrency(
+    retirementSource?.data.incomeItems
+      ?.filter((item) => /rent/i.test(item.label))
+      .reduce((total, item) => total + item.amount, 0) ?? 0
+  );
   const savedHdb = loadCalculatorData<HdbSaleInput>(HDB_SALE_STORAGE_KEY);
   const hdbCashProceeds = savedHdb?.data ? calculateHdbSaleProceeds(savedHdb.data).cashProceeds : undefined;
   const retirementImport = retirementSource?.data
@@ -136,6 +143,7 @@ export default function GeoArbitrageCalculator() {
         inflationPct: retirementSource.data.inflationRatePct ?? DEFAULTS.inflationPct,
         propertyProceeds: roundCurrency(hdbCashProceeds ?? DEFAULTS.propertyProceeds),
         cpfLifeIncome: roundCurrency(retirementSource.data.cpfLifeMonthlyIncome ?? DEFAULTS.cpfLifeIncome),
+        rentalIncome: linkedRentalIncome,
       }
     : null;
   // A saved Geo scenario belongs to the user and wins on return visits. On the first
@@ -146,6 +154,7 @@ export default function GeoArbitrageCalculator() {
     // CPF LIFE is owned by the Retirement Calculator. Always let its latest
     // calculated payout replace an older Geo scenario's former $900 placeholder.
     ...(hasLinkedCpfLife && retirementImport ? { cpfLifeIncome: retirementImport.cpfLifeIncome } : { cpfLifeIncome: 0 }),
+    ...(hasLinkedIncomeItems ? { rentalIncome: linkedRentalIncome } : {}),
   };
 
   const [destinationId, setDestinationId] = useState<DestinationId>(initial.destinationId);
@@ -234,6 +243,7 @@ export default function GeoArbitrageCalculator() {
     setInflationPct(retirementImport.inflationPct);
     setPropertyProceeds(retirementImport.propertyProceeds);
     setCpfLifeIncome(retirementImport.cpfLifeIncome);
+    setRentalIncome(retirementImport.rentalIncome);
     setJustImported(true);
   };
   const horizon = result.lastsYears === Infinity
@@ -247,6 +257,8 @@ export default function GeoArbitrageCalculator() {
   const fundingRatio = result.requiredNestEgg > 0
     ? Math.round((result.projectedAssets / result.requiredNestEgg) * 100)
     : Infinity;
+  const incomeIfRetireNow = rentalIncome + pensionIncome + otherPassiveIncome;
+  const incomeFromAge65 = incomeIfRetireNow + cpfLifeIncome;
 
   return (
     <CalcShell
@@ -365,10 +377,16 @@ export default function GeoArbitrageCalculator() {
         ) : (
           <p className="explainer">No calculated CPF LIFE payout is available yet. Open the <Link to="/retirement-calculator">Retirement Calculator</Link> once to calculate and link it automatically.</p>
         )}
-        <NumberField label="Rental income at retirement" value={rentalIncome} onChange={setRentalIncome} prefix="$" suffix="/mo" />
+        <NumberField label="Rental income from Retirement Calculator" value={rentalIncome} onChange={setRentalIncome} prefix="$" suffix="/mo" readOnly={hasLinkedIncomeItems} />
+        {hasLinkedIncomeItems ? (
+          <p className="explainer">Linked from income entries containing “rent” in the Retirement Calculator's Monthly Cash Flow section.</p>
+        ) : (
+          <p className="explainer">Add a rental-income line in the Retirement Calculator's Monthly Cash Flow section to link it here.</p>
+        )}
         <NumberField label="Pension / annuity income" value={pensionIncome} onChange={setPensionIncome} prefix="$" suffix="/mo" />
         <NumberField label="Other passive income" value={otherPassiveIncome} onChange={setOtherPassiveIncome} prefix="$" suffix="/mo" />
-        <ResultRow label="TOTAL PASSIVE INCOME" value={`${formatSgd(result.passiveIncome)}/mo`} emphasis />
+        <ResultRow label="IF RETIRE NOW" value={`${formatSgd(incomeIfRetireNow)}/mo`} emphasis />
+        <ResultRow label="FROM AGE 65 (WITH CPF LIFE)" value={`${formatSgd(incomeFromAge65)}/mo`} emphasis />
         <ResultRow label="RETIREMENT ASSETS" value={formatSgd(result.projectedAssets)} emphasis />
         <p className="explainer">Your passive income is not your spending limit. These projected assets can fund spending above CPF LIFE and are already included in the required nest egg and retirement-feasibility calculations.</p>
       </ResultCard>

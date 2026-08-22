@@ -245,9 +245,10 @@ export default function RetirementCalculator() {
       expectedReturnPct,
       inflationRatePct,
       investmentItems,
+      incomeItems,
       cpfLifeMonthlyIncome: result.cpfLife.estimatedMonthlyPayout,
     });
-  }, [currentAge, retirementAge, currentSavings, currentOA, currentSaRa, monthlyInvestment, expectedReturnPct, inflationRatePct, investmentItems, result.cpfLife.estimatedMonthlyPayout]);
+  }, [currentAge, retirementAge, currentSavings, currentOA, currentSaRa, monthlyInvestment, expectedReturnPct, inflationRatePct, investmentItems, incomeItems, result.cpfLife.estimatedMonthlyPayout]);
 
   const cpfLifePlans = useMemo(
     () => estimateCpfLifeAllPlans(result.cpfLife.retirementAccountBalance, CPF_RETIREMENT_SUMS_2026[cpfLifeTargetTier]),
