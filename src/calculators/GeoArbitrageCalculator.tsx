@@ -83,6 +83,8 @@ interface SavedRetirementData {
   inflationRatePct?: number;
   investmentItems?: Array<{ amount: number }>;
   incomeItems?: Array<{ label: string; amount: number }>;
+  expenseItems?: Array<{ label: string; amount: number }>;
+  liabilityItems?: Array<{ label: string; amount: number }>;
   cpfLifeMonthlyIncome?: number;
 }
 
@@ -153,6 +155,11 @@ export default function GeoArbitrageCalculator() {
     retirementSource?.data.incomeItems
       ?.filter((item) => /rent/i.test(item.label))
       .reduce((total, item) => total + item.amount, 0) ?? 0
+  );
+  const hasLinkedExpenses = retirementSource?.data.expenseItems !== undefined;
+  const linkedRetirementExpenses = roundCurrency(
+    (retirementSource?.data.expenseItems?.reduce((total, item) => total + item.amount, 0) ?? 0) +
+    (retirementSource?.data.liabilityItems?.reduce((total, item) => total + item.amount, 0) ?? 0)
   );
   const savedHdb = loadCalculatorData<HdbSaleInput>(HDB_SALE_STORAGE_KEY);
   const hdbCashProceeds = savedHdb?.data ? calculateHdbSaleProceeds(savedHdb.data).cashProceeds : undefined;
@@ -239,7 +246,9 @@ export default function GeoArbitrageCalculator() {
     const projectedRelocationCost = relocationCost * Math.pow(1 + inflationPct / 100, yearsToRetirement);
     const projectedAssets = Math.max(0, projectedAssetsBeforeMove - projectedRelocationCost);
     const destinationMonthlyCosts = bangkokRent + bangkokFood + bangkokHealthcare + bangkokTransport + bangkokLifestyle + bangkokUtilitiesVisa;
-    const totalMonthlyCostsToday = destinationMonthlyCosts + retainedSingaporeCosts;
+    const retireNow = retirementAge === currentAge;
+    const retainedCostsUsed = retireNow ? linkedRetirementExpenses : retainedSingaporeCosts;
+    const totalMonthlyCostsToday = destinationMonthlyCosts + retainedCostsUsed;
     const monthlyCostsBeforeInflation = totalMonthlyCostsToday;
     const monthlyCostsAtRetirement = totalMonthlyCostsToday * Math.pow(1 + inflationPct / 100, yearsToRetirement);
     const otherIncome = pensionIncome + otherPassiveIncome;
@@ -251,8 +260,8 @@ export default function GeoArbitrageCalculator() {
     const requiredNestEgg = calculateRequiredNestEgg(monthlyCostsAtRetirement, passiveIncome, retirementYears, expectedReturnPct / 100, inflationPct / 100);
     const surplus = projectedAssets - requiredNestEgg;
     const lastsYears = estimateMoneyLastsYears(projectedAssets, monthlyCostsAtRetirement, passiveIncome, expectedReturnPct / 100, inflationPct / 100, 100);
-    return { yearsToRetirement, retirementYears, startingAssets, projectedRelocationCost, projectedAssets, destinationMonthlyCosts, monthlyCostsBeforeInflation, monthlyCostsAtRetirement, passiveIncome, netMonthlySpend, monthlyIncomeSurplus, requiredNestEgg, surplus, lastsYears };
-  }, [currentAge, retirementAge, lifeExpectancy, cashSavings, investments, accessibleCpf, propertyProceeds, monthlyContributions, expectedReturnPct, inflationPct, relocationCost, bangkokRent, bangkokFood, bangkokHealthcare, bangkokTransport, bangkokLifestyle, bangkokUtilitiesVisa, retainedSingaporeCosts, cpfLifeIncome, rentalIncome, pensionIncome, otherPassiveIncome]);
+    return { yearsToRetirement, retirementYears, startingAssets, projectedRelocationCost, projectedAssets, destinationMonthlyCosts, retainedCostsUsed, monthlyCostsBeforeInflation, monthlyCostsAtRetirement, passiveIncome, netMonthlySpend, monthlyIncomeSurplus, requiredNestEgg, surplus, lastsYears };
+  }, [currentAge, retirementAge, lifeExpectancy, cashSavings, investments, accessibleCpf, propertyProceeds, monthlyContributions, expectedReturnPct, inflationPct, relocationCost, bangkokRent, bangkokFood, bangkokHealthcare, bangkokTransport, bangkokLifestyle, bangkokUtilitiesVisa, retainedSingaporeCosts, linkedRetirementExpenses, cpfLifeIncome, rentalIncome, pensionIncome, otherPassiveIncome]);
 
   const save = () => {
     saveCalculatorData(STORAGE_KEY, values);
@@ -419,8 +428,21 @@ export default function GeoArbitrageCalculator() {
       </ResultCard>
 
       <ResultCard title="🇸🇬 Costs retained in Singapore">
-        <NumberField label="Housing, family, tax or other commitments" value={retainedSingaporeCosts} onChange={setRetainedSingaporeCosts} prefix="$" suffix="/mo" />
-        <p className="explainer">Include expenses that continue after moving, such as property charges, family support, storage, insurance or frequent trips home.</p>
+        {retirementAge === currentAge ? (
+          <>
+            <NumberField label="Monthly expenses from Retirement Calculator" value={linkedRetirementExpenses} onChange={() => {}} prefix="$" suffix="/mo" readOnly />
+            <p className="explainer">
+              {hasLinkedExpenses
+                ? "Retire now is selected, so all monthly expenses and liabilities from the Retirement Calculator are included automatically."
+                : "Open the Retirement Calculator and enter your monthly expenses to link them here."}
+            </p>
+          </>
+        ) : (
+          <>
+            <NumberField label="Housing, family, tax or other commitments" value={retainedSingaporeCosts} onChange={setRetainedSingaporeCosts} prefix="$" suffix="/mo" />
+            <p className="explainer">Include expenses that continue after moving, such as property charges, family support, storage, insurance or frequent trips home.</p>
+          </>
+        )}
       </ResultCard>
 
       <ResultCard title="💵 Retirement Income & Assets">
