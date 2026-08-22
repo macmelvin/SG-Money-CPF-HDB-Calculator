@@ -67,6 +67,12 @@ const routes = [
       "Free retirement calculator for Singapore. See if your savings, CPF and monthly investments are on track to meet your target retirement income, and what to change if they're not.",
   },
   {
+    path: "geo-arbitrage",
+    title: "Bangkok Retirement & Geo Arbitrage Calculator | SG Money",
+    description:
+      "Plan an overseas retirement in Bangkok. Compare projected assets with Thailand living costs, retained Singapore expenses, passive income and relocation costs.",
+  },
+  {
     path: "car-cost-calculator",
     title: "Car True Cost Calculator Singapore | SG-Money-CPF-HDB-Calculator",
     description:

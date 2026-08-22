@@ -713,6 +713,15 @@ export default function RetirementCalculator() {
         />
       </ResultCard>
 
+      <Link to="/geo-arbitrage" className="geo-arbitrage-cta">
+        <span className="geo-arbitrage-cta-icon">🌏</span>
+        <span>
+          <strong>What if I retire overseas?</strong>
+          <small>See how far your retirement assets could go in Bangkok.</small>
+        </span>
+        <span aria-hidden="true">→</span>
+      </Link>
+
       <ResultCard title="💎 Premium Retirement Report">
         {premiumUnlocked ? (
           <>

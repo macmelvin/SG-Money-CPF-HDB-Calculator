@@ -8,6 +8,7 @@ import RetirementCalculator from "./calculators/RetirementCalculator";
 import CarCostCalculator from "./calculators/CarCostCalculator";
 import PropertyListings from "./calculators/PropertyListings";
 import BackupRestore from "./calculators/BackupRestore";
+import GeoArbitrageCalculator from "./calculators/GeoArbitrageCalculator";
 import "./App.css";
 
 // Two build targets need two different routers:
@@ -39,6 +40,7 @@ function App() {
           <Route path="/hdb-sale-proceeds" element={<HdbSaleCalculator />} />
           <Route path="/cpf-accrued-interest" element={<AccruedInterestCalculator />} />
           <Route path="/retirement-calculator" element={<RetirementCalculator />} />
+          <Route path="/geo-arbitrage" element={<GeoArbitrageCalculator />} />
           <Route path="/car-cost-calculator" element={<CarCostCalculator />} />
           <Route path="/property-listings" element={<PropertyListings />} />
           <Route path="/backup" element={<BackupRestore />} />

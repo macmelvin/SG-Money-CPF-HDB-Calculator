@@ -61,6 +61,12 @@ export const CALCULATORS: CalculatorMeta[] = [
     desc: "Are you on track for retirement?",
   },
   {
+    to: "/geo-arbitrage",
+    icon: "🌏",
+    title: "Retire Overseas",
+    desc: "Could your savings go further in Bangkok?",
+  },
+  {
     to: "/car-cost-calculator",
     icon: "🚗",
     title: "Car Cost",
