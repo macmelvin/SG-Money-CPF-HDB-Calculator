@@ -263,6 +263,17 @@ export default function GeoArbitrageCalculator() {
         <div className="geo-summary-card"><span>Money-lasts horizon</span><strong>{horizon}</strong><small>Based on entered assumptions</small></div>
       </div>
 
+      <div className="calculation-notes">
+        <strong>How these figures are calculated</strong>
+        <ul>
+          <li><b>Projected assets:</b> your current assets grown at the expected return, plus monthly contributions, less the relocation cost.</li>
+          <li><b>Required nest egg:</b> the amount needed at retirement to fund net spending until your life expectancy, allowing for return and inflation.</li>
+          <li><b>Net monthly spend:</b> destination costs plus retained Singapore costs, inflated to retirement, less passive income.</li>
+          <li><b>Surplus / shortfall:</b> projected assets minus the required nest egg.</li>
+          <li><b>Money-lasts horizon:</b> a year-by-year projection as assets earn returns and spending rises with inflation.</li>
+        </ul>
+      </div>
+
       <ResultCard title="💰 Assets funding the move">
         {retirementImport ? (
           <>

@@ -248,6 +248,27 @@
 }
 .geo-summary-card.positive strong { color: var(--positive); }
 .geo-summary-card.negative strong { color: var(--negative); }
+.calculation-notes {
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.calculation-notes > strong {
+  color: var(--text);
+  font-size: 13px;
+}
+.calculation-notes ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+.calculation-notes li + li {
+  margin-top: 4px;
+}
 @media (max-width: 360px) {
   .geo-summary-grid { grid-template-columns: 1fr; }
 }
@@ -293,7 +314,8 @@
     grid-column: 1 / -1;
   }
   .calc-page > .geo-arbitrage-cta,
-  .calc-page > .geo-summary-grid {
+  .calc-page > .geo-summary-grid,
+  .calc-page > .calculation-notes {
     grid-column: 1 / -1;
   }
   /* The two promo boxes sit in their own full-width row and split it evenly — flex's
