@@ -69,6 +69,10 @@ const CPF_LIFE_TIER_LABEL: Record<CpfLifeTargetTier, string> = {
 };
 
 const STORAGE_KEY = "retirement-calculator";
+// Lightweight shared snapshot for Geo Arbitrage. Unlike the main saved scenario,
+// this updates as fields change so moving between calculators does not require an
+// extra Save tap. It remains local to this browser like all other calculator data.
+const GEO_SYNC_STORAGE_KEY = "retirement-calculator-geo-sync";
 // Persists the "user wants to model downsizing" intent from HDB Sale's
 // Downsize next-step option, so it survives the round trip: land here with
 // no saved HDB data -> go save it on HDB Sale -> come back (no query param
@@ -193,6 +197,20 @@ export default function RetirementCalculator() {
   // projection below) so it can optionally be grown and counted toward "how much you'll have at retirement."
   const totalInvestmentsPortfolio = sumLineItems(investmentItems);
   const effectiveInvestmentHoldings = includeInvestmentHoldings ? totalInvestmentsPortfolio : 0;
+
+  useEffect(() => {
+    saveCalculatorData(GEO_SYNC_STORAGE_KEY, {
+      currentAge,
+      retirementAge,
+      currentSavings,
+      currentOA,
+      currentSaRa,
+      monthlyInvestment,
+      expectedReturnPct,
+      inflationRatePct,
+      investmentItems,
+    });
+  }, [currentAge, retirementAge, currentSavings, currentOA, currentSaRa, monthlyInvestment, expectedReturnPct, inflationRatePct, investmentItems]);
 
   const result = useMemo(
     () =>

@@ -53,6 +53,7 @@ const DEFAULTS = {
 
 const STORAGE_KEY = "geo-arbitrage-calculator";
 const RETIREMENT_STORAGE_KEY = "retirement-calculator";
+const RETIREMENT_LIVE_STORAGE_KEY = "retirement-calculator-geo-sync";
 const HDB_SALE_STORAGE_KEY = "hdb-sale-proceeds";
 
 interface SavedRetirementData {
@@ -99,18 +100,20 @@ export default function GeoArbitrageCalculator() {
   );
   const saved = loadCalculatorData<typeof DEFAULTS>(STORAGE_KEY);
   const savedRetirement = loadCalculatorData<SavedRetirementData>(RETIREMENT_STORAGE_KEY);
+  const liveRetirement = loadCalculatorData<SavedRetirementData>(RETIREMENT_LIVE_STORAGE_KEY);
+  const retirementSource = liveRetirement ?? savedRetirement;
   const savedHdb = loadCalculatorData<HdbSaleInput>(HDB_SALE_STORAGE_KEY);
   const hdbCashProceeds = savedHdb?.data ? calculateHdbSaleProceeds(savedHdb.data).cashProceeds : undefined;
-  const retirementImport = savedRetirement?.data
+  const retirementImport = retirementSource?.data
     ? {
-        currentAge: savedRetirement.data.currentAge ?? DEFAULTS.currentAge,
-        retirementAge: savedRetirement.data.retirementAge ?? DEFAULTS.retirementAge,
-        cashSavings: savedRetirement.data.currentSavings ?? DEFAULTS.cashSavings,
-        investments: savedRetirement.data.investmentItems?.reduce((total, item) => total + item.amount, 0) ?? DEFAULTS.investments,
-        accessibleCpf: (savedRetirement.data.currentOA ?? 0) + (savedRetirement.data.currentSaRa ?? 0),
-        monthlyContributions: savedRetirement.data.monthlyInvestment ?? DEFAULTS.monthlyContributions,
-        expectedReturnPct: savedRetirement.data.expectedReturnPct ?? DEFAULTS.expectedReturnPct,
-        inflationPct: savedRetirement.data.inflationRatePct ?? DEFAULTS.inflationPct,
+        currentAge: retirementSource.data.currentAge ?? DEFAULTS.currentAge,
+        retirementAge: retirementSource.data.retirementAge ?? DEFAULTS.retirementAge,
+        cashSavings: retirementSource.data.currentSavings ?? DEFAULTS.cashSavings,
+        investments: retirementSource.data.investmentItems?.reduce((total, item) => total + item.amount, 0) ?? DEFAULTS.investments,
+        accessibleCpf: (retirementSource.data.currentOA ?? 0) + (retirementSource.data.currentSaRa ?? 0),
+        monthlyContributions: retirementSource.data.monthlyInvestment ?? DEFAULTS.monthlyContributions,
+        expectedReturnPct: retirementSource.data.expectedReturnPct ?? DEFAULTS.expectedReturnPct,
+        inflationPct: retirementSource.data.inflationRatePct ?? DEFAULTS.inflationPct,
         propertyProceeds: hdbCashProceeds ?? DEFAULTS.propertyProceeds,
       }
     : null;
@@ -237,14 +240,14 @@ export default function GeoArbitrageCalculator() {
               {justImported ? "✓ Retirement numbers imported" : "↻ Import saved Retirement numbers"}
             </button>
             <p className="explainer">
-              Uses saved ages, cash, investment holdings, OA + SA/RA, monthly investment, return and inflation
+              Uses your latest Retirement Calculator ages, cash, investment holdings, OA + SA/RA, monthly investment, return and inflation
               from the Retirement Calculator{hdbCashProceeds !== undefined ? ", plus cash proceeds from HDB Sale" : ""}.
               Bangkok costs stay separate and editable. Tap Save above to keep this scenario.
             </p>
           </>
         ) : (
           <p className="explainer">
-            Save your figures in the Retirement Calculator, then return here to import them automatically.
+            Open the Retirement Calculator once in this browser, then return here to import its latest figures automatically.
           </p>
         )}
         <NumberField label="Cash & savings today" value={cashSavings} onChange={setCashSavings} prefix="$" />
