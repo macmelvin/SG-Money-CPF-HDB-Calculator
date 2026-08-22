@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { CalcShell, Disclaimer, NumberField, ResultCard, ResultRow, SelectField } from "../components/CalcShell";
 import { calculateHdbSaleProceeds, formatSgd } from "../lib/cpf";
 import type { HdbSaleInput } from "../lib/cpf";
@@ -57,7 +58,7 @@ const DEFAULTS = {
   bangkokLifestyle: 450,
   bangkokUtilitiesVisa: 250,
   retainedSingaporeCosts: 500,
-  cpfLifeIncome: 900,
+  cpfLifeIncome: 0,
   rentalIncome: 0,
   pensionIncome: 0,
   otherPassiveIncome: 0,
@@ -118,6 +119,7 @@ export default function GeoArbitrageCalculator() {
   const savedRetirement = loadCalculatorData<SavedRetirementData>(RETIREMENT_STORAGE_KEY);
   const liveRetirement = loadCalculatorData<SavedRetirementData>(RETIREMENT_LIVE_STORAGE_KEY);
   const retirementSource = liveRetirement ?? savedRetirement;
+  const hasLinkedCpfLife = retirementSource?.data.cpfLifeMonthlyIncome !== undefined;
   const savedHdb = loadCalculatorData<HdbSaleInput>(HDB_SALE_STORAGE_KEY);
   const hdbCashProceeds = savedHdb?.data ? calculateHdbSaleProceeds(savedHdb.data).cashProceeds : undefined;
   const retirementImport = retirementSource?.data
@@ -138,7 +140,13 @@ export default function GeoArbitrageCalculator() {
     : null;
   // A saved Geo scenario belongs to the user and wins on return visits. On the first
   // visit, seed shared financial inputs from the other calculators instead of examples.
-  const initial = { ...DEFAULTS, ...(saved ? saved.data : retirementImport ?? {}) };
+  const initial = {
+    ...DEFAULTS,
+    ...(saved ? saved.data : retirementImport ?? {}),
+    // CPF LIFE is owned by the Retirement Calculator. Always let its latest
+    // calculated payout replace an older Geo scenario's former $900 placeholder.
+    ...(hasLinkedCpfLife && retirementImport ? { cpfLifeIncome: retirementImport.cpfLifeIncome } : { cpfLifeIncome: 0 }),
+  };
 
   const [destinationId, setDestinationId] = useState<DestinationId>(initial.destinationId);
   const [currentAge, setCurrentAge] = useState(initial.currentAge);
@@ -308,7 +316,7 @@ export default function GeoArbitrageCalculator() {
       </section>
 
       <ResultCard title="💰 Assets funding the move">
-        {retirementImport ? (
+        {hasLinkedCpfLife ? (
           <>
             <button type="button" className="dashboard-btn" onClick={importSavedPlan}>
               {justImported ? "✓ Retirement numbers imported" : "↻ Import saved Retirement numbers"}
@@ -350,8 +358,12 @@ export default function GeoArbitrageCalculator() {
       </ResultCard>
 
       <ResultCard title="💵 Passive retirement income">
-        <NumberField label="CPF LIFE income at retirement" value={cpfLifeIncome} onChange={setCpfLifeIncome} prefix="$" suffix="/mo" readOnly={retirementImport !== null} />
-        {retirementImport && <p className="explainer">Linked to the Retirement Calculator's estimated CPF LIFE payout. Change the CPF LIFE tier or retirement inputs there, then import again.</p>}
+        <NumberField label="CPF LIFE income at retirement" value={cpfLifeIncome} onChange={setCpfLifeIncome} prefix="$" suffix="/mo" readOnly />
+        {retirementImport ? (
+          <p className="explainer">Linked to the Retirement Calculator's estimated CPF LIFE payout. Change the CPF LIFE tier or retirement inputs there, then return here.</p>
+        ) : (
+          <p className="explainer">No calculated CPF LIFE payout is available yet. Open the <Link to="/retirement-calculator">Retirement Calculator</Link> once to calculate and link it automatically.</p>
+        )}
         <NumberField label="Rental income at retirement" value={rentalIncome} onChange={setRentalIncome} prefix="$" suffix="/mo" />
         <NumberField label="Pension / annuity income" value={pensionIncome} onChange={setPensionIncome} prefix="$" suffix="/mo" />
         <NumberField label="Other passive income" value={otherPassiveIncome} onChange={setOtherPassiveIncome} prefix="$" suffix="/mo" />
