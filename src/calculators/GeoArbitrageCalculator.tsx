@@ -81,6 +81,7 @@ interface SavedRetirementData {
   expectedReturnPct?: number;
   inflationRatePct?: number;
   investmentItems?: Array<{ amount: number }>;
+  cpfLifeMonthlyIncome?: number;
 }
 
 function futureValue(principal: number, monthlyContribution: number, annualReturnPct: number, years: number) {
@@ -132,6 +133,7 @@ export default function GeoArbitrageCalculator() {
         expectedReturnPct: retirementSource.data.expectedReturnPct ?? DEFAULTS.expectedReturnPct,
         inflationPct: retirementSource.data.inflationRatePct ?? DEFAULTS.inflationPct,
         propertyProceeds: roundCurrency(hdbCashProceeds ?? DEFAULTS.propertyProceeds),
+        cpfLifeIncome: roundCurrency(retirementSource.data.cpfLifeMonthlyIncome ?? DEFAULTS.cpfLifeIncome),
       }
     : null;
   // A saved Geo scenario belongs to the user and wins on return visits. On the first
@@ -222,6 +224,7 @@ export default function GeoArbitrageCalculator() {
     setExpectedReturnPct(retirementImport.expectedReturnPct);
     setInflationPct(retirementImport.inflationPct);
     setPropertyProceeds(retirementImport.propertyProceeds);
+    setCpfLifeIncome(retirementImport.cpfLifeIncome);
     setJustImported(true);
   };
   const horizon = result.lastsYears === Infinity
@@ -347,7 +350,8 @@ export default function GeoArbitrageCalculator() {
       </ResultCard>
 
       <ResultCard title="💵 Passive retirement income">
-        <NumberField label="CPF LIFE income at retirement" value={cpfLifeIncome} onChange={setCpfLifeIncome} prefix="$" suffix="/mo" />
+        <NumberField label="CPF LIFE income at retirement" value={cpfLifeIncome} onChange={setCpfLifeIncome} prefix="$" suffix="/mo" readOnly={retirementImport !== null} />
+        {retirementImport && <p className="explainer">Linked to the Retirement Calculator's estimated CPF LIFE payout. Change the CPF LIFE tier or retirement inputs there, then import again.</p>}
         <NumberField label="Rental income at retirement" value={rentalIncome} onChange={setRentalIncome} prefix="$" suffix="/mo" />
         <NumberField label="Pension / annuity income" value={pensionIncome} onChange={setPensionIncome} prefix="$" suffix="/mo" />
         <NumberField label="Other passive income" value={otherPassiveIncome} onChange={setOtherPassiveIncome} prefix="$" suffix="/mo" />

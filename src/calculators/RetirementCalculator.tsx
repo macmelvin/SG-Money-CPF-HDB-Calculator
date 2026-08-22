@@ -198,20 +198,6 @@ export default function RetirementCalculator() {
   const totalInvestmentsPortfolio = sumLineItems(investmentItems);
   const effectiveInvestmentHoldings = includeInvestmentHoldings ? totalInvestmentsPortfolio : 0;
 
-  useEffect(() => {
-    saveCalculatorData(GEO_SYNC_STORAGE_KEY, {
-      currentAge,
-      retirementAge,
-      currentSavings,
-      currentOA,
-      currentSaRa,
-      monthlyInvestment,
-      expectedReturnPct,
-      inflationRatePct,
-      investmentItems,
-    });
-  }, [currentAge, retirementAge, currentSavings, currentOA, currentSaRa, monthlyInvestment, expectedReturnPct, inflationRatePct, investmentItems]);
-
   const result = useMemo(
     () =>
       calculateRetirement({
@@ -247,6 +233,21 @@ export default function RetirementCalculator() {
       annualRstuTopUp,
     ]
   );
+
+  useEffect(() => {
+    saveCalculatorData(GEO_SYNC_STORAGE_KEY, {
+      currentAge,
+      retirementAge,
+      currentSavings,
+      currentOA,
+      currentSaRa,
+      monthlyInvestment,
+      expectedReturnPct,
+      inflationRatePct,
+      investmentItems,
+      cpfLifeMonthlyIncome: result.cpfLife.estimatedMonthlyPayout,
+    });
+  }, [currentAge, retirementAge, currentSavings, currentOA, currentSaRa, monthlyInvestment, expectedReturnPct, inflationRatePct, investmentItems, result.cpfLife.estimatedMonthlyPayout]);
 
   const cpfLifePlans = useMemo(
     () => estimateCpfLifeAllPlans(result.cpfLife.retirementAccountBalance, CPF_RETIREMENT_SUMS_2026[cpfLifeTargetTier]),
@@ -373,6 +374,7 @@ export default function RetirementCalculator() {
       includeInvestmentHoldings,
       yearsInRetirement,
       annualRstuTopUp,
+      cpfLifeMonthlyIncome: result.cpfLife.estimatedMonthlyPayout,
     });
     setSavedAt(at);
   };
