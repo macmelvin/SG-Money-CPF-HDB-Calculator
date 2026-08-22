@@ -93,22 +93,56 @@ function futureValue(principal: number, monthlyContribution: number, annualRetur
   return principal * Math.pow(1 + monthlyRate, months) + monthlyContribution * ((Math.pow(1 + monthlyRate, months) - 1) / monthlyRate);
 }
 
-function growingAnnuityPresentValue(firstYearSpend: number, returnRate: number, inflationRate: number, years: number) {
-  if (years <= 0 || firstYearSpend <= 0) return 0;
-  if (Math.abs(returnRate - inflationRate) < 0.000001) return firstYearSpend * years / (1 + returnRate);
-  return firstYearSpend * (1 - Math.pow((1 + inflationRate) / (1 + returnRate), years)) / (returnRate - inflationRate);
+function annualAmountNeededFromAssets(
+  monthlyCost: number,
+  nonCpfIncome: number,
+  cpfLifeIncome: number,
+  retirementAge: number,
+  year: number,
+  inflationRate: number
+) {
+  const age = retirementAge + year;
+  const annualCost = monthlyCost * 12 * Math.pow(1 + inflationRate, year);
+  const annualIncome = (nonCpfIncome + (age >= 65 ? cpfLifeIncome : 0)) * 12;
+  return Math.max(0, annualCost - annualIncome);
 }
 
-function estimateMoneyLastsYears(startingAssets: number, firstYearSpend: number, annualReturn: number, annualInflation: number, maxYears: number) {
-  if (firstYearSpend <= 0) return Infinity;
-  let balance = Math.max(0, startingAssets);
-  let annualSpend = firstYearSpend;
-  for (let year = 0; year < maxYears; year += 1) {
-    balance = balance * (1 + annualReturn) - annualSpend;
-    if (balance < 0) return year + 1;
-    annualSpend *= 1 + annualInflation;
+function calculateRequiredNestEgg(
+  monthlyCost: number,
+  nonCpfIncome: number,
+  cpfLifeIncome: number,
+  retirementAge: number,
+  years: number,
+  annualReturn: number,
+  annualInflation: number
+) {
+  let required = 0;
+  for (let year = 0; year < years; year += 1) {
+    const withdrawal = annualAmountNeededFromAssets(monthlyCost, nonCpfIncome, cpfLifeIncome, retirementAge, year, annualInflation);
+    required += withdrawal / Math.pow(1 + annualReturn, year + 1);
   }
-  return maxYears;
+  return required;
+}
+
+function estimateMoneyLastsYears(
+  startingAssets: number,
+  monthlyCost: number,
+  nonCpfIncome: number,
+  cpfLifeIncome: number,
+  retirementAge: number,
+  annualReturn: number,
+  annualInflation: number,
+  maxYears: number
+) {
+  let balance = Math.max(0, startingAssets);
+  let requiresAssets = false;
+  for (let year = 0; year < maxYears; year += 1) {
+    const withdrawal = annualAmountNeededFromAssets(monthlyCost, nonCpfIncome, cpfLifeIncome, retirementAge, year, annualInflation);
+    requiresAssets ||= withdrawal > 0;
+    balance = balance * (1 + annualReturn) - withdrawal;
+    if (balance < 0) return year + 1;
+  }
+  return requiresAssets ? maxYears : Infinity;
 }
 
 export default function GeoArbitrageCalculator() {
@@ -215,12 +249,13 @@ export default function GeoArbitrageCalculator() {
     const totalMonthlyCostsToday = destinationMonthlyCosts + retainedSingaporeCosts;
     const monthlyCostsBeforeInflation = totalMonthlyCostsToday;
     const monthlyCostsAtRetirement = totalMonthlyCostsToday * Math.pow(1 + inflationPct / 100, yearsToRetirement);
-    const passiveIncome = cpfLifeIncome + rentalIncome + pensionIncome + otherPassiveIncome;
+    const nonCpfIncome = rentalIncome + pensionIncome + otherPassiveIncome;
+    const passiveIncome = nonCpfIncome + (retirementAge >= 65 ? cpfLifeIncome : 0);
     const netMonthlySpend = Math.max(0, monthlyCostsAtRetirement - passiveIncome);
     const monthlyIncomeSurplus = Math.max(0, passiveIncome - monthlyCostsAtRetirement);
-    const requiredNestEgg = growingAnnuityPresentValue(netMonthlySpend * 12, expectedReturnPct / 100, inflationPct / 100, retirementYears);
+    const requiredNestEgg = calculateRequiredNestEgg(monthlyCostsAtRetirement, nonCpfIncome, cpfLifeIncome, retirementAge, retirementYears, expectedReturnPct / 100, inflationPct / 100);
     const surplus = projectedAssets - requiredNestEgg;
-    const lastsYears = estimateMoneyLastsYears(projectedAssets, netMonthlySpend * 12, expectedReturnPct / 100, inflationPct / 100, 100);
+    const lastsYears = estimateMoneyLastsYears(projectedAssets, monthlyCostsAtRetirement, nonCpfIncome, cpfLifeIncome, retirementAge, expectedReturnPct / 100, inflationPct / 100, 100);
     return { yearsToRetirement, retirementYears, startingAssets, projectedRelocationCost, projectedAssets, destinationMonthlyCosts, monthlyCostsBeforeInflation, monthlyCostsAtRetirement, passiveIncome, netMonthlySpend, monthlyIncomeSurplus, requiredNestEgg, surplus, lastsYears };
   }, [currentAge, retirementAge, lifeExpectancy, cashSavings, investments, accessibleCpf, propertyProceeds, monthlyContributions, expectedReturnPct, inflationPct, relocationCost, bangkokRent, bangkokFood, bangkokHealthcare, bangkokTransport, bangkokLifestyle, bangkokUtilitiesVisa, retainedSingaporeCosts, cpfLifeIncome, rentalIncome, pensionIncome, otherPassiveIncome]);
 
@@ -264,6 +299,7 @@ export default function GeoArbitrageCalculator() {
     ? "Net monthly surplus"
     : "Monthly amount needed from retirement assets";
   const monthlyBalanceAmount = result.monthlyIncomeSurplus > 0 ? result.monthlyIncomeSurplus : result.netMonthlySpend;
+  const quickRetirementAges = Array.from(new Set([currentAge, 55, 60, 65])).filter((age) => age >= currentAge);
 
   return (
     <CalcShell
@@ -287,6 +323,23 @@ export default function GeoArbitrageCalculator() {
         <NumberField label="Life expectancy" value={lifeExpectancy} onChange={setLifeExpectancy} />
         <NumberField label="Expected annual return" value={expectedReturnPct} onChange={setExpectedReturnPct} suffix="%" />
         <NumberField label="Expected inflation" value={inflationPct} onChange={setInflationPct} suffix="%" />
+      </div>
+      <div className="retirement-age-picker" aria-label="Quick retirement age choices">
+        <strong>When do you want to retire?</strong>
+        <div>
+          {quickRetirementAges.map((age) => (
+            <button
+              type="button"
+              key={age}
+              className={retirementAge === age ? "selected" : ""}
+              aria-pressed={retirementAge === age}
+              onClick={() => setRetirementAge(age)}
+            >
+              {age === currentAge ? `Retire now (${age})` : `Age ${age}`}
+            </button>
+          ))}
+        </div>
+        <small>CPF LIFE is counted only from age 65. Before then, the plan uses rental and other passive income.</small>
       </div>
       <p className="explainer">Bangkok, Johor Bahru and Ho Chi Minh City are available now. All cost presets are editable examples in SGD.</p>
 

@@ -255,6 +255,40 @@
 }
 .geo-summary-card.positive strong { color: var(--positive); }
 .geo-summary-card.negative strong { color: var(--negative); }
+.retirement-age-picker {
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+}
+.retirement-age-picker > strong,
+.retirement-age-picker > small {
+  display: block;
+}
+.retirement-age-picker > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0 8px;
+}
+.retirement-age-picker button {
+  padding: 7px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+.retirement-age-picker button.selected {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: white;
+}
+.retirement-age-picker small {
+  color: var(--text-muted);
+  line-height: 1.4;
+}
 .calculation-notes {
   background: #f8fafc;
   border: 1px solid var(--border);
@@ -370,6 +404,7 @@
   }
   .calc-page > .geo-arbitrage-cta,
   .calc-page > .geo-summary-grid,
+  .calc-page > .retirement-age-picker,
   .calc-page > .calculation-notes,
   .calc-page > .feasibility-chart {
     grid-column: 1 / -1;
