@@ -260,7 +260,9 @@ export default function GeoArbitrageCalculator() {
     : Infinity;
   const incomeIfRetireNow = rentalIncome + pensionIncome + otherPassiveIncome;
   const incomeFromAge65 = incomeIfRetireNow + cpfLifeIncome;
-  const monthlyBalanceLabel = result.monthlyIncomeSurplus > 0 ? "Net monthly surplus" : "Net monthly spend";
+  const monthlyBalanceLabel = result.monthlyIncomeSurplus > 0
+    ? "Net monthly surplus"
+    : "Monthly amount needed from retirement assets";
   const monthlyBalanceAmount = result.monthlyIncomeSurplus > 0 ? result.monthlyIncomeSurplus : result.netMonthlySpend;
 
   return (
@@ -301,7 +303,7 @@ export default function GeoArbitrageCalculator() {
         <ul>
           <li><b>Projected assets:</b> your current assets grown at the expected return, plus monthly contributions, less the relocation cost.</li>
           <li><b>Required nest egg:</b> the amount needed at retirement to fund net spending until your life expectancy, allowing for return and inflation.</li>
-          <li><b>Net monthly spend:</b> the after-inflation retirement cost, less passive income.</li>
+          <li><b>Amount needed from retirement assets:</b> the after-inflation retirement cost, less passive income.</li>
           <li><b>Surplus / shortfall:</b> projected assets minus the required nest egg.</li>
           <li><b>Money-lasts horizon:</b> a year-by-year projection as assets earn returns and spending rises with inflation.</li>
         </ul>
