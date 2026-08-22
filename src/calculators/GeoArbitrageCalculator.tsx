@@ -385,9 +385,11 @@ export default function GeoArbitrageCalculator() {
         )}
         <NumberField label="Pension / annuity income" value={pensionIncome} onChange={setPensionIncome} prefix="$" suffix="/mo" />
         <NumberField label="Other passive income" value={otherPassiveIncome} onChange={setOtherPassiveIncome} prefix="$" suffix="/mo" />
-        <ResultRow label="IF RETIRE NOW" value={`${formatSgd(incomeIfRetireNow)}/mo`} emphasis />
-        <ResultRow label="FROM AGE 65 (WITH CPF LIFE)" value={`${formatSgd(incomeFromAge65)}/mo`} emphasis />
-        <ResultRow label="RETIREMENT ASSETS" value={formatSgd(result.projectedAssets)} emphasis />
+        <div className="retirement-income-summary">
+          <ResultRow label="PASSIVE INCOME BEFORE AGE 65" value={`${formatSgd(incomeIfRetireNow)}/mo`} emphasis />
+          <ResultRow label="PASSIVE INCOME FROM AGE 65 (WITH CPF LIFE)" value={`${formatSgd(incomeFromAge65)}/mo`} emphasis />
+          <ResultRow label="RETIREMENT ASSETS" value={formatSgd(result.projectedAssets)} emphasis />
+        </div>
         <p className="explainer">Your passive income is not your spending limit. These projected assets can fund spending above CPF LIFE and are already included in the required nest egg and retirement-feasibility calculations.</p>
       </ResultCard>
 

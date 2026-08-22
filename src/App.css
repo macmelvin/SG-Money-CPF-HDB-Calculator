@@ -509,6 +509,14 @@
 .retirement-cost-details .result-row.emphasis {
   font-size: 15px;
 }
+.retirement-income-summary .result-row {
+  gap: 10px;
+  font-size: 14px;
+}
+.retirement-income-summary .result-row > span:last-child {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
 .value-positive {
   color: var(--positive);
 }
