@@ -56,6 +56,8 @@ const RETIREMENT_STORAGE_KEY = "retirement-calculator";
 const RETIREMENT_LIVE_STORAGE_KEY = "retirement-calculator-geo-sync";
 const HDB_SALE_STORAGE_KEY = "hdb-sale-proceeds";
 
+const roundCurrency = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
+
 interface SavedRetirementData {
   currentAge?: number;
   retirementAge?: number;
@@ -108,13 +110,15 @@ export default function GeoArbitrageCalculator() {
     ? {
         currentAge: retirementSource.data.currentAge ?? DEFAULTS.currentAge,
         retirementAge: retirementSource.data.retirementAge ?? DEFAULTS.retirementAge,
-        cashSavings: retirementSource.data.currentSavings ?? DEFAULTS.cashSavings,
-        investments: retirementSource.data.investmentItems?.reduce((total, item) => total + item.amount, 0) ?? DEFAULTS.investments,
-        accessibleCpf: (retirementSource.data.currentOA ?? 0) + (retirementSource.data.currentSaRa ?? 0),
-        monthlyContributions: retirementSource.data.monthlyInvestment ?? DEFAULTS.monthlyContributions,
+        cashSavings: roundCurrency(retirementSource.data.currentSavings ?? DEFAULTS.cashSavings),
+        investments: roundCurrency(
+          retirementSource.data.investmentItems?.reduce((total, item) => total + item.amount, 0) ?? DEFAULTS.investments
+        ),
+        accessibleCpf: roundCurrency((retirementSource.data.currentOA ?? 0) + (retirementSource.data.currentSaRa ?? 0)),
+        monthlyContributions: roundCurrency(retirementSource.data.monthlyInvestment ?? DEFAULTS.monthlyContributions),
         expectedReturnPct: retirementSource.data.expectedReturnPct ?? DEFAULTS.expectedReturnPct,
         inflationPct: retirementSource.data.inflationRatePct ?? DEFAULTS.inflationPct,
-        propertyProceeds: hdbCashProceeds ?? DEFAULTS.propertyProceeds,
+        propertyProceeds: roundCurrency(hdbCashProceeds ?? DEFAULTS.propertyProceeds),
       }
     : null;
   // A saved Geo scenario belongs to the user and wins on return visits. On the first
