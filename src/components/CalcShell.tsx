@@ -128,6 +128,15 @@ export function CalcShell({
   );
 }
 
+function formatNumberFieldValue(value: number, prefix?: string): string {
+  if (Number.isNaN(value)) return "";
+  if (prefix !== "$") return String(value);
+  return new Intl.NumberFormat("en-SG", {
+    minimumFractionDigits: Number.isInteger(value) ? 0 : 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+}
+
 export function NumberField({
   label,
   value,
@@ -159,14 +168,14 @@ export function NumberField({
   // re-syncs from the external `value` prop when it changes from OUTSIDE this
   // input (e.g. a "Pull from..." button elsewhere setting the value) — not while
   // the person is actively typing in this exact field.
-  const [text, setText] = useState(() => (Number.isNaN(value) ? "" : String(value)));
+  const [text, setText] = useState(() => formatNumberFieldValue(value, prefix));
   const isFocused = useRef(false);
 
   useEffect(() => {
     if (!isFocused.current) {
-      setText(Number.isNaN(value) ? "" : String(value));
+      setText(formatNumberFieldValue(value, prefix));
     }
-  }, [value]);
+  }, [value, prefix]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const cleaned = e.target.value.replace(/[^0-9.]/g, "");
@@ -192,7 +201,7 @@ export function NumberField({
           }}
           onBlur={() => {
             isFocused.current = false;
-            setText(Number.isNaN(value) ? "" : String(value));
+            setText(formatNumberFieldValue(value, prefix));
           }}
           onChange={handleChange}
         />
