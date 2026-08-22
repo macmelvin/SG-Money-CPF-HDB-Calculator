@@ -358,7 +358,7 @@ export default function GeoArbitrageCalculator() {
         <p className="explainer">Include expenses that continue after moving, such as property charges, family support, storage, insurance or frequent trips home.</p>
       </ResultCard>
 
-      <ResultCard title="💵 Passive retirement income">
+      <ResultCard title="💵 Retirement Income & Assets">
         <NumberField label="CPF LIFE income at retirement" value={cpfLifeIncome} onChange={setCpfLifeIncome} prefix="$" suffix="/mo" readOnly />
         {retirementImport ? (
           <p className="explainer">Linked to the Retirement Calculator's estimated CPF LIFE payout. Change the CPF LIFE tier or retirement inputs there, then return here.</p>
@@ -368,7 +368,9 @@ export default function GeoArbitrageCalculator() {
         <NumberField label="Rental income at retirement" value={rentalIncome} onChange={setRentalIncome} prefix="$" suffix="/mo" />
         <NumberField label="Pension / annuity income" value={pensionIncome} onChange={setPensionIncome} prefix="$" suffix="/mo" />
         <NumberField label="Other passive income" value={otherPassiveIncome} onChange={setOtherPassiveIncome} prefix="$" suffix="/mo" />
-        <ResultRow label="Total passive income" value={`${formatSgd(result.passiveIncome)}/mo`} emphasis />
+        <ResultRow label="TOTAL PASSIVE INCOME" value={`${formatSgd(result.passiveIncome)}/mo`} emphasis />
+        <ResultRow label="RETIREMENT ASSETS" value={formatSgd(result.projectedAssets)} emphasis />
+        <p className="explainer">Your passive income is not your spending limit. These projected assets can fund spending above CPF LIFE and are already included in the required nest egg and retirement-feasibility calculations.</p>
       </ResultCard>
 
       <ResultCard title="✈️ Retirement Costs">
