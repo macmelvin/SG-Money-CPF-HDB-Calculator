@@ -46,6 +46,14 @@ export function AppSuiteFooter() {
       <button type="button" className="app-suite-share-btn" onClick={handleShare}>
         💙 {justShared ? "Link copied!" : "Share this app if you find it useful"}
       </button>
+      <a
+        href="https://buymeacoffee.com/waypointsg"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="app-suite-support-link"
+      >
+        ☕ Buy me a coffee — help keep this running
+      </a>
       <p className="app-suite-signature">
         Build by Yours Truly - 小猫好介绍 -{" "}
         <a href={LOBANG_SHARE_URL} target="_blank" rel="noopener noreferrer">
