@@ -95,30 +95,25 @@ function futureValue(principal: number, monthlyContribution: number, annualRetur
 
 function annualAmountNeededFromAssets(
   monthlyCost: number,
-  nonCpfIncome: number,
-  cpfLifeIncome: number,
-  retirementAge: number,
+  monthlyPassiveIncome: number,
   year: number,
   inflationRate: number
 ) {
-  const age = retirementAge + year;
   const annualCost = monthlyCost * 12 * Math.pow(1 + inflationRate, year);
-  const annualIncome = (nonCpfIncome + (age >= 65 ? cpfLifeIncome : 0)) * 12;
+  const annualIncome = monthlyPassiveIncome * 12;
   return Math.max(0, annualCost - annualIncome);
 }
 
 function calculateRequiredNestEgg(
   monthlyCost: number,
-  nonCpfIncome: number,
-  cpfLifeIncome: number,
-  retirementAge: number,
+  monthlyPassiveIncome: number,
   years: number,
   annualReturn: number,
   annualInflation: number
 ) {
   let required = 0;
   for (let year = 0; year < years; year += 1) {
-    const withdrawal = annualAmountNeededFromAssets(monthlyCost, nonCpfIncome, cpfLifeIncome, retirementAge, year, annualInflation);
+    const withdrawal = annualAmountNeededFromAssets(monthlyCost, monthlyPassiveIncome, year, annualInflation);
     required += withdrawal / Math.pow(1 + annualReturn, year + 1);
   }
   return required;
@@ -127,9 +122,7 @@ function calculateRequiredNestEgg(
 function estimateMoneyLastsYears(
   startingAssets: number,
   monthlyCost: number,
-  nonCpfIncome: number,
-  cpfLifeIncome: number,
-  retirementAge: number,
+  monthlyPassiveIncome: number,
   annualReturn: number,
   annualInflation: number,
   maxYears: number
@@ -137,7 +130,7 @@ function estimateMoneyLastsYears(
   let balance = Math.max(0, startingAssets);
   let requiresAssets = false;
   for (let year = 0; year < maxYears; year += 1) {
-    const withdrawal = annualAmountNeededFromAssets(monthlyCost, nonCpfIncome, cpfLifeIncome, retirementAge, year, annualInflation);
+    const withdrawal = annualAmountNeededFromAssets(monthlyCost, monthlyPassiveIncome, year, annualInflation);
     requiresAssets ||= withdrawal > 0;
     balance = balance * (1 + annualReturn) - withdrawal;
     if (balance < 0) return year + 1;
@@ -249,13 +242,15 @@ export default function GeoArbitrageCalculator() {
     const totalMonthlyCostsToday = destinationMonthlyCosts + retainedSingaporeCosts;
     const monthlyCostsBeforeInflation = totalMonthlyCostsToday;
     const monthlyCostsAtRetirement = totalMonthlyCostsToday * Math.pow(1 + inflationPct / 100, yearsToRetirement);
-    const nonCpfIncome = rentalIncome + pensionIncome + otherPassiveIncome;
-    const passiveIncome = nonCpfIncome + (retirementAge >= 65 ? cpfLifeIncome : 0);
+    const otherIncome = pensionIncome + otherPassiveIncome;
+    const passiveIncome = retirementAge < 65
+      ? rentalIncome + otherIncome
+      : cpfLifeIncome + otherIncome;
     const netMonthlySpend = Math.max(0, monthlyCostsAtRetirement - passiveIncome);
     const monthlyIncomeSurplus = Math.max(0, passiveIncome - monthlyCostsAtRetirement);
-    const requiredNestEgg = calculateRequiredNestEgg(monthlyCostsAtRetirement, nonCpfIncome, cpfLifeIncome, retirementAge, retirementYears, expectedReturnPct / 100, inflationPct / 100);
+    const requiredNestEgg = calculateRequiredNestEgg(monthlyCostsAtRetirement, passiveIncome, retirementYears, expectedReturnPct / 100, inflationPct / 100);
     const surplus = projectedAssets - requiredNestEgg;
-    const lastsYears = estimateMoneyLastsYears(projectedAssets, monthlyCostsAtRetirement, nonCpfIncome, cpfLifeIncome, retirementAge, expectedReturnPct / 100, inflationPct / 100, 100);
+    const lastsYears = estimateMoneyLastsYears(projectedAssets, monthlyCostsAtRetirement, passiveIncome, expectedReturnPct / 100, inflationPct / 100, 100);
     return { yearsToRetirement, retirementYears, startingAssets, projectedRelocationCost, projectedAssets, destinationMonthlyCosts, monthlyCostsBeforeInflation, monthlyCostsAtRetirement, passiveIncome, netMonthlySpend, monthlyIncomeSurplus, requiredNestEgg, surplus, lastsYears };
   }, [currentAge, retirementAge, lifeExpectancy, cashSavings, investments, accessibleCpf, propertyProceeds, monthlyContributions, expectedReturnPct, inflationPct, relocationCost, bangkokRent, bangkokFood, bangkokHealthcare, bangkokTransport, bangkokLifestyle, bangkokUtilitiesVisa, retainedSingaporeCosts, cpfLifeIncome, rentalIncome, pensionIncome, otherPassiveIncome]);
 
@@ -294,7 +289,7 @@ export default function GeoArbitrageCalculator() {
     ? Math.round((result.projectedAssets / result.requiredNestEgg) * 100)
     : Infinity;
   const incomeIfRetireNow = rentalIncome + pensionIncome + otherPassiveIncome;
-  const incomeFromAge65 = incomeIfRetireNow + cpfLifeIncome;
+  const incomeFromAge65 = cpfLifeIncome + pensionIncome + otherPassiveIncome;
   const monthlyBalanceLabel = result.monthlyIncomeSurplus > 0
     ? "Net monthly surplus"
     : "Monthly amount needed from retirement assets";
@@ -339,7 +334,7 @@ export default function GeoArbitrageCalculator() {
             </button>
           ))}
         </div>
-        <small>CPF LIFE is counted only from age 65. Before then, the plan uses rental and other passive income.</small>
+        <small>Before age 65, the plan uses rental income and excludes CPF LIFE. From age 65, it uses CPF LIFE and excludes rental income.</small>
       </div>
       <p className="explainer">Bangkok, Johor Bahru and Ho Chi Minh City are available now. All cost presets are editable examples in SGD.</p>
 
