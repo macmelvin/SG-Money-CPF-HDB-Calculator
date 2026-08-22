@@ -5,7 +5,16 @@ import type { HdbSaleInput } from "../lib/cpf";
 import { clearCalculatorData, loadCalculatorData, saveCalculatorData } from "../lib/storage";
 import { usePageMeta } from "../lib/usePageMeta";
 
-type DestinationId = "bangkok" | "chiang-mai" | "kuala-lumpur" | "penang" | "bali";
+type DestinationId = "bangkok" | "johor-bahru" | "ho-chi-minh-city" | "chiang-mai" | "kuala-lumpur" | "penang" | "bali";
+
+interface DestinationCosts {
+  rent: number;
+  food: number;
+  healthcare: number;
+  transport: number;
+  lifestyle: number;
+  utilitiesVisa: number;
+}
 
 interface Destination {
   id: DestinationId;
@@ -13,16 +22,20 @@ interface Destination {
   country: string;
   enabled: boolean;
   currency: string;
+  flag: string;
+  costs: DestinationCosts;
 }
 
 // The selector and cost model are destination-agnostic. Enabling another city only
 // requires destination assumptions and (later) removing its disabled option.
 const DESTINATIONS: Destination[] = [
-  { id: "bangkok", name: "Bangkok", country: "Thailand", enabled: true, currency: "THB" },
-  { id: "chiang-mai", name: "Chiang Mai", country: "Thailand", enabled: false, currency: "THB" },
-  { id: "kuala-lumpur", name: "Kuala Lumpur", country: "Malaysia", enabled: false, currency: "MYR" },
-  { id: "penang", name: "Penang", country: "Malaysia", enabled: false, currency: "MYR" },
-  { id: "bali", name: "Bali", country: "Indonesia", enabled: false, currency: "IDR" },
+  { id: "bangkok", name: "Bangkok", country: "Thailand", enabled: true, currency: "THB", flag: "🇹🇭", costs: { rent: 1200, food: 650, healthcare: 400, transport: 180, lifestyle: 450, utilitiesVisa: 250 } },
+  { id: "johor-bahru", name: "Johor Bahru", country: "Malaysia", enabled: true, currency: "MYR", flag: "🇲🇾", costs: { rent: 900, food: 550, healthcare: 350, transport: 180, lifestyle: 350, utilitiesVisa: 180 } },
+  { id: "ho-chi-minh-city", name: "Ho Chi Minh City", country: "Vietnam", enabled: true, currency: "VND", flag: "🇻🇳", costs: { rent: 950, food: 500, healthcare: 350, transport: 120, lifestyle: 350, utilitiesVisa: 220 } },
+  { id: "chiang-mai", name: "Chiang Mai", country: "Thailand", enabled: false, currency: "THB", flag: "🇹🇭", costs: { rent: 800, food: 500, healthcare: 350, transport: 140, lifestyle: 350, utilitiesVisa: 220 } },
+  { id: "kuala-lumpur", name: "Kuala Lumpur", country: "Malaysia", enabled: false, currency: "MYR", flag: "🇲🇾", costs: { rent: 1100, food: 600, healthcare: 400, transport: 200, lifestyle: 400, utilitiesVisa: 180 } },
+  { id: "penang", name: "Penang", country: "Malaysia", enabled: false, currency: "MYR", flag: "🇲🇾", costs: { rent: 850, food: 550, healthcare: 350, transport: 180, lifestyle: 350, utilitiesVisa: 180 } },
+  { id: "bali", name: "Bali", country: "Indonesia", enabled: false, currency: "IDR", flag: "🇮🇩", costs: { rent: 1000, food: 550, healthcare: 400, transport: 160, lifestyle: 400, utilitiesVisa: 250 } },
 ];
 
 const DEFAULTS = {
@@ -97,8 +110,8 @@ function estimateMoneyLastsYears(startingAssets: number, firstYearSpend: number,
 
 export default function GeoArbitrageCalculator() {
   usePageMeta(
-    "Bangkok Retirement & Geo Arbitrage Calculator",
-    "Plan an overseas retirement in Bangkok. Compare projected assets with Thailand living costs, retained Singapore expenses, passive income and relocation costs."
+    "Overseas Retirement & Geo Arbitrage Calculator",
+    "Plan an overseas retirement in Bangkok, Johor Bahru or Ho Chi Minh City. Compare projected assets, living costs, retained Singapore expenses and passive income."
   );
   const saved = loadCalculatorData<typeof DEFAULTS>(STORAGE_KEY);
   const savedRetirement = loadCalculatorData<SavedRetirementData>(RETIREMENT_STORAGE_KEY);
@@ -150,6 +163,19 @@ export default function GeoArbitrageCalculator() {
   const [relocationCost, setRelocationCost] = useState(initial.relocationCost);
   const [savedAt, setSavedAt] = useState<number | null>(saved?.savedAt ?? null);
   const [justImported, setJustImported] = useState(!saved && retirementImport !== null);
+  const selectedDestination = DESTINATIONS.find((destination) => destination.id === destinationId) ?? DESTINATIONS[0];
+
+  const changeDestination = (nextId: DestinationId) => {
+    const next = DESTINATIONS.find((destination) => destination.id === nextId);
+    if (!next) return;
+    setDestinationId(nextId);
+    setBangkokRent(next.costs.rent);
+    setBangkokFood(next.costs.food);
+    setBangkokHealthcare(next.costs.healthcare);
+    setBangkokTransport(next.costs.transport);
+    setBangkokLifestyle(next.costs.lifestyle);
+    setBangkokUtilitiesVisa(next.costs.utilitiesVisa);
+  };
 
   const values = {
     destinationId, currentAge, retirementAge, lifeExpectancy, expectedReturnPct, inflationPct,
@@ -207,18 +233,18 @@ export default function GeoArbitrageCalculator() {
   return (
     <CalcShell
       title="🌏 Geo Arbitrage Calculator"
-      subtitle="Could your retirement savings go further in Bangkok? Model the move in Singapore dollars."
+      subtitle={`Could your retirement savings go further in ${selectedDestination.name}? Model the move in Singapore dollars.`}
       onSave={save}
       onClear={clear}
       savedAt={savedAt}
-      whatsappTopic="Bangkok Retirement Calculator"
+      whatsappTopic={`${selectedDestination.name} Retirement Calculator`}
       showAppSuiteFooter
     >
       <div className="form-grid">
         <SelectField
           label="Destination"
           value={destinationId}
-          onChange={setDestinationId}
+          onChange={changeDestination}
           options={DESTINATIONS.filter((d) => d.enabled).map((d) => ({ value: d.id, label: `${d.name}, ${d.country}` }))}
         />
         <NumberField label="Current age" value={currentAge} onChange={setCurrentAge} />
@@ -227,7 +253,7 @@ export default function GeoArbitrageCalculator() {
         <NumberField label="Expected annual return" value={expectedReturnPct} onChange={setExpectedReturnPct} suffix="%" />
         <NumberField label="Expected inflation" value={inflationPct} onChange={setInflationPct} suffix="%" />
       </div>
-      <p className="explainer">Bangkok is available now. Chiang Mai, Kuala Lumpur, Penang and Bali can be added to the same destination model next.</p>
+      <p className="explainer">Bangkok, Johor Bahru and Ho Chi Minh City are available now. All cost presets are editable examples in SGD.</p>
 
       <div className="geo-summary-grid" aria-label="Retirement summary">
         <div className="geo-summary-card"><span>Projected assets</span><strong>{formatSgd(result.projectedAssets)}</strong><small>After relocation cost</small></div>
@@ -246,7 +272,7 @@ export default function GeoArbitrageCalculator() {
             <p className="explainer">
               Uses your latest Retirement Calculator ages, cash, investment holdings, OA + SA/RA, monthly investment, return and inflation
               from the Retirement Calculator{hdbCashProceeds !== undefined ? ", plus cash proceeds from HDB Sale" : ""}.
-              Bangkok costs stay separate and editable. Tap Save above to keep this scenario.
+              Destination costs stay separate and editable. Tap Save above to keep this scenario.
             </p>
           </>
         ) : (
@@ -263,14 +289,14 @@ export default function GeoArbitrageCalculator() {
         <ResultRow label={`Projected assets in ${result.yearsToRetirement} years`} value={formatSgd(result.projectedAssets + result.projectedRelocationCost)} emphasis />
       </ResultCard>
 
-      <ResultCard title="🇹🇭 Bangkok monthly costs">
+      <ResultCard title={`${selectedDestination.flag} ${selectedDestination.name} monthly costs`}>
         <NumberField label="Rent" value={bangkokRent} onChange={setBangkokRent} prefix="$" />
         <NumberField label="Food & groceries" value={bangkokFood} onChange={setBangkokFood} prefix="$" />
         <NumberField label="Healthcare & insurance" value={bangkokHealthcare} onChange={setBangkokHealthcare} prefix="$" />
         <NumberField label="Transport" value={bangkokTransport} onChange={setBangkokTransport} prefix="$" />
         <NumberField label="Lifestyle & travel" value={bangkokLifestyle} onChange={setBangkokLifestyle} prefix="$" />
         <NumberField label="Utilities, mobile & visa allowance" value={bangkokUtilitiesVisa} onChange={setBangkokUtilitiesVisa} prefix="$" />
-        <ResultRow label="Bangkok costs today" value={`${formatSgd(result.destinationMonthlyCosts)}/mo`} emphasis />
+        <ResultRow label={`${selectedDestination.name} costs today`} value={`${formatSgd(result.destinationMonthlyCosts)}/mo`} emphasis />
       </ResultCard>
 
       <ResultCard title="🇸🇬 Costs retained in Singapore">
@@ -294,7 +320,7 @@ export default function GeoArbitrageCalculator() {
       </ResultCard>
 
       <Disclaimer>
-        Planning estimate only, not financial, tax, immigration or healthcare advice. All amounts are in SGD. Bangkok defaults are editable examples, not live prices. Verify exchange rates, visa rules, insurance coverage and actual neighbourhood costs before deciding to relocate. CPF amounts should include only funds you expect to be accessible for retirement spending.
+        Planning estimate only, not financial, tax, immigration or healthcare advice. All amounts are in SGD. Destination presets are editable examples, not live prices. Verify exchange rates, visa rules, insurance coverage and actual neighbourhood costs before deciding to relocate. CPF amounts should include only funds you expect to be accessible for retirement spending.
       </Disclaimer>
     </CalcShell>
   );

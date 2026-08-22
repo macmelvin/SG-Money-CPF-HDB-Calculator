@@ -64,7 +64,7 @@ export const CALCULATORS: CalculatorMeta[] = [
     to: "/geo-arbitrage",
     icon: "🌏",
     title: "Retire Overseas",
-    desc: "Could your savings go further in Bangkok?",
+    desc: "Compare Bangkok, Johor Bahru and Vietnam",
   },
   {
     to: "/car-cost-calculator",

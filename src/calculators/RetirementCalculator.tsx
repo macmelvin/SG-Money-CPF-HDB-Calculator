@@ -735,7 +735,7 @@ export default function RetirementCalculator() {
         <span className="geo-arbitrage-cta-icon">🌏</span>
         <span>
           <strong>What if I retire overseas?</strong>
-          <small>See how far your retirement assets could go in Bangkok.</small>
+          <small>Compare Bangkok, Johor Bahru and Ho Chi Minh City.</small>
         </span>
         <span aria-hidden="true">→</span>
       </Link>

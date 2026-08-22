@@ -68,9 +68,9 @@ const routes = [
   },
   {
     path: "geo-arbitrage",
-    title: "Bangkok Retirement & Geo Arbitrage Calculator | SG Money",
+    title: "Overseas Retirement & Geo Arbitrage Calculator | SG Money",
     description:
-      "Plan an overseas retirement in Bangkok. Compare projected assets with Thailand living costs, retained Singapore expenses, passive income and relocation costs.",
+      "Plan an overseas retirement in Bangkok, Johor Bahru or Ho Chi Minh City. Compare projected assets, living costs, retained Singapore expenses and passive income.",
   },
   {
     path: "car-cost-calculator",
