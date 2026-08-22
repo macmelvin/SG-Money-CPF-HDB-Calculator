@@ -283,6 +283,7 @@ export default function GeoArbitrageCalculator() {
             <p className="explainer">
               Uses your latest Retirement Calculator ages, cash, investment holdings, OA + SA/RA, monthly investment, return and inflation
               from the Retirement Calculator{hdbCashProceeds !== undefined ? ", plus cash proceeds from HDB Sale" : ""}.
+              The linked fields below are read-only. Update them in Retirement or HDB Sale, then tap this import button again.
               Destination costs stay separate and editable. Tap Save above to keep this scenario.
             </p>
           </>
@@ -291,11 +292,11 @@ export default function GeoArbitrageCalculator() {
             Open the Retirement Calculator once in this browser, then return here to import its latest figures automatically.
           </p>
         )}
-        <NumberField label="Cash & savings today" value={cashSavings} onChange={setCashSavings} prefix="$" />
-        <NumberField label="Investments today" value={investments} onChange={setInvestments} prefix="$" />
-        <NumberField label="CPF accessible for retirement" value={accessibleCpf} onChange={setAccessibleCpf} prefix="$" />
-        <NumberField label="Expected property sale proceeds" value={propertyProceeds} onChange={setPropertyProceeds} prefix="$" />
-        <NumberField label="Monthly contributions until retirement" value={monthlyContributions} onChange={setMonthlyContributions} prefix="$" />
+        <NumberField label="Cash & savings today" value={cashSavings} onChange={setCashSavings} prefix="$" readOnly={retirementImport !== null} />
+        <NumberField label="Investments today" value={investments} onChange={setInvestments} prefix="$" readOnly={retirementImport !== null} />
+        <NumberField label="CPF accessible for retirement" value={accessibleCpf} onChange={setAccessibleCpf} prefix="$" readOnly={retirementImport !== null} />
+        <NumberField label="Expected property sale proceeds" value={propertyProceeds} onChange={setPropertyProceeds} prefix="$" readOnly={retirementImport !== null} />
+        <NumberField label="Monthly contributions until retirement" value={monthlyContributions} onChange={setMonthlyContributions} prefix="$" readOnly={retirementImport !== null} />
         <ResultRow label="Assets today" value={formatSgd(result.startingAssets)} />
         <ResultRow label={`Projected assets in ${result.yearsToRetirement} years`} value={formatSgd(result.projectedAssets + result.projectedRelocationCost)} emphasis />
       </ResultCard>

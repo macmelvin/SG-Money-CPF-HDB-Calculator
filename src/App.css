@@ -72,6 +72,13 @@
   color: var(--primary);
   font-size: 18px;
 }
+.field-readonly .field-input {
+  background: #f3f4f6;
+}
+.field.field-readonly input {
+  color: var(--text-muted);
+  cursor: default;
+}
 
 .home-footer {
   margin-top: 32px;

@@ -143,12 +143,14 @@ export function NumberField({
   onChange,
   prefix,
   suffix,
+  readOnly,
 }: {
   label: string;
   value: number;
   onChange: (v: number) => void;
   prefix?: string;
   suffix?: string;
+  readOnly?: boolean;
   /** No longer used — kept so existing call sites (step={1000} etc.) don't need
    *  updating. type="number"'s native spinner (which this drove) is gone now;
    *  see the note below on why. */
@@ -187,7 +189,7 @@ export function NumberField({
   };
 
   return (
-    <label className="field">
+    <label className={`field ${readOnly ? "field-readonly" : ""}`}>
       <span className="field-label">{label}</span>
       <div className="field-input">
         {prefix && <span className="affix">{prefix}</span>}
@@ -195,6 +197,7 @@ export function NumberField({
           type="text"
           inputMode="decimal"
           value={text}
+          readOnly={readOnly}
           onFocus={(e) => {
             isFocused.current = true;
             e.target.select();
