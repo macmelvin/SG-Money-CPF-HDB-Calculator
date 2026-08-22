@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { CalcShell, Disclaimer, NumberField, ResultCard, ResultRow, SelectField } from "../components/CalcShell";
-import { formatSgd } from "../lib/cpf";
+import { calculateHdbSaleProceeds, formatSgd } from "../lib/cpf";
+import type { HdbSaleInput } from "../lib/cpf";
 import { clearCalculatorData, loadCalculatorData, saveCalculatorData } from "../lib/storage";
 import { usePageMeta } from "../lib/usePageMeta";
 
@@ -51,6 +52,20 @@ const DEFAULTS = {
 };
 
 const STORAGE_KEY = "geo-arbitrage-calculator";
+const RETIREMENT_STORAGE_KEY = "retirement-calculator";
+const HDB_SALE_STORAGE_KEY = "hdb-sale-proceeds";
+
+interface SavedRetirementData {
+  currentAge?: number;
+  retirementAge?: number;
+  currentSavings?: number;
+  currentOA?: number;
+  currentSaRa?: number;
+  monthlyInvestment?: number;
+  expectedReturnPct?: number;
+  inflationRatePct?: number;
+  investmentItems?: Array<{ amount: number }>;
+}
 
 function futureValue(principal: number, monthlyContribution: number, annualReturnPct: number, years: number) {
   const months = Math.max(0, years * 12);
@@ -83,7 +98,25 @@ export default function GeoArbitrageCalculator() {
     "Plan an overseas retirement in Bangkok. Compare projected assets with Thailand living costs, retained Singapore expenses, passive income and relocation costs."
   );
   const saved = loadCalculatorData<typeof DEFAULTS>(STORAGE_KEY);
-  const initial = { ...DEFAULTS, ...(saved?.data ?? {}) };
+  const savedRetirement = loadCalculatorData<SavedRetirementData>(RETIREMENT_STORAGE_KEY);
+  const savedHdb = loadCalculatorData<HdbSaleInput>(HDB_SALE_STORAGE_KEY);
+  const hdbCashProceeds = savedHdb?.data ? calculateHdbSaleProceeds(savedHdb.data).cashProceeds : undefined;
+  const retirementImport = savedRetirement?.data
+    ? {
+        currentAge: savedRetirement.data.currentAge ?? DEFAULTS.currentAge,
+        retirementAge: savedRetirement.data.retirementAge ?? DEFAULTS.retirementAge,
+        cashSavings: savedRetirement.data.currentSavings ?? DEFAULTS.cashSavings,
+        investments: savedRetirement.data.investmentItems?.reduce((total, item) => total + item.amount, 0) ?? DEFAULTS.investments,
+        accessibleCpf: (savedRetirement.data.currentOA ?? 0) + (savedRetirement.data.currentSaRa ?? 0),
+        monthlyContributions: savedRetirement.data.monthlyInvestment ?? DEFAULTS.monthlyContributions,
+        expectedReturnPct: savedRetirement.data.expectedReturnPct ?? DEFAULTS.expectedReturnPct,
+        inflationPct: savedRetirement.data.inflationRatePct ?? DEFAULTS.inflationPct,
+        propertyProceeds: hdbCashProceeds ?? DEFAULTS.propertyProceeds,
+      }
+    : null;
+  // A saved Geo scenario belongs to the user and wins on return visits. On the first
+  // visit, seed shared financial inputs from the other calculators instead of examples.
+  const initial = { ...DEFAULTS, ...(saved ? saved.data : retirementImport ?? {}) };
 
   const [destinationId, setDestinationId] = useState<DestinationId>(initial.destinationId);
   const [currentAge, setCurrentAge] = useState(initial.currentAge);
@@ -109,6 +142,7 @@ export default function GeoArbitrageCalculator() {
   const [otherPassiveIncome, setOtherPassiveIncome] = useState(initial.otherPassiveIncome);
   const [relocationCost, setRelocationCost] = useState(initial.relocationCost);
   const [savedAt, setSavedAt] = useState<number | null>(saved?.savedAt ?? null);
+  const [justImported, setJustImported] = useState(!saved && retirementImport !== null);
 
   const values = {
     destinationId, currentAge, retirementAge, lifeExpectancy, expectedReturnPct, inflationPct,
@@ -143,6 +177,19 @@ export default function GeoArbitrageCalculator() {
   const clear = () => {
     clearCalculatorData(STORAGE_KEY);
     window.location.reload();
+  };
+  const importSavedPlan = () => {
+    if (!retirementImport) return;
+    setCurrentAge(retirementImport.currentAge);
+    setRetirementAge(retirementImport.retirementAge);
+    setCashSavings(retirementImport.cashSavings);
+    setInvestments(retirementImport.investments);
+    setAccessibleCpf(retirementImport.accessibleCpf);
+    setMonthlyContributions(retirementImport.monthlyContributions);
+    setExpectedReturnPct(retirementImport.expectedReturnPct);
+    setInflationPct(retirementImport.inflationPct);
+    setPropertyProceeds(retirementImport.propertyProceeds);
+    setJustImported(true);
   };
   const horizon = result.lastsYears === Infinity
     ? "Indefinitely"
@@ -184,6 +231,22 @@ export default function GeoArbitrageCalculator() {
       </div>
 
       <ResultCard title="💰 Assets funding the move">
+        {retirementImport ? (
+          <>
+            <button type="button" className="dashboard-btn" onClick={importSavedPlan}>
+              {justImported ? "✓ Retirement numbers imported" : "↻ Import saved Retirement numbers"}
+            </button>
+            <p className="explainer">
+              Uses saved ages, cash, investment holdings, OA + SA/RA, monthly investment, return and inflation
+              from the Retirement Calculator{hdbCashProceeds !== undefined ? ", plus cash proceeds from HDB Sale" : ""}.
+              Bangkok costs stay separate and editable. Tap Save above to keep this scenario.
+            </p>
+          </>
+        ) : (
+          <p className="explainer">
+            Save your figures in the Retirement Calculator, then return here to import them automatically.
+          </p>
+        )}
         <NumberField label="Cash & savings today" value={cashSavings} onChange={setCashSavings} prefix="$" />
         <NumberField label="Investments today" value={investments} onChange={setInvestments} prefix="$" />
         <NumberField label="CPF accessible for retirement" value={accessibleCpf} onChange={setAccessibleCpf} prefix="$" />
