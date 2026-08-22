@@ -229,6 +229,12 @@ export default function GeoArbitrageCalculator() {
     : result.lastsYears >= result.retirementYears
       ? `Past age ${lifeExpectancy}`
       : `To about age ${retirementAge + result.lastsYears}`;
+  const feasibilityScale = Math.max(result.projectedAssets, result.requiredNestEgg, 1);
+  const projectedAssetsPct = (result.projectedAssets / feasibilityScale) * 100;
+  const requiredNestEggPct = (result.requiredNestEgg / feasibilityScale) * 100;
+  const fundingRatio = result.requiredNestEgg > 0
+    ? Math.round((result.projectedAssets / result.requiredNestEgg) * 100)
+    : Infinity;
 
   return (
     <CalcShell
@@ -262,6 +268,30 @@ export default function GeoArbitrageCalculator() {
         <div className={`geo-summary-card ${result.surplus >= 0 ? "positive" : "negative"}`}><span>{result.surplus >= 0 ? "Surplus" : "Shortfall"}</span><strong>{formatSgd(Math.abs(result.surplus))}</strong><small>{result.surplus >= 0 ? "Above target" : "Below target"}</small></div>
         <div className="geo-summary-card"><span>Money-lasts horizon</span><strong>{horizon}</strong><small>Based on entered assumptions</small></div>
       </div>
+
+      <section className={`result-card feasibility-chart ${result.surplus >= 0 ? "possible" : "not-yet"}`} aria-live="polite">
+        <h3>📊 Can I retire in {selectedDestination.name}?</h3>
+        <p className="feasibility-status">
+          {result.surplus >= 0
+            ? `Yes — possible under these assumptions, with a ${formatSgd(result.surplus)} buffer.`
+            : `Not yet — projected assets are ${formatSgd(Math.abs(result.surplus))} below the target.`}
+        </p>
+        <div className="feasibility-row">
+          <div className="feasibility-label"><span>Projected assets</span><strong>{formatSgd(result.projectedAssets)}</strong></div>
+          <div className="feasibility-track" role="img" aria-label={`Projected assets ${formatSgd(result.projectedAssets)}`}>
+            <div className="feasibility-bar projected" style={{ width: `${projectedAssetsPct}%` }} />
+          </div>
+        </div>
+        <div className="feasibility-row">
+          <div className="feasibility-label"><span>Required nest egg</span><strong>{formatSgd(result.requiredNestEgg)}</strong></div>
+          <div className="feasibility-track" role="img" aria-label={`Required nest egg ${formatSgd(result.requiredNestEgg)}`}>
+            <div className="feasibility-bar required" style={{ width: `${requiredNestEggPct}%` }} />
+          </div>
+        </div>
+        <p className="feasibility-ratio">
+          {fundingRatio === Infinity ? "Ongoing passive income covers the modeled spending." : `${fundingRatio}% of the required nest egg funded.`}
+        </p>
+      </section>
 
       <div className="calculation-notes">
         <strong>How these figures are calculated</strong>
