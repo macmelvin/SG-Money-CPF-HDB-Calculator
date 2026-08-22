@@ -372,9 +372,11 @@ export default function GeoArbitrageCalculator() {
 
       <ResultCard title="✈️ Retirement Costs">
         <NumberField label="Enter your one-time relocation cost today" value={relocationCost} onChange={setRelocationCost} prefix="$" />
-        <ResultRow label="1× RELOCATION COST" value={formatSgd(result.projectedRelocationCost)} />
-        <ResultRow label="MONTHLY RETIREMENT COST" value={`${formatSgd(result.monthlyCostsAtRetirement)}/mo`} />
-        <ResultRow label="NET MONTHLY SPEND" value={`${formatSgd(result.netMonthlySpend)}/mo`} emphasis />
+        <div className="retirement-cost-details">
+          <ResultRow label="1× RELOCATION COST" value={formatSgd(result.projectedRelocationCost)} />
+          <ResultRow label="MONTHLY RETIREMENT COST" value={`${formatSgd(result.monthlyCostsAtRetirement)}/mo`} />
+          <ResultRow label="NET MONTHLY SPEND" value={`${formatSgd(result.netMonthlySpend)}/mo`} emphasis />
+        </div>
       </ResultCard>
 
       <Disclaimer>
