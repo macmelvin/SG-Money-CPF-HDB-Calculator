@@ -224,6 +224,7 @@
   .calc-page > .sponsor-banner,
   .calc-page > .privacy-note,
   .calc-page > .form-grid,
+  .calc-page > .retirement-age-picker,
   .calc-page > .explainer,
   .calc-page > .share-result-btn,
   .calc-page > .faq-section,
@@ -1568,4 +1569,43 @@
 }
 .app-suite-links a:hover {
   text-decoration: underline;
+}
+
+/* Geo Arbitrage's "When do you want to retire?" quick-pick buttons — styled
+   to match the pill/segmented-control look used elsewhere (.next-step-btn)
+   rather than left as plain unstyled <button> elements. */
+.retirement-age-picker {
+  margin: 4px 0 18px;
+}
+.retirement-age-picker > strong {
+  display: block;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+.retirement-age-picker > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.retirement-age-picker button {
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.retirement-age-picker button.selected {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+}
+.retirement-age-picker > small {
+  display: block;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.5;
 }
