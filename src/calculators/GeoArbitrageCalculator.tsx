@@ -5,7 +5,7 @@ import { calculateHdbSaleProceeds, formatSgd } from "../lib/cpf";
 import type { HdbSaleInput } from "../lib/cpf";
 import { clearCalculatorData, loadCalculatorData, saveCalculatorData } from "../lib/storage";
 import { usePageMeta } from "../lib/usePageMeta";
-import { sumLineItems } from "../lib/dashboard";
+import { dateAtAge, sumLineItems } from "../lib/dashboard";
 import type { LineItem } from "../lib/dashboard";
 
 type DestinationId = "bangkok" | "johor-bahru" | "ho-chi-minh-city" | "chiang-mai" | "kuala-lumpur" | "penang" | "bali";
@@ -164,11 +164,13 @@ export default function GeoArbitrageCalculator() {
       .reduce((total, item) => total + item.amount, 0) ?? 0
   );
   const hasLinkedExpenses = retirementSource?.data.expenseItems !== undefined;
-  // sumLineItems (not a raw .reduce) so an expense item past its end date — set in the
-  // Retirement Calculator — drops out of this figure too, same as it does over there.
-  const linkedRetirementExpenses = roundCurrency(
-    sumLineItems(retirementSource?.data.expenseItems ?? []) + sumLineItems(retirementSource?.data.liabilityItems ?? [])
-  );
+  // Kept as plain arrays here (not summed yet) — the actual total is computed inside the
+  // `result` useMemo below, evaluated as of the calendar date the person actually reaches
+  // their chosen retirement age, not today. That way an item with an end date before then
+  // (a car loan finishing next year) correctly drops out, and one that hasn't started yet
+  // correctly counts in, using the same start/end-date rules as the Retirement Calculator.
+  const linkedExpenseItems = retirementSource?.data.expenseItems ?? [];
+  const linkedLiabilityItems = retirementSource?.data.liabilityItems ?? [];
   const savedHdb = loadCalculatorData<HdbSaleInput>(HDB_SALE_STORAGE_KEY);
   // Respect the Retirement Calculator's "Include selling my HDB today" checkbox — if the
   // person has explicitly unchecked it there, don't assume the sale happens here either.
@@ -264,8 +266,14 @@ export default function GeoArbitrageCalculator() {
     const projectedRelocationCost = relocationCost * Math.pow(1 + inflationPct / 100, yearsToRetirement);
     const projectedAssets = Math.max(0, projectedAssetsBeforeMove - projectedRelocationCost);
     const destinationMonthlyCosts = bangkokRent + bangkokFood + bangkokHealthcare + bangkokTransport + bangkokLifestyle + bangkokUtilitiesVisa;
-    const retireNow = retirementAge === currentAge;
-    const retainedCostsUsed = retireNow ? linkedRetirementExpenses : retainedSingaporeCosts;
+    // Expenses/liabilities linked from the Retirement Calculator, checked against the date
+    // the person actually reaches retirementAge (today, if "Retire now" is picked) — not
+    // just today's date — so this stays correct no matter which retirement age is chosen.
+    const retirementDate = dateAtAge(currentAge, retirementAge);
+    const retainedExpensesAtRetirement = roundCurrency(
+      sumLineItems(linkedExpenseItems, retirementDate) + sumLineItems(linkedLiabilityItems, retirementDate)
+    );
+    const retainedCostsUsed = retainedExpensesAtRetirement + retainedSingaporeCosts;
     const totalMonthlyCostsToday = destinationMonthlyCosts + retainedCostsUsed;
     const monthlyCostsBeforeInflation = totalMonthlyCostsToday;
     const monthlyCostsAtRetirement = totalMonthlyCostsToday * Math.pow(1 + inflationPct / 100, yearsToRetirement);
@@ -278,8 +286,8 @@ export default function GeoArbitrageCalculator() {
     const requiredNestEgg = calculateRequiredNestEgg(monthlyCostsAtRetirement, passiveIncome, retirementYears, expectedReturnPct / 100, inflationPct / 100);
     const surplus = projectedAssets - requiredNestEgg;
     const lastsYears = estimateMoneyLastsYears(projectedAssets, monthlyCostsAtRetirement, passiveIncome, expectedReturnPct / 100, inflationPct / 100, 100);
-    return { yearsToRetirement, retirementYears, startingAssets, cpfCountedInAssets, projectedRelocationCost, projectedAssets, destinationMonthlyCosts, retainedCostsUsed, monthlyCostsBeforeInflation, monthlyCostsAtRetirement, passiveIncome, netMonthlySpend, monthlyIncomeSurplus, requiredNestEgg, surplus, lastsYears };
-  }, [currentAge, retirementAge, lifeExpectancy, cashSavings, investments, accessibleCpf, propertyProceeds, monthlyContributions, expectedReturnPct, inflationPct, relocationCost, bangkokRent, bangkokFood, bangkokHealthcare, bangkokTransport, bangkokLifestyle, bangkokUtilitiesVisa, retainedSingaporeCosts, linkedRetirementExpenses, cpfLifeIncome, rentalIncome, pensionIncome, otherPassiveIncome]);
+    return { yearsToRetirement, retirementYears, startingAssets, cpfCountedInAssets, projectedRelocationCost, projectedAssets, destinationMonthlyCosts, retainedExpensesAtRetirement, retainedCostsUsed, monthlyCostsBeforeInflation, monthlyCostsAtRetirement, passiveIncome, netMonthlySpend, monthlyIncomeSurplus, requiredNestEgg, surplus, lastsYears };
+  }, [currentAge, retirementAge, lifeExpectancy, cashSavings, investments, accessibleCpf, propertyProceeds, monthlyContributions, expectedReturnPct, inflationPct, relocationCost, bangkokRent, bangkokFood, bangkokHealthcare, bangkokTransport, bangkokLifestyle, bangkokUtilitiesVisa, retainedSingaporeCosts, linkedExpenseItems, linkedLiabilityItems, cpfLifeIncome, rentalIncome, pensionIncome, otherPassiveIncome]);
 
   const save = () => {
     saveCalculatorData(STORAGE_KEY, values);
@@ -452,21 +460,17 @@ export default function GeoArbitrageCalculator() {
       </ResultCard>
 
       <ResultCard title="🇸🇬 Costs retained in Singapore">
-        {retirementAge === currentAge ? (
-          <>
-            <NumberField label="Monthly expenses from Retirement Calculator" value={linkedRetirementExpenses} onChange={() => {}} prefix="$" suffix="/mo" readOnly />
-            <p className="explainer">
-              {hasLinkedExpenses
-                ? "Retire now is selected, so all monthly expenses and liabilities from the Retirement Calculator are included automatically."
-                : "Open the Retirement Calculator and enter your monthly expenses to link them here."}
-            </p>
-          </>
-        ) : (
-          <>
-            <NumberField label="Housing, family, tax or other commitments" value={retainedSingaporeCosts} onChange={setRetainedSingaporeCosts} prefix="$" suffix="/mo" />
-            <p className="explainer">Include expenses that continue after moving, such as property charges, family support, storage, insurance or frequent trips home.</p>
-          </>
-        )}
+        <NumberField label="Monthly expenses from Retirement Calculator" value={result.retainedExpensesAtRetirement} onChange={() => {}} prefix="$" suffix="/mo" readOnly />
+        <p className="explainer">
+          {hasLinkedExpenses
+            ? retirementAge === currentAge
+              ? "Includes every expense and liability from the Retirement Calculator that's active today, based on each item's start/end date."
+              : `Includes expenses and liabilities from the Retirement Calculator still active around age ${retirementAge} (in ${result.yearsToRetirement} ${result.yearsToRetirement === 1 ? "year" : "years"}), based on each item's start/end date — so a loan or premium that finishes before then is left out.`
+            : "Open the Retirement Calculator and enter your monthly expenses to link them here."}
+        </p>
+        <NumberField label="Additional costs after moving" value={retainedSingaporeCosts} onChange={setRetainedSingaporeCosts} prefix="$" suffix="/mo" />
+        <p className="explainer">Anything not already in your Retirement Calculator list, such as property charges, family support, storage, insurance top-ups, or frequent trips home.</p>
+        <ResultRow label="Total retained in Singapore" value={`${formatSgd(result.retainedCostsUsed)}/mo`} emphasis />
       </ResultCard>
 
       <ResultCard title="💵 Retirement Income & Assets">

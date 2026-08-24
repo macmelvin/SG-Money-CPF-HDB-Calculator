@@ -18,6 +18,7 @@ export function EditableLineItems({
   showDateRange = false,
   currentAge,
   highlightEndAges = [60, 62, 65],
+  highlightEndYears = [2028],
 }: {
   items: LineItem[];
   onChange: (items: LineItem[]) => void;
@@ -37,6 +38,10 @@ export function EditableLineItems({
   // "current age", not a birthdate.
   currentAge?: number;
   highlightEndAges?: number[];
+  // Same idea, but keyed on the end date's calendar year instead of an age —
+  // e.g. a cluster of loans all wrapping up in 2028 regardless of what age
+  // that lands on. Doesn't need currentAge.
+  highlightEndYears?: number[];
 }) {
   const updateItem = (id: string, patch: Partial<LineItem>) => {
     onChange(items.map((item) => (item.id === id ? { ...item, ...patch } : item)));
@@ -61,7 +66,11 @@ export function EditableLineItems({
           showDateRange && !inactive && currentAge !== undefined && item.endDate
             ? ageAtDate(currentAge, item.endDate)
             : null;
-        const isMilestoneEnd = endAge !== null && highlightEndAges.includes(endAge);
+        const endYear =
+          showDateRange && !inactive && item.endDate ? parseInt(item.endDate.slice(0, 4), 10) : null;
+        const isAgeMilestone = endAge !== null && highlightEndAges.includes(endAge);
+        const isYearMilestone = endYear !== null && highlightEndYears.includes(endYear);
+        const isMilestoneEnd = isAgeMilestone || isYearMilestone;
         return (
           <div className="line-item-group" key={item.id}>
             <div
@@ -109,7 +118,11 @@ export function EditableLineItems({
                 </label>
                 {ended && <span className="line-item-ended-badge">Ended — excluded from totals</span>}
                 {notYetStarted && <span className="line-item-ended-badge">Not started yet — excluded from totals</span>}
-                {isMilestoneEnd && <span className="line-item-milestone-badge">🎯 Ends at age {endAge}</span>}
+                {isMilestoneEnd && (
+                  <span className="line-item-milestone-badge">
+                    🎯 {isAgeMilestone ? `Ends at age ${endAge}` : `Ends in ${endYear}`}
+                  </span>
+                )}
               </div>
             )}
           </div>

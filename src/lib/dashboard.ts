@@ -64,6 +64,18 @@ export function ageAtDate(currentAge: number, dateStr: string, today: Date = new
   return currentAge + (targetYear - today.getFullYear());
 }
 
+// Inverse of ageAtDate: the approximate calendar date at which someone turns
+// targetAge, given their currentAge today. Same whole-year approximation as
+// ageAtDate (no birthdate collected) — good enough for filtering "will this
+// expense still be running when I retire", not day-level precision. Pass the
+// result into isLineItemActive/sumLineItems as the `today` param to check a
+// line item's status as of a future date instead of right now.
+export function dateAtAge(currentAge: number, targetAge: number, today: Date = new Date()): Date {
+  const result = new Date(today);
+  result.setFullYear(result.getFullYear() + (targetAge - currentAge));
+  return result;
+}
+
 export interface AssetAllocationInput {
   hdbValue: number;
   totalCpf: number;
