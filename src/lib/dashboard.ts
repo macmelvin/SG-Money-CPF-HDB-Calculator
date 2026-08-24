@@ -43,13 +43,31 @@ export function isLineItemNotYetStarted(item: LineItem, today: Date = new Date()
   return item.startDate > todayStr;
 }
 
-export function isLineItemActive(item: LineItem, today: Date = new Date()): boolean {
-  return !isLineItemEnded(item, today) && !isLineItemNotYetStarted(item, today);
+export interface LineItemActiveOptions {
+  // For an expense or liability, "ended" correctly means the cost stopped, so it should
+  // drop out. For an investment or insurance holding, an end date instead marks when the
+  // policy matures/pays out — the money doesn't vanish, it just becomes cash — so callers
+  // summing that kind of list pass ignoreEndDate so a matured item keeps counting.
+  ignoreEndDate?: boolean;
 }
 
-export function sumLineItems(items: LineItem[], today: Date = new Date()): number {
+export function isLineItemActive(
+  item: LineItem,
+  today: Date = new Date(),
+  opts: LineItemActiveOptions = {}
+): boolean {
+  const ended = opts.ignoreEndDate ? false : isLineItemEnded(item, today);
+  return !ended && !isLineItemNotYetStarted(item, today);
+}
+
+export function sumLineItems(
+  items: LineItem[],
+  today: Date = new Date(),
+  opts: LineItemActiveOptions = {}
+): number {
   return items.reduce(
-    (total, item) => total + (Number.isFinite(item.amount) && isLineItemActive(item, today) ? item.amount : 0),
+    (total, item) =>
+      total + (Number.isFinite(item.amount) && isLineItemActive(item, today, opts) ? item.amount : 0),
     0
   );
 }

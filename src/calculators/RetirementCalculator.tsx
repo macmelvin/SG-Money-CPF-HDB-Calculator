@@ -195,7 +195,9 @@ export default function RetirementCalculator() {
 
   // Total value of the Net Worth Snapshot's investment/insurance holdings — computed here (ahead of the
   // projection below) so it can optionally be grown and counted toward "how much you'll have at retirement."
-  const totalInvestmentsPortfolio = sumLineItems(investmentItems);
+  // ignoreEndDate: a policy's end date marks when it matures and pays out, not when the
+  // money disappears — so unlike expenses/liabilities, a matured holding keeps counting.
+  const totalInvestmentsPortfolio = sumLineItems(investmentItems, undefined, { ignoreEndDate: true });
   const effectiveInvestmentHoldings = includeInvestmentHoldings ? totalInvestmentsPortfolio : 0;
 
   const result = useMemo(
@@ -557,6 +559,7 @@ export default function RetirementCalculator() {
           placeholder="e.g. Whole life policy"
           showDateRange
           currentAge={currentAge}
+          keepValueAfterEnd
         />
         <ResultRow label="TOTAL NET WORTH" value={formatSgd(netWorth)} emphasis />
         <AssetAllocationBar slices={slices} />

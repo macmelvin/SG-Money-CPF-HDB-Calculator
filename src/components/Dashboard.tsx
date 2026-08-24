@@ -19,6 +19,7 @@ export function EditableLineItems({
   currentAge,
   highlightEndAges = [60, 62, 65],
   highlightEndYears = [2028],
+  keepValueAfterEnd = false,
 }: {
   items: LineItem[];
   onChange: (items: LineItem[]) => void;
@@ -42,6 +43,12 @@ export function EditableLineItems({
   // e.g. a cluster of loans all wrapping up in 2028 regardless of what age
   // that lands on. Doesn't need currentAge.
   highlightEndYears?: number[];
+  // For investment/insurance holdings, an "end date" marks when a policy matures and pays
+  // out — the money doesn't disappear, it becomes cash — so unlike an expense or liability
+  // it should NOT be struck through and dropped from the Total once passed. Set true for
+  // that kind of list; the end date still drives the milestone highlight above, it just
+  // switches to a "matured" badge instead of "ended — excluded" once the date has passed.
+  keepValueAfterEnd?: boolean;
 }) {
   const updateItem = (id: string, patch: Partial<LineItem>) => {
     onChange(items.map((item) => (item.id === id ? { ...item, ...patch } : item)));
@@ -56,12 +63,15 @@ export function EditableLineItems({
   return (
     <div className="line-items">
       {items.map((item) => {
-        const ended = showDateRange && isLineItemEnded(item);
-        const notYetStarted = showDateRange && !ended && isLineItemNotYetStarted(item);
+        const pastEnd = showDateRange && isLineItemEnded(item);
+        // A matured investment/policy (pastEnd + keepValueAfterEnd) is NOT excluded — it
+        // keeps counting toward the Total, so it doesn't get the dimmed "ended" treatment.
+        const ended = pastEnd && !keepValueAfterEnd;
+        const matured = pastEnd && keepValueAfterEnd;
+        const notYetStarted = showDateRange && !ended && !matured && isLineItemNotYetStarted(item);
         const inactive = ended || notYetStarted;
-        // "Going to end" — still active today, but its end date lands on one of the
-        // ages the person asked to watch for (e.g. a loan that finishes right when
-        // they turn 60).
+        // "Going to end" — still counted, but its end date lands on one of the ages/years
+        // the person asked to watch for (e.g. a policy that matures right when they turn 65).
         const endAge =
           showDateRange && !inactive && currentAge !== undefined && item.endDate
             ? ageAtDate(currentAge, item.endDate)
@@ -70,11 +80,11 @@ export function EditableLineItems({
           showDateRange && !inactive && item.endDate ? parseInt(item.endDate.slice(0, 4), 10) : null;
         const isAgeMilestone = endAge !== null && highlightEndAges.includes(endAge);
         const isYearMilestone = endYear !== null && highlightEndYears.includes(endYear);
-        const isMilestoneEnd = isAgeMilestone || isYearMilestone;
+        const isMilestoneEnd = (isAgeMilestone || isYearMilestone) && !matured;
         return (
           <div className="line-item-group" key={item.id}>
             <div
-              className={`line-item-row ${inactive ? "line-item-ended" : ""} ${isMilestoneEnd ? "line-item-milestone" : ""}`}
+              className={`line-item-row ${inactive ? "line-item-ended" : ""} ${isMilestoneEnd ? "line-item-milestone" : ""} ${matured ? "line-item-matured" : ""}`}
             >
               <input
                 type="text"
@@ -118,6 +128,7 @@ export function EditableLineItems({
                 </label>
                 {ended && <span className="line-item-ended-badge">Ended — excluded from totals</span>}
                 {notYetStarted && <span className="line-item-ended-badge">Not started yet — excluded from totals</span>}
+                {matured && <span className="line-item-matured-badge">✅ Matured — still counted in your totals</span>}
                 {isMilestoneEnd && (
                   <span className="line-item-milestone-badge">
                     🎯 {isAgeMilestone ? `Ends at age ${endAge}` : `Ends in ${endYear}`}
@@ -134,7 +145,7 @@ export function EditableLineItems({
       {items.length > 0 && (
         <div className="line-items-total">
           <span>Total</span>
-          <span>{formatSgd(sumLineItems(items))}</span>
+          <span>{formatSgd(sumLineItems(items, undefined, { ignoreEndDate: keepValueAfterEnd }))}</span>
         </div>
       )}
     </div>

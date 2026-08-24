@@ -184,8 +184,13 @@ export default function GeoArbitrageCalculator() {
         currentAge: retirementSource.data.currentAge ?? DEFAULTS.currentAge,
         retirementAge: retirementSource.data.retirementAge ?? DEFAULTS.retirementAge,
         cashSavings: roundCurrency(retirementSource.data.currentSavings ?? DEFAULTS.cashSavings),
+        // ignoreEndDate: an investment/policy's end date marks when it matures and pays out,
+        // not when the money disappears — matches the Retirement Calculator's own treatment
+        // of this same list, so a matured holding keeps counting here too.
         investments: roundCurrency(
-          retirementSource.data.investmentItems ? sumLineItems(retirementSource.data.investmentItems) : DEFAULTS.investments
+          retirementSource.data.investmentItems
+            ? sumLineItems(retirementSource.data.investmentItems, undefined, { ignoreEndDate: true })
+            : DEFAULTS.investments
         ),
         accessibleCpf: roundCurrency((retirementSource.data.currentOA ?? 0) + (retirementSource.data.currentSaRa ?? 0)),
         monthlyContributions: roundCurrency(retirementSource.data.monthlyInvestment ?? DEFAULTS.monthlyContributions),
