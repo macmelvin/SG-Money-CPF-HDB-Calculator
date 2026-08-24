@@ -8,11 +8,14 @@ export interface LineItem {
   id: string;
   label: string;
   amount: number;
-  // Optional "YYYY-MM-DD" (native <input type="date"> value). Once this date has
-  // passed, the item is treated as ended and excluded from sums — for a loan or
-  // policy with a known finish date, so nobody has to remember to delete it once
-  // it's done. Undefined/empty means "no end date, always active". Currently only
-  // exposed in the UI for expense items (see EditableLineItems' showEndDate prop).
+  // Both optional "YYYY-MM-DD" (native <input type="date"> values). Outside this
+  // [startDate, endDate] window the item is excluded from sums — startDate for
+  // something that hasn't kicked in yet (a new loan starting next quarter),
+  // endDate for a loan or policy with a known finish date — so nobody has to
+  // remember to add or delete it exactly on the day. Both undefined/empty means
+  // "always active". Currently only exposed in the UI for expense items and
+  // investment holdings (see EditableLineItems' showEndDate prop).
+  startDate?: string;
   endDate?: string;
 }
 
@@ -24,19 +27,29 @@ export function newLineItemId(): string {
 }
 
 // today defaults to the real current date; accepting it as a param keeps this
-// testable without relying on the ambient clock.
+// testable without relying on the ambient clock. Dates are compared as plain
+// "YYYY-MM-DD" strings (both the input value and this ISO-slice sort
+// lexicographically the same as chronologically) — avoids timezone-shift bugs
+// from constructing a Date from a date-only string.
 export function isLineItemEnded(item: LineItem, today: Date = new Date()): boolean {
   if (!item.endDate) return false;
-  // Compare as plain "YYYY-MM-DD" strings (both the input value and this
-  // ISO-slice sort lexicographically the same as chronologically) — avoids
-  // timezone-shift bugs from constructing a Date from a date-only string.
   const todayStr = today.toISOString().slice(0, 10);
   return item.endDate < todayStr;
 }
 
+export function isLineItemNotYetStarted(item: LineItem, today: Date = new Date()): boolean {
+  if (!item.startDate) return false;
+  const todayStr = today.toISOString().slice(0, 10);
+  return item.startDate > todayStr;
+}
+
+export function isLineItemActive(item: LineItem, today: Date = new Date()): boolean {
+  return !isLineItemEnded(item, today) && !isLineItemNotYetStarted(item, today);
+}
+
 export function sumLineItems(items: LineItem[], today: Date = new Date()): number {
   return items.reduce(
-    (total, item) => total + (Number.isFinite(item.amount) && !isLineItemEnded(item, today) ? item.amount : 0),
+    (total, item) => total + (Number.isFinite(item.amount) && isLineItemActive(item, today) ? item.amount : 0),
     0
   );
 }

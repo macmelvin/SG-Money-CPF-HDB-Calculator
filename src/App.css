@@ -1269,27 +1269,28 @@
   opacity: 0.5;
   text-decoration: line-through;
 }
-.line-item-enddate-row {
+.line-item-daterange-row {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 8px 14px;
   padding: 0 2px 2px;
 }
-.line-item-enddate-row label {
+.line-item-daterange-row label {
   display: flex;
   align-items: center;
   gap: 6px;
   font-size: 12px;
   color: var(--text-muted);
 }
-.line-item-enddate-row input[type="date"] {
+.line-item-daterange-row input[type="date"] {
   border: 1px solid var(--border);
   border-radius: 6px;
   padding: 4px 6px;
   font-size: 12px;
   background: var(--bg);
   color: var(--text);
+  min-width: 0;
 }
 .line-item-ended-badge {
   font-size: 11px;

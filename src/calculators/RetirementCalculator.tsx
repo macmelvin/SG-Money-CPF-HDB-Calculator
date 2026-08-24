@@ -555,7 +555,7 @@ export default function RetirementCalculator() {
           onChange={setInvestmentItems}
           addLabel="Add a holding"
           placeholder="e.g. Whole life policy"
-          showEndDate
+          showDateRange
         />
         <ResultRow label="TOTAL NET WORTH" value={formatSgd(netWorth)} emphasis />
         <AssetAllocationBar slices={slices} />
@@ -570,7 +570,7 @@ export default function RetirementCalculator() {
           onChange={setExpenseItems}
           addLabel="Add expense"
           placeholder="e.g. Insurance premium"
-          showEndDate
+          showDateRange
         />
         <p className="explainer" style={{ marginTop: 14 }}>Liabilities</p>
         <p className="explainer" style={{ marginTop: -6 }}>
