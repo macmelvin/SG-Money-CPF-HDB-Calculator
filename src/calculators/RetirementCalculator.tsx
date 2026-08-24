@@ -556,6 +556,7 @@ export default function RetirementCalculator() {
           addLabel="Add a holding"
           placeholder="e.g. Whole life policy"
           showDateRange
+          currentAge={currentAge}
         />
         <ResultRow label="TOTAL NET WORTH" value={formatSgd(netWorth)} emphasis />
         <AssetAllocationBar slices={slices} />
@@ -571,6 +572,7 @@ export default function RetirementCalculator() {
           addLabel="Add expense"
           placeholder="e.g. Insurance premium"
           showDateRange
+          currentAge={currentAge}
         />
         <p className="explainer" style={{ marginTop: 14 }}>Liabilities</p>
         <p className="explainer" style={{ marginTop: -6 }}>

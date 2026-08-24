@@ -54,6 +54,16 @@ export function sumLineItems(items: LineItem[], today: Date = new Date()): numbe
   );
 }
 
+// Approximate age at a future "YYYY-MM-DD" date, given today's whole-year age.
+// The app only ever collects a whole-number "current age" (no birthdate), so
+// this is a calendar-year approximation — good enough for flagging "this
+// finishes around when I turn 60", not for anything that needs day-level
+// precision.
+export function ageAtDate(currentAge: number, dateStr: string, today: Date = new Date()): number {
+  const targetYear = parseInt(dateStr.slice(0, 4), 10);
+  return currentAge + (targetYear - today.getFullYear());
+}
+
 export interface AssetAllocationInput {
   hdbValue: number;
   totalCpf: number;

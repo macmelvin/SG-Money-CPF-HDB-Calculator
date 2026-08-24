@@ -1,5 +1,12 @@
 import type { AllocationSlice, HealthDimension, LineItem } from "../lib/dashboard";
-import { HEALTH_STATUS_LABEL, isLineItemEnded, isLineItemNotYetStarted, newLineItemId, sumLineItems } from "../lib/dashboard";
+import {
+  HEALTH_STATUS_LABEL,
+  ageAtDate,
+  isLineItemEnded,
+  isLineItemNotYetStarted,
+  newLineItemId,
+  sumLineItems,
+} from "../lib/dashboard";
 import { formatSgd } from "../lib/cpf";
 
 export function EditableLineItems({
@@ -9,6 +16,8 @@ export function EditableLineItems({
   amountLabel = "Amount",
   placeholder = "e.g. Salary",
   showDateRange = false,
+  currentAge,
+  highlightEndAges = [60, 62, 65],
 }: {
   items: LineItem[];
   onChange: (items: LineItem[]) => void;
@@ -21,6 +30,13 @@ export function EditableLineItems({
   // yet, or one that's been paid off, without needing to remember to add or
   // delete it exactly on the day.
   showDateRange?: boolean;
+  // When provided (with showDateRange), a still-active row whose end date lands
+  // on one of highlightEndAges gets a distinct "ends at age X" highlight — a
+  // heads-up that this loan/policy finishes right around a retirement
+  // milestone. Only an approximation: the app only ever collects a whole-year
+  // "current age", not a birthdate.
+  currentAge?: number;
+  highlightEndAges?: number[];
 }) {
   const updateItem = (id: string, patch: Partial<LineItem>) => {
     onChange(items.map((item) => (item.id === id ? { ...item, ...patch } : item)));
@@ -38,9 +54,19 @@ export function EditableLineItems({
         const ended = showDateRange && isLineItemEnded(item);
         const notYetStarted = showDateRange && !ended && isLineItemNotYetStarted(item);
         const inactive = ended || notYetStarted;
+        // "Going to end" — still active today, but its end date lands on one of the
+        // ages the person asked to watch for (e.g. a loan that finishes right when
+        // they turn 60).
+        const endAge =
+          showDateRange && !inactive && currentAge !== undefined && item.endDate
+            ? ageAtDate(currentAge, item.endDate)
+            : null;
+        const isMilestoneEnd = endAge !== null && highlightEndAges.includes(endAge);
         return (
           <div className="line-item-group" key={item.id}>
-            <div className={`line-item-row ${inactive ? "line-item-ended" : ""}`}>
+            <div
+              className={`line-item-row ${inactive ? "line-item-ended" : ""} ${isMilestoneEnd ? "line-item-milestone" : ""}`}
+            >
               <input
                 type="text"
                 className="line-item-label"
@@ -83,6 +109,7 @@ export function EditableLineItems({
                 </label>
                 {ended && <span className="line-item-ended-badge">Ended — excluded from totals</span>}
                 {notYetStarted && <span className="line-item-ended-badge">Not started yet — excluded from totals</span>}
+                {isMilestoneEnd && <span className="line-item-milestone-badge">🎯 Ends at age {endAge}</span>}
               </div>
             )}
           </div>
