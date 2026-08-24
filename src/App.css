@@ -226,6 +226,8 @@
   .calc-page > .form-grid,
   .calc-page > .retirement-age-picker,
   .calc-page > .explainer,
+  .calc-page > .geo-summary-grid,
+  .calc-page > .calculation-notes,
   .calc-page > .share-result-btn,
   .calc-page > .faq-section,
   .calc-page > .disclaimer,
@@ -370,6 +372,123 @@
   color: var(--text-muted);
   line-height: 1.5;
   margin: -6px 0 16px;
+}
+
+/* Geo Arbitrage Calculator: the 5-card retirement summary row, and the
+   "Can I retire here?" feasibility bar chart below it. Neither had any CSS
+   when the page shipped, so span/strong/small ran together as unstyled
+   inline text and the feasibility bars had no height/width — this gives
+   both their intended card-grid and progress-bar look. */
+.geo-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+  margin: 4px 0 20px;
+}
+.geo-summary-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+.geo-summary-card > span {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.geo-summary-card > strong {
+  font-size: 19px;
+  font-weight: 700;
+}
+.geo-summary-card > small {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.geo-summary-card.positive > strong {
+  color: var(--positive);
+}
+.geo-summary-card.negative > strong {
+  color: var(--negative);
+}
+
+.calculation-notes {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin: -6px 0 16px;
+}
+.calculation-notes > strong {
+  display: block;
+  color: var(--text);
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+.calculation-notes ul {
+  margin: 0;
+  padding-left: 18px;
+}
+.calculation-notes li {
+  margin-bottom: 4px;
+}
+.calculation-notes li:last-child {
+  margin-bottom: 0;
+}
+.calculation-notes b {
+  color: var(--text);
+}
+
+.feasibility-status {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 14px;
+}
+.feasibility-chart.possible .feasibility-status {
+  color: var(--positive);
+}
+.feasibility-chart.not-yet .feasibility-status {
+  color: var(--negative);
+}
+.feasibility-row {
+  margin-bottom: 14px;
+}
+.feasibility-row:last-of-type {
+  margin-bottom: 8px;
+}
+.feasibility-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+.feasibility-label > span {
+  color: var(--text-muted);
+}
+.feasibility-label > strong {
+  font-size: 14px;
+}
+.feasibility-track {
+  height: 10px;
+  border-radius: 999px;
+  background: var(--border);
+  overflow: hidden;
+}
+.feasibility-bar {
+  height: 100%;
+  border-radius: 999px;
+}
+.feasibility-bar.projected {
+  background: var(--positive);
+}
+.feasibility-bar.required {
+  background: var(--text-muted);
+}
+.feasibility-ratio {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 4px 0 0;
 }
 
 .hdb-scenario-toggle {
