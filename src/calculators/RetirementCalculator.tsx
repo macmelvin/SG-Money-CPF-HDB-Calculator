@@ -555,6 +555,7 @@ export default function RetirementCalculator() {
           onChange={setInvestmentItems}
           addLabel="Add a holding"
           placeholder="e.g. Whole life policy"
+          showEndDate
         />
         <ResultRow label="TOTAL NET WORTH" value={formatSgd(netWorth)} emphasis />
         <AssetAllocationBar slices={slices} />
