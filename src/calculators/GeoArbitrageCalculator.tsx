@@ -303,7 +303,7 @@ export default function GeoArbitrageCalculator() {
     ? "Net monthly surplus"
     : "Monthly amount needed from retirement assets";
   const monthlyBalanceAmount = result.monthlyIncomeSurplus > 0 ? result.monthlyIncomeSurplus : result.netMonthlySpend;
-  const quickRetirementAges = Array.from(new Set([currentAge, 55, 60, 65])).filter((age) => age >= currentAge);
+  const quickRetirementAges = Array.from(new Set([currentAge, 55, 60, 62, 65])).filter((age) => age >= currentAge);
 
   return (
     <CalcShell
