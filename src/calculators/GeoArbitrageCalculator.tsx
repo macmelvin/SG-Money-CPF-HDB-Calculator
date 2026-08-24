@@ -255,7 +255,11 @@ export default function GeoArbitrageCalculator() {
   const result = useMemo(() => {
     const yearsToRetirement = Math.max(0, retirementAge - currentAge);
     const retirementYears = Math.max(0, lifeExpectancy - retirementAge);
-    const startingAssets = cashSavings + investments + accessibleCpf + propertyProceeds;
+    // CPF OA/SA-RA isn't actually accessible for retirement funding before age 65 (Payout
+    // Eligibility Age) — same cutoff already used for CPF LIFE income below. Before that,
+    // only cash, investments and property proceeds count toward what's actually available.
+    const cpfCountedInAssets = retirementAge >= 65 ? accessibleCpf : 0;
+    const startingAssets = cashSavings + investments + cpfCountedInAssets + propertyProceeds;
     const projectedAssetsBeforeMove = futureValue(startingAssets, monthlyContributions, expectedReturnPct, yearsToRetirement);
     const projectedRelocationCost = relocationCost * Math.pow(1 + inflationPct / 100, yearsToRetirement);
     const projectedAssets = Math.max(0, projectedAssetsBeforeMove - projectedRelocationCost);
@@ -274,7 +278,7 @@ export default function GeoArbitrageCalculator() {
     const requiredNestEgg = calculateRequiredNestEgg(monthlyCostsAtRetirement, passiveIncome, retirementYears, expectedReturnPct / 100, inflationPct / 100);
     const surplus = projectedAssets - requiredNestEgg;
     const lastsYears = estimateMoneyLastsYears(projectedAssets, monthlyCostsAtRetirement, passiveIncome, expectedReturnPct / 100, inflationPct / 100, 100);
-    return { yearsToRetirement, retirementYears, startingAssets, projectedRelocationCost, projectedAssets, destinationMonthlyCosts, retainedCostsUsed, monthlyCostsBeforeInflation, monthlyCostsAtRetirement, passiveIncome, netMonthlySpend, monthlyIncomeSurplus, requiredNestEgg, surplus, lastsYears };
+    return { yearsToRetirement, retirementYears, startingAssets, cpfCountedInAssets, projectedRelocationCost, projectedAssets, destinationMonthlyCosts, retainedCostsUsed, monthlyCostsBeforeInflation, monthlyCostsAtRetirement, passiveIncome, netMonthlySpend, monthlyIncomeSurplus, requiredNestEgg, surplus, lastsYears };
   }, [currentAge, retirementAge, lifeExpectancy, cashSavings, investments, accessibleCpf, propertyProceeds, monthlyContributions, expectedReturnPct, inflationPct, relocationCost, bangkokRent, bangkokFood, bangkokHealthcare, bangkokTransport, bangkokLifestyle, bangkokUtilitiesVisa, retainedSingaporeCosts, linkedRetirementExpenses, cpfLifeIncome, rentalIncome, pensionIncome, otherPassiveIncome]);
 
   const save = () => {
@@ -425,6 +429,12 @@ export default function GeoArbitrageCalculator() {
         <NumberField label="Cash & savings today" value={cashSavings} onChange={setCashSavings} prefix="$" readOnly={retirementImport !== null} />
         <NumberField label="Investments today" value={investments} onChange={setInvestments} prefix="$" readOnly={retirementImport !== null} />
         <NumberField label="CPF accessible for retirement" value={accessibleCpf} onChange={setAccessibleCpf} prefix="$" readOnly={retirementImport !== null} />
+        {retirementAge < 65 && (
+          <p className="explainer" style={{ marginTop: -6 }}>
+            Not counted in the projection below at age {retirementAge} — CPF savings are treated as accessible from
+            age 65 (Payout Eligibility Age), same as CPF LIFE income above. Pick Age 65 above to include it.
+          </p>
+        )}
         <NumberField label="Expected property sale proceeds" value={propertyProceeds} onChange={setPropertyProceeds} prefix="$" readOnly={retirementImport !== null} />
         <NumberField label="Monthly contributions until retirement" value={monthlyContributions} onChange={setMonthlyContributions} prefix="$" readOnly={retirementImport !== null} />
         <ResultRow label="Assets today" value={formatSgd(result.startingAssets)} />
