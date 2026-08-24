@@ -86,6 +86,11 @@ interface SavedRetirementData {
   expenseItems?: Array<{ label: string; amount: number }>;
   liabilityItems?: Array<{ label: string; amount: number }>;
   cpfLifeMonthlyIncome?: number;
+  // Mirrors the Retirement Calculator's "Include selling my HDB today in this
+  // projection" checkbox. Absent on data saved before this field existed —
+  // treated as true (the old, always-include behaviour) so existing saves
+  // keep working.
+  includeHdbSale?: boolean;
 }
 
 function futureValue(principal: number, monthlyContribution: number, annualReturnPct: number, years: number) {
@@ -162,7 +167,13 @@ export default function GeoArbitrageCalculator() {
     (retirementSource?.data.liabilityItems?.reduce((total, item) => total + item.amount, 0) ?? 0)
   );
   const savedHdb = loadCalculatorData<HdbSaleInput>(HDB_SALE_STORAGE_KEY);
-  const hdbCashProceeds = savedHdb?.data ? calculateHdbSaleProceeds(savedHdb.data).cashProceeds : undefined;
+  // Respect the Retirement Calculator's "Include selling my HDB today" checkbox — if the
+  // person has explicitly unchecked it there, don't assume the sale happens here either.
+  // No Retirement data synced yet, or data saved before this flag existed, falls back to
+  // the original always-include behaviour.
+  const includeHdbInImport = retirementSource?.data.includeHdbSale !== false;
+  const hdbCashProceeds =
+    savedHdb?.data && includeHdbInImport ? calculateHdbSaleProceeds(savedHdb.data).cashProceeds : undefined;
   const retirementImport = retirementSource?.data
     ? {
         currentAge: retirementSource.data.currentAge ?? DEFAULTS.currentAge,

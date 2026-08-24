@@ -249,8 +249,9 @@ export default function RetirementCalculator() {
       expenseItems,
       liabilityItems,
       cpfLifeMonthlyIncome: result.cpfLife.estimatedMonthlyPayout,
+      includeHdbSale,
     });
-  }, [currentAge, retirementAge, currentSavings, currentOA, currentSaRa, monthlyInvestment, expectedReturnPct, inflationRatePct, investmentItems, incomeItems, expenseItems, liabilityItems, result.cpfLife.estimatedMonthlyPayout]);
+  }, [currentAge, retirementAge, currentSavings, currentOA, currentSaRa, monthlyInvestment, expectedReturnPct, inflationRatePct, investmentItems, incomeItems, expenseItems, liabilityItems, result.cpfLife.estimatedMonthlyPayout, includeHdbSale]);
 
   const cpfLifePlans = useMemo(
     () => estimateCpfLifeAllPlans(result.cpfLife.retirementAccountBalance, CPF_RETIREMENT_SUMS_2026[cpfLifeTargetTier]),
@@ -378,6 +379,7 @@ export default function RetirementCalculator() {
       yearsInRetirement,
       annualRstuTopUp,
       cpfLifeMonthlyIncome: result.cpfLife.estimatedMonthlyPayout,
+      includeHdbSale,
     });
     setSavedAt(at);
   };
@@ -589,8 +591,16 @@ export default function RetirementCalculator() {
       <ResultCard title="🏠 Selling Your HDB">
         {hdbScenario ? (
           <>
-            <ResultRow label="CPF refund → added to your OA" value={`+${formatSgd(hdbScenario.cpfRefund)}`} positive />
-            <ResultRow label="Cash proceeds → added to your savings" value={`+${formatSgd(hdbScenario.cashProceeds)}`} positive />
+            <ResultRow
+              label={applyHdbScenario ? "CPF refund → added to your OA" : "CPF refund → not counted below (box unchecked)"}
+              value={`+${formatSgd(hdbScenario.cpfRefund)}`}
+              positive={applyHdbScenario || undefined}
+            />
+            <ResultRow
+              label={applyHdbScenario ? "Cash proceeds → added to your savings" : "Cash proceeds → not counted below (box unchecked)"}
+              value={`+${formatSgd(hdbScenario.cashProceeds)}`}
+              positive={applyHdbScenario || undefined}
+            />
             <p className="explainer">
               Pulled from what you saved in the{" "}
               <Link to="/hdb-sale-proceeds">HDB Sale Proceeds calculator</Link>
