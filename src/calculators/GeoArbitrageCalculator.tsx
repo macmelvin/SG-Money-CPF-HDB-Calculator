@@ -5,6 +5,8 @@ import { calculateHdbSaleProceeds, formatSgd } from "../lib/cpf";
 import type { HdbSaleInput } from "../lib/cpf";
 import { clearCalculatorData, loadCalculatorData, saveCalculatorData } from "../lib/storage";
 import { usePageMeta } from "../lib/usePageMeta";
+import { sumLineItems } from "../lib/dashboard";
+import type { LineItem } from "../lib/dashboard";
 
 type DestinationId = "bangkok" | "johor-bahru" | "ho-chi-minh-city" | "chiang-mai" | "kuala-lumpur" | "penang" | "bali";
 
@@ -81,10 +83,10 @@ interface SavedRetirementData {
   monthlyInvestment?: number;
   expectedReturnPct?: number;
   inflationRatePct?: number;
-  investmentItems?: Array<{ amount: number }>;
-  incomeItems?: Array<{ label: string; amount: number }>;
-  expenseItems?: Array<{ label: string; amount: number }>;
-  liabilityItems?: Array<{ label: string; amount: number }>;
+  investmentItems?: LineItem[];
+  incomeItems?: LineItem[];
+  expenseItems?: LineItem[];
+  liabilityItems?: LineItem[];
   cpfLifeMonthlyIncome?: number;
   // Mirrors the Retirement Calculator's "Include selling my HDB today in this
   // projection" checkbox. Absent on data saved before this field existed —
@@ -162,9 +164,10 @@ export default function GeoArbitrageCalculator() {
       .reduce((total, item) => total + item.amount, 0) ?? 0
   );
   const hasLinkedExpenses = retirementSource?.data.expenseItems !== undefined;
+  // sumLineItems (not a raw .reduce) so an expense item past its end date — set in the
+  // Retirement Calculator — drops out of this figure too, same as it does over there.
   const linkedRetirementExpenses = roundCurrency(
-    (retirementSource?.data.expenseItems?.reduce((total, item) => total + item.amount, 0) ?? 0) +
-    (retirementSource?.data.liabilityItems?.reduce((total, item) => total + item.amount, 0) ?? 0)
+    sumLineItems(retirementSource?.data.expenseItems ?? []) + sumLineItems(retirementSource?.data.liabilityItems ?? [])
   );
   const savedHdb = loadCalculatorData<HdbSaleInput>(HDB_SALE_STORAGE_KEY);
   // Respect the Retirement Calculator's "Include selling my HDB today" checkbox — if the
@@ -180,7 +183,7 @@ export default function GeoArbitrageCalculator() {
         retirementAge: retirementSource.data.retirementAge ?? DEFAULTS.retirementAge,
         cashSavings: roundCurrency(retirementSource.data.currentSavings ?? DEFAULTS.cashSavings),
         investments: roundCurrency(
-          retirementSource.data.investmentItems?.reduce((total, item) => total + item.amount, 0) ?? DEFAULTS.investments
+          retirementSource.data.investmentItems ? sumLineItems(retirementSource.data.investmentItems) : DEFAULTS.investments
         ),
         accessibleCpf: roundCurrency((retirementSource.data.currentOA ?? 0) + (retirementSource.data.currentSaRa ?? 0)),
         monthlyContributions: roundCurrency(retirementSource.data.monthlyInvestment ?? DEFAULTS.monthlyContributions),

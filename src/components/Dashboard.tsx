@@ -1,5 +1,5 @@
 import type { AllocationSlice, HealthDimension, LineItem } from "../lib/dashboard";
-import { HEALTH_STATUS_LABEL, newLineItemId, sumLineItems } from "../lib/dashboard";
+import { HEALTH_STATUS_LABEL, isLineItemEnded, newLineItemId, sumLineItems } from "../lib/dashboard";
 import { formatSgd } from "../lib/cpf";
 
 export function EditableLineItems({
@@ -8,12 +8,18 @@ export function EditableLineItems({
   addLabel,
   amountLabel = "Amount",
   placeholder = "e.g. Salary",
+  showEndDate = false,
 }: {
   items: LineItem[];
   onChange: (items: LineItem[]) => void;
   addLabel: string;
   amountLabel?: string;
   placeholder?: string;
+  // Shows an optional "ends on" date per row. Once that date has passed, the
+  // item is struck through here and drops out of the Total below (and out of
+  // every calculation that sums this list) — for a loan or policy that runs
+  // out on a known date, without needing to remember to delete it.
+  showEndDate?: boolean;
 }) {
   const updateItem = (id: string, patch: Partial<LineItem>) => {
     onChange(items.map((item) => (item.id === id ? { ...item, ...patch } : item)));
@@ -27,29 +33,49 @@ export function EditableLineItems({
 
   return (
     <div className="line-items">
-      {items.map((item) => (
-        <div className="line-item-row" key={item.id}>
-          <input
-            type="text"
-            className="line-item-label"
-            value={item.label}
-            placeholder={placeholder}
-            onChange={(e) => updateItem(item.id, { label: e.target.value })}
-          />
-          <div className="line-item-amount">
-            <span className="affix">$</span>
-            <input
-              type="number"
-              aria-label={amountLabel}
-              value={Number.isNaN(item.amount) ? "" : item.amount}
-              onChange={(e) => updateItem(item.id, { amount: e.target.value === "" ? 0 : parseFloat(e.target.value) })}
-            />
+      {items.map((item) => {
+        const ended = showEndDate && isLineItemEnded(item);
+        return (
+          <div className="line-item-group" key={item.id}>
+            <div className={`line-item-row ${ended ? "line-item-ended" : ""}`}>
+              <input
+                type="text"
+                className="line-item-label"
+                value={item.label}
+                placeholder={placeholder}
+                onChange={(e) => updateItem(item.id, { label: e.target.value })}
+              />
+              <div className="line-item-amount">
+                <span className="affix">$</span>
+                <input
+                  type="number"
+                  aria-label={amountLabel}
+                  value={Number.isNaN(item.amount) ? "" : item.amount}
+                  onChange={(e) =>
+                    updateItem(item.id, { amount: e.target.value === "" ? 0 : parseFloat(e.target.value) })
+                  }
+                />
+              </div>
+              <button type="button" className="line-item-remove" aria-label="Remove" onClick={() => removeItem(item.id)}>
+                ✕
+              </button>
+            </div>
+            {showEndDate && (
+              <div className="line-item-enddate-row">
+                <label>
+                  End date (optional)
+                  <input
+                    type="date"
+                    value={item.endDate ?? ""}
+                    onChange={(e) => updateItem(item.id, { endDate: e.target.value || undefined })}
+                  />
+                </label>
+                {ended && <span className="line-item-ended-badge">Ended — excluded from totals</span>}
+              </div>
+            )}
           </div>
-          <button type="button" className="line-item-remove" aria-label="Remove" onClick={() => removeItem(item.id)}>
-            ✕
-          </button>
-        </div>
-      ))}
+        );
+      })}
       <button type="button" className="line-item-add" onClick={addItem}>
         + {addLabel}
       </button>

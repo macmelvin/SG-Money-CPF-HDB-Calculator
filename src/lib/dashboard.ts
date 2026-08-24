@@ -8,6 +8,12 @@ export interface LineItem {
   id: string;
   label: string;
   amount: number;
+  // Optional "YYYY-MM-DD" (native <input type="date"> value). Once this date has
+  // passed, the item is treated as ended and excluded from sums — for a loan or
+  // policy with a known finish date, so nobody has to remember to delete it once
+  // it's done. Undefined/empty means "no end date, always active". Currently only
+  // exposed in the UI for expense items (see EditableLineItems' showEndDate prop).
+  endDate?: string;
 }
 
 let nextId = 1;
@@ -17,8 +23,22 @@ export function newLineItemId(): string {
   return `item-${Date.now()}-${nextId}`;
 }
 
-export function sumLineItems(items: LineItem[]): number {
-  return items.reduce((total, item) => total + (Number.isFinite(item.amount) ? item.amount : 0), 0);
+// today defaults to the real current date; accepting it as a param keeps this
+// testable without relying on the ambient clock.
+export function isLineItemEnded(item: LineItem, today: Date = new Date()): boolean {
+  if (!item.endDate) return false;
+  // Compare as plain "YYYY-MM-DD" strings (both the input value and this
+  // ISO-slice sort lexicographically the same as chronologically) — avoids
+  // timezone-shift bugs from constructing a Date from a date-only string.
+  const todayStr = today.toISOString().slice(0, 10);
+  return item.endDate < todayStr;
+}
+
+export function sumLineItems(items: LineItem[], today: Date = new Date()): number {
+  return items.reduce(
+    (total, item) => total + (Number.isFinite(item.amount) && !isLineItemEnded(item, today) ? item.amount : 0),
+    0
+  );
 }
 
 export interface AssetAllocationInput {

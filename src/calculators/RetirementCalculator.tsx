@@ -564,7 +564,13 @@ export default function RetirementCalculator() {
         <p className="explainer" style={{ marginTop: -2 }}>Income</p>
         <EditableLineItems items={incomeItems} onChange={setIncomeItems} addLabel="Add income source" placeholder="e.g. Salary" />
         <p className="explainer" style={{ marginTop: 14 }}>Expenses</p>
-        <EditableLineItems items={expenseItems} onChange={setExpenseItems} addLabel="Add expense" placeholder="e.g. Insurance premium" />
+        <EditableLineItems
+          items={expenseItems}
+          onChange={setExpenseItems}
+          addLabel="Add expense"
+          placeholder="e.g. Insurance premium"
+          showEndDate
+        />
         <p className="explainer" style={{ marginTop: 14 }}>Liabilities</p>
         <p className="explainer" style={{ marginTop: -6 }}>
           Monthly loan/debt repayments — home mortgage, car loan, children's education loan, etc. These reduce
