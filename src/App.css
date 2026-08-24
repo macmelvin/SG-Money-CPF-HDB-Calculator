@@ -1318,6 +1318,62 @@
   color: var(--positive);
 }
 
+/* Geo Arbitrage: expandable "which items make up this total" breakdown under the
+   linked Retirement Calculator expenses/liabilities figure. */
+.linked-breakdown {
+  margin: -6px 0 16px;
+}
+.linked-breakdown summary {
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--text-muted);
+}
+.linked-breakdown-list {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.linked-breakdown-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 10px;
+  font-size: 13px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+.linked-breakdown-list li:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+.linked-breakdown-label {
+  color: var(--text);
+}
+.linked-breakdown-kind {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+.linked-breakdown-amount {
+  font-weight: 600;
+  color: var(--text);
+}
+.linked-breakdown-list li.linked-breakdown-excluded .linked-breakdown-label,
+.linked-breakdown-list li.linked-breakdown-excluded .linked-breakdown-amount {
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+.linked-breakdown-reason {
+  flex-basis: 100%;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--negative);
+}
+
 /* --- Asset allocation stacked bar --- */
 .allocation-chart {
   margin-top: 8px;

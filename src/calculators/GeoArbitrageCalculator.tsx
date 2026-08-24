@@ -5,7 +5,7 @@ import { calculateHdbSaleProceeds, formatSgd } from "../lib/cpf";
 import type { HdbSaleInput } from "../lib/cpf";
 import { clearCalculatorData, loadCalculatorData, saveCalculatorData } from "../lib/storage";
 import { usePageMeta } from "../lib/usePageMeta";
-import { dateAtAge, sumLineItems } from "../lib/dashboard";
+import { dateAtAge, isLineItemEnded, isLineItemNotYetStarted, sumLineItems } from "../lib/dashboard";
 import type { LineItem } from "../lib/dashboard";
 
 type DestinationId = "bangkok" | "johor-bahru" | "ho-chi-minh-city" | "chiang-mai" | "kuala-lumpur" | "penang" | "bali";
@@ -294,6 +294,33 @@ export default function GeoArbitrageCalculator() {
     return { yearsToRetirement, retirementYears, startingAssets, cpfCountedInAssets, projectedRelocationCost, projectedAssets, destinationMonthlyCosts, retainedExpensesAtRetirement, retainedCostsUsed, monthlyCostsBeforeInflation, monthlyCostsAtRetirement, passiveIncome, netMonthlySpend, monthlyIncomeSurplus, requiredNestEgg, surplus, lastsYears };
   }, [currentAge, retirementAge, lifeExpectancy, cashSavings, investments, accessibleCpf, propertyProceeds, monthlyContributions, expectedReturnPct, inflationPct, relocationCost, bangkokRent, bangkokFood, bangkokHealthcare, bangkokTransport, bangkokLifestyle, bangkokUtilitiesVisa, retainedSingaporeCosts, linkedExpenseItems, linkedLiabilityItems, cpfLifeIncome, rentalIncome, pensionIncome, otherPassiveIncome]);
 
+  // Per-item breakdown behind "Monthly expenses from Retirement Calculator" above — lets
+  // someone see exactly which expense/liability line items are counted (or left out, and
+  // why) as of the calendar date they'll actually reach their chosen retirement age.
+  const retainedItemsBreakdown = useMemo(() => {
+    const retirementDate = dateAtAge(currentAge, retirementAge);
+    const withKind = [
+      ...linkedExpenseItems.map((item) => ({ item, kind: "Expense" as const })),
+      ...linkedLiabilityItems.map((item) => ({ item, kind: "Liability" as const })),
+    ];
+    return withKind.map(({ item, kind }) => {
+      const ended = isLineItemEnded(item, retirementDate);
+      const notStarted = !ended && isLineItemNotYetStarted(item, retirementDate);
+      return {
+        id: item.id,
+        label: item.label || "(untitled)",
+        amount: item.amount,
+        kind,
+        included: !ended && !notStarted,
+        reason: ended
+          ? "ends before then"
+          : notStarted
+            ? "hasn't started by then"
+            : null,
+      };
+    });
+  }, [currentAge, retirementAge, linkedExpenseItems, linkedLiabilityItems]);
+
   const save = () => {
     saveCalculatorData(STORAGE_KEY, values);
     setSavedAt(Date.now());
@@ -473,6 +500,22 @@ export default function GeoArbitrageCalculator() {
               : `Includes expenses and liabilities from the Retirement Calculator still active around age ${retirementAge} (in ${result.yearsToRetirement} ${result.yearsToRetirement === 1 ? "year" : "years"}), based on each item's start/end date — so a loan or premium that finishes before then is left out.`
             : "Open the Retirement Calculator and enter your monthly expenses to link them here."}
         </p>
+        {retainedItemsBreakdown.length > 0 && (
+          <details className="linked-breakdown">
+            <summary>Show the {retainedItemsBreakdown.length} item{retainedItemsBreakdown.length === 1 ? "" : "s"} behind this total</summary>
+            <ul className="linked-breakdown-list">
+              {retainedItemsBreakdown.map((row) => (
+                <li key={row.id} className={row.included ? "" : "linked-breakdown-excluded"}>
+                  <span className="linked-breakdown-label">
+                    {row.label} <span className="linked-breakdown-kind">({row.kind})</span>
+                  </span>
+                  <span className="linked-breakdown-amount">{formatSgd(row.amount)}/mo</span>
+                  {!row.included && <span className="linked-breakdown-reason">{row.reason} — not counted</span>}
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
         <NumberField label="Additional costs after moving" value={retainedSingaporeCosts} onChange={setRetainedSingaporeCosts} prefix="$" suffix="/mo" />
         <p className="explainer">Anything not already in your Retirement Calculator list, such as property charges, family support, storage, insurance top-ups, or frequent trips home.</p>
         <ResultRow label="Total retained in Singapore" value={`${formatSgd(result.retainedCostsUsed)}/mo`} emphasis />
