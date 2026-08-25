@@ -975,6 +975,15 @@ export default function RetirementCalculator() {
             </button>
           ))}
         </div>
+        {currentProjectedRaBalanceForPlanner < result.cpfRetirementSums[cpfLifeTargetTier] && (
+          <p className="explainer" style={{ marginTop: -4, marginBottom: 8 }}>
+            Your own projected balance (~{formatSgd(currentProjectedRaBalanceForPlanner)}) is currently below{" "}
+            {cpfLifeTargetTier.toUpperCase()}, so the payout below reflects what you're actually on track to have —
+            not the {cpfLifeTargetTier.toUpperCase()} ceiling itself. Switching between BRS/FRS/ERS here only
+            changes the payout once your real projected balance would otherwise exceed the tier you pick; it can't
+            add money you don't have. See "Top up needed" below for how much more that would take.
+          </p>
+        )}
         <ResultRow
           label={`Set aside for ${CPF_LIFE_TIER_LABEL[cpfLifeTargetTier]}`}
           value={formatSgd(result.cpfLife.retirementAccountBalance)}
