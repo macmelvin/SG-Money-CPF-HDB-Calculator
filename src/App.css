@@ -551,6 +551,89 @@
   font-weight: 600;
   color: var(--positive);
 }
+
+.cpf-life-plan-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+.cpf-life-plan-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  text-align: left;
+  font-family: inherit;
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.cpf-life-plan-card:hover {
+  border-color: var(--primary);
+}
+.cpf-life-plan-card-selected {
+  border-color: var(--primary);
+  border-width: 2px;
+  padding: 11px 13px;
+  background: rgba(179, 38, 30, 0.08);
+}
+.cpf-life-plan-card-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+.cpf-life-plan-card-selected .cpf-life-plan-card-name {
+  color: var(--primary);
+}
+.cpf-life-plan-card-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.payout-projection-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 10px 0;
+}
+.payout-projection-row {
+  display: grid;
+  grid-template-columns: 56px 1fr auto;
+  align-items: center;
+  gap: 10px;
+}
+.payout-projection-age {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.payout-projection-track {
+  background: var(--border);
+  border-radius: 6px;
+  height: 14px;
+  overflow: hidden;
+}
+.payout-projection-fill {
+  background: var(--primary);
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.2s ease;
+}
+.payout-projection-value {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  min-width: 64px;
+  text-align: right;
+}
+
 .disclaimer {
   font-size: 12px;
   color: var(--text-muted);

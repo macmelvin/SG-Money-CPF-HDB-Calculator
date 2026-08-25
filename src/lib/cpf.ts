@@ -599,6 +599,104 @@ export function estimateCpfLifeAllPlans(
   return { standard, basic, escalating };
 }
 
+export type CpfLifePlanChoice = "standard" | "basic" | "escalating";
+
+// Deferring your CPF LIFE start past 65 (up to age 70) increases every subsequent payout —
+// confirmed by CPF Board: "Deferral timing (up to 7% annual increase)"
+// (cpf.gov.sg/service/article/how-are-the-cpf-life-payouts-calculated). Applied here as a
+// simple compounding multiplier per year deferred, which is how CPF Board's own materials
+// describe it (an approximation of their actual actuarial adjustment, not the exact formula).
+export const CPF_LIFE_DEFERRAL_BONUS_PER_YEAR = 0.07;
+export const CPF_LIFE_MAX_DEFERRAL_YEARS = 5; // payouts can start any time from 65 up to 70
+
+// Inverts the piecewise-linear BRS/FRS/ERS -> payout curve used by estimateCpfLifePayout,
+// solving "what RA balance would produce this MALE, Standard-Plan, no-deferral payout at 65"
+// — the same raw curve every sex/plan/deferral adjustment is layered on top of elsewhere in
+// this file. Deliberately returns the UNCAPPED value (extrapolating past the ERS anchor using
+// the same FRS->ERS slope) rather than clamping here — callers need the true uncapped balance
+// to detect "this desired payout isn't reachable even at ERS" (result > sums.ers) themselves;
+// clamping inside this function would silently hide that instead of surfacing it.
+function invertStandardPayoutAt65(targetPayout: number, sums: { brs: number; frs: number; ers: number }): number {
+  const { brs, frs, ers } = sums;
+  const { brs: brsP, frs: frsP, ers: ersP } = CPF_LIFE_STANDARD_PAYOUT_2026;
+  if (targetPayout <= 0) return 0;
+  if (targetPayout <= brsP) return brsP === 0 ? 0 : (targetPayout / brsP) * brs;
+  if (targetPayout <= frsP) {
+    const t = (targetPayout - brsP) / (frsP - brsP);
+    return brs + t * (frs - brs);
+  }
+  if (targetPayout <= ersP) {
+    const t = (targetPayout - frsP) / (ersP - frsP);
+    return frs + t * (ers - frs);
+  }
+  const slope = ersP === frsP ? 0 : (ers - frs) / (ersP - frsP);
+  return ers + (targetPayout - ersP) * slope;
+}
+
+export interface CpfLifeTopUpPlanInput {
+  /** The monthly payout you want to receive starting at payoutStartAge, in today's dollars. */
+  desiredMonthlyPayout: number;
+  /** 65-70. Payouts deferred past 65 earn CPF_LIFE_DEFERRAL_BONUS_PER_YEAR per year deferred. */
+  payoutStartAge: number;
+  plan: CpfLifePlanChoice;
+  sex: CpfLifeSex;
+  sums: { brs: number; frs: number; ers: number };
+  /** What you're already on track to have available for CPF LIFE (e.g. projected OA + SA/RA) —
+   *  used to work out how much MORE (if anything) you'd need to top up. */
+  currentProjectedRaBalance: number;
+}
+
+export interface CpfLifeTopUpPlanResult {
+  /** The RA balance needed to hit desiredMonthlyPayout, capped at ERS (the real ceiling). */
+  requiredRaBalance: number;
+  /** max(0, requiredRaBalance - currentProjectedRaBalance) — 0 if you're already on track. */
+  additionalTopUpNeeded: number;
+  /** True when desiredMonthlyPayout isn't achievable even at ERS with this plan/sex/start age —
+   *  requiredRaBalance and payoutAtStartAge below reflect the best achievable at ERS instead. */
+  exceedsErs: boolean;
+  /** The actual payout you'd get at payoutStartAge from requiredRaBalance (equals
+   *  desiredMonthlyPayout unless exceedsErs is true). */
+  payoutAtStartAge: number;
+  /** Payout at payoutStartAge, +20 years, and +30 years — flat for Standard/Basic, growing
+   *  2%/year for Escalating (mirrors the age-65/85/95 illustration CPF Board itself uses). */
+  payoutProjection: { age: number; payout: number }[];
+}
+
+// Reverse-plans a CPF LIFE target: "I want $X/month from age Y on the Z plan — how much do I
+// need in my Retirement Account, and how much more should I top up?" The inverse of
+// estimateCpfLifeAllPlans — same underlying curve, same sex/plan factors, run backwards.
+export function planCpfLifeTopUp(input: CpfLifeTopUpPlanInput): CpfLifeTopUpPlanResult {
+  const { desiredMonthlyPayout, payoutStartAge, plan, sex, sums, currentProjectedRaBalance } = input;
+
+  const deferralYears = Math.max(0, Math.min(CPF_LIFE_MAX_DEFERRAL_YEARS, Math.round(payoutStartAge - 65)));
+  const deferralMultiplier = Math.pow(1 + CPF_LIFE_DEFERRAL_BONUS_PER_YEAR, deferralYears);
+  const planFactor = plan === "basic" ? BASIC_PLAN_FACTOR : plan === "escalating" ? ESCALATING_PLAN_START_FACTOR : 1;
+  const combinedFactor = planFactor * deferralMultiplier; // sex is applied separately below via estimateCpfLifePayout
+
+  // "Undo" the plan + deferral adjustments (sex is undone implicitly by inverting the raw male
+  // curve, then reapplying sex below) to get an equivalent Standard-at-65 target, then invert.
+  const impliedStandardPayoutAt65 =
+    combinedFactor > 0 ? Math.max(0, desiredMonthlyPayout) / (combinedFactor * (sex === "female" ? CPF_LIFE_FEMALE_PAYOUT_FACTOR : 1)) : 0;
+  const requiredRaBalanceUncapped = invertStandardPayoutAt65(impliedStandardPayoutAt65, sums);
+  const exceedsErs = requiredRaBalanceUncapped > sums.ers + 0.5;
+  const requiredRaBalance = Math.round(Math.min(requiredRaBalanceUncapped, sums.ers));
+  const additionalTopUpNeeded = Math.max(0, Math.round(requiredRaBalance - currentProjectedRaBalance));
+
+  const standardAtRequired = estimateCpfLifePayout(requiredRaBalance, sums.ers, sums, sex).estimatedMonthlyPayout;
+  const payoutAtStartAge = Math.round(standardAtRequired * planFactor * deferralMultiplier);
+
+  const payoutProjection = [0, 20, 30].map((offset) => {
+    const age = payoutStartAge + offset;
+    const payout =
+      plan === "escalating"
+        ? Math.round(payoutAtStartAge * Math.pow(1 + ESCALATING_ANNUAL_GROWTH, offset))
+        : payoutAtStartAge;
+    return { age, payout };
+  });
+
+  return { requiredRaBalance, additionalTopUpNeeded, exceedsErs, payoutAtStartAge, payoutProjection };
+}
+
 // Retirement Sum Topping-Up Scheme (RSTU) — voluntary cash top-ups to SA
 // (below 55) / RA (55+), earning the same 4% floor rate as other SA/RA
 // savings. Tax relief is capped at $8,000/year for self top-ups (up to

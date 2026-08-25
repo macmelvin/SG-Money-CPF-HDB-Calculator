@@ -7,6 +7,7 @@ import type { DashboardExportData } from "../components/RetirementDashboardExpor
 import { PremiumReportPreview } from "../components/PremiumReportPreview";
 import { captureNodeAsCanvas, downloadCanvasAsPng } from "../lib/dashboardImage";
 import {
+  CPF_LIFE_DEFERRAL_BONUS_PER_YEAR,
   CPF_LIFE_FEMALE_PAYOUT_FACTOR,
   CPF_LIFE_STANDARD_PAYOUT_2026,
   RSTU_SELF_RELIEF_CAP,
@@ -17,9 +18,11 @@ import {
   calculateSalaryCpf,
   estimateCpfLifeAllPlans,
   formatSgd,
+  planCpfLifeTopUp,
 } from "../lib/cpf";
 import type {
   CarCostInput,
+  CpfLifePlanChoice,
   CpfLifeSex,
   CpfLifeTargetTier,
   HdbSaleInput,
@@ -63,12 +66,28 @@ const DEFAULTS = {
   annualRstuTopUp: 0,
   sex: "male" as CpfLifeSex,
   birthYear: 0, // 0 = not set — falls back to deriving your cohort from Current age instead
+  cpfLifePlanChoice: "standard" as CpfLifePlanChoice,
+  desiredMonthlyPayoutGoal: 2000,
+  payoutStartAge: 65,
 };
 
 const CPF_LIFE_TIER_LABEL: Record<CpfLifeTargetTier, string> = {
   brs: "Basic Retirement Sum (BRS)",
   frs: "Full Retirement Sum (FRS)",
   ers: "Enhanced Retirement Sum (ERS)",
+};
+
+const CPF_LIFE_PLAN_LABEL: Record<CpfLifePlanChoice, string> = {
+  escalating: "Escalating Plan",
+  standard: "Standard Plan",
+  basic: "Basic Plan",
+};
+
+const CPF_LIFE_PLAN_DESC: Record<CpfLifePlanChoice, string> = {
+  escalating:
+    "Payouts start lower but grow ~2%/year for life — helps protect your lifestyle against rising prices over a long retirement.",
+  standard: "Steady, unchanging monthly payouts for life — a fixed amount that's easy to budget around.",
+  basic: "Lower payouts than Standard, but keeps the largest bequest for your beneficiaries from any RA savings you haven't drawn down.",
 };
 
 const STORAGE_KEY = "retirement-calculator";
@@ -155,6 +174,13 @@ export default function RetirementCalculator() {
   const [annualRstuTopUp, setAnnualRstuTopUp] = useState(initial.annualRstuTopUp ?? DEFAULTS.annualRstuTopUp);
   const [sex, setSex] = useState<CpfLifeSex>(initial.sex ?? DEFAULTS.sex);
   const [birthYear, setBirthYear] = useState(initial.birthYear ?? DEFAULTS.birthYear);
+  const [cpfLifePlanChoice, setCpfLifePlanChoice] = useState<CpfLifePlanChoice>(
+    initial.cpfLifePlanChoice ?? DEFAULTS.cpfLifePlanChoice
+  );
+  const [desiredMonthlyPayoutGoal, setDesiredMonthlyPayoutGoal] = useState(
+    initial.desiredMonthlyPayoutGoal ?? DEFAULTS.desiredMonthlyPayoutGoal
+  );
+  const [payoutStartAge, setPayoutStartAge] = useState(initial.payoutStartAge ?? DEFAULTS.payoutStartAge);
 
   // Pull whatever the user last saved in the HDB Sale Proceeds calculator (if anything) so this
   // page can offer a "what if I sold today" scenario without asking them to re-enter numbers.
@@ -275,6 +301,34 @@ export default function RetirementCalculator() {
     [result.cpfLife.retirementAccountBalance, result.cpfRetirementSums, cpfLifeTargetTier, sex]
   );
 
+  // Total projected OA + SA/RA (regardless of which BRS/FRS/ERS tier is selected above) is what's
+  // actually available toward a CPF LIFE plan — capped at ERS, the real ceiling on what can sit in
+  // a Retirement Account. Feeds the reverse "how much do I need to top up" planner below.
+  const currentProjectedRaBalanceForPlanner = Math.min(
+    result.projectedOA + result.projectedSaRa,
+    result.cpfRetirementSums.ers
+  );
+  const cpfLifeTopUpPlan = useMemo(
+    () =>
+      planCpfLifeTopUp({
+        desiredMonthlyPayout: desiredMonthlyPayoutGoal,
+        payoutStartAge,
+        plan: cpfLifePlanChoice,
+        sex,
+        sums: result.cpfRetirementSums,
+        currentProjectedRaBalance: currentProjectedRaBalanceForPlanner,
+      }),
+    [
+      desiredMonthlyPayoutGoal,
+      payoutStartAge,
+      cpfLifePlanChoice,
+      sex,
+      result.cpfRetirementSums,
+      currentProjectedRaBalanceForPlanner,
+    ]
+  );
+  const maxProjectedPayout = Math.max(1, ...cpfLifeTopUpPlan.payoutProjection.map((p) => p.payout));
+
   // --- Net worth snapshot ---
   const totalCpfToday = currentOA + currentSaRa + currentMA;
   const { netWorth, slices } = computeNetWorth({
@@ -369,6 +423,9 @@ export default function RetirementCalculator() {
     setAnnualRstuTopUp(DEFAULTS.annualRstuTopUp);
     setSex(DEFAULTS.sex);
     setBirthYear(DEFAULTS.birthYear);
+    setCpfLifePlanChoice(DEFAULTS.cpfLifePlanChoice);
+    setDesiredMonthlyPayoutGoal(DEFAULTS.desiredMonthlyPayoutGoal);
+    setPayoutStartAge(DEFAULTS.payoutStartAge);
     clearCalculatorData(STORAGE_KEY);
     setSavedAt(null);
   };
@@ -399,6 +456,9 @@ export default function RetirementCalculator() {
       annualRstuTopUp,
       sex,
       birthYear,
+      cpfLifePlanChoice,
+      desiredMonthlyPayoutGoal,
+      payoutStartAge,
       cpfLifeMonthlyIncome: result.cpfLife.estimatedMonthlyPayout,
       includeHdbSale,
     });
@@ -958,6 +1018,93 @@ export default function RetirementCalculator() {
           retirement (roughly age {65 + cpfLifePlans.escalating.crossoverYear}) — worth considering if you expect a
           long retirement and want built-in inflation protection. Basic suits those prioritising a larger legacy for
           beneficiaries over maximum lifetime income.
+        </p>
+      </ResultCard>
+
+      <ResultCard title="🎯 CPF LIFE Payout Planner">
+        <p className="explainer" style={{ marginTop: -2 }}>
+          Pick the plan that suits your desired lifestyle, then tell us the monthly payout you're aiming for — we'll
+          work out how much more (if anything) you'd need to top up to get there.
+        </p>
+        <div className="cpf-life-plan-picker" role="radiogroup" aria-label="CPF LIFE plan for this planner">
+          {(["escalating", "standard", "basic"] as CpfLifePlanChoice[]).map((plan) => (
+            <button
+              type="button"
+              key={plan}
+              role="radio"
+              aria-checked={cpfLifePlanChoice === plan}
+              className={`cpf-life-plan-card${cpfLifePlanChoice === plan ? " cpf-life-plan-card-selected" : ""}`}
+              onClick={() => setCpfLifePlanChoice(plan)}
+            >
+              <span className="cpf-life-plan-card-name">{CPF_LIFE_PLAN_LABEL[plan]}</span>
+              <span className="cpf-life-plan-card-desc">{CPF_LIFE_PLAN_DESC[plan]}</span>
+            </button>
+          ))}
+        </div>
+
+        <div className="form-grid" style={{ marginTop: 14 }}>
+          <NumberField
+            label="Desired monthly payout"
+            value={desiredMonthlyPayoutGoal}
+            onChange={setDesiredMonthlyPayoutGoal}
+            prefix="$"
+            suffix="/mo"
+            step={100}
+          />
+          <SelectField
+            label="I'd like to start payouts at age"
+            value={String(payoutStartAge)}
+            onChange={(v) => setPayoutStartAge(Number(v))}
+            options={[65, 66, 67, 68, 69, 70].map((age) => ({ value: String(age), label: `Age ${age}` }))}
+          />
+        </div>
+
+        {cpfLifeTopUpPlan.additionalTopUpNeeded > 0 ? (
+          <ResultRow label="Additional top-up needed" value={formatSgd(cpfLifeTopUpPlan.additionalTopUpNeeded)} emphasis />
+        ) : (
+          <ResultRow label="You're already on track for this" value="No extra top-up needed" emphasis positive />
+        )}
+        <ResultRow label="Retirement Account balance needed" value={formatSgd(cpfLifeTopUpPlan.requiredRaBalance)} />
+        <ResultRow
+          label={`Projected payout at age ${payoutStartAge}`}
+          value={`${formatSgd(cpfLifeTopUpPlan.payoutAtStartAge)}/mo`}
+          positive={cpfLifeTopUpPlan.payoutAtStartAge >= desiredMonthlyPayoutGoal}
+        />
+
+        <p className="explainer" style={{ marginTop: 12, marginBottom: 4 }}>
+          Projected payout over time on the {CPF_LIFE_PLAN_LABEL[cpfLifePlanChoice]}:
+        </p>
+        <div className="payout-projection-bars" role="img" aria-label="Projected CPF LIFE payout over time">
+          {cpfLifeTopUpPlan.payoutProjection.map((p) => (
+            <div className="payout-projection-row" key={p.age}>
+              <span className="payout-projection-age">Age {p.age}</span>
+              <div className="payout-projection-track">
+                <div
+                  className="payout-projection-fill"
+                  style={{ width: `${Math.max(4, (p.payout / maxProjectedPayout) * 100)}%` }}
+                />
+              </div>
+              <span className="payout-projection-value">{formatSgd(p.payout)}/mo</span>
+            </div>
+          ))}
+        </div>
+
+        <p className="explainer">
+          {cpfLifeTopUpPlan.exceedsErs
+            ? `Even topping up to the current Enhanced Retirement Sum ceiling (${formatSgd(
+                result.cpfRetirementSums.ers
+              )}) — the most anyone can set aside — the ${CPF_LIFE_PLAN_LABEL[
+                cpfLifePlanChoice
+              ].toLowerCase()} can't reach ${formatSgd(
+                desiredMonthlyPayoutGoal
+              )}/mo starting at age ${payoutStartAge}. The figures above show the closest achievable instead — starting later (up to age 70) or switching plans may help close the gap.`
+            : `This assumes you have exactly ${formatSgd(
+                cpfLifeTopUpPlan.requiredRaBalance
+              )} in your Retirement Account by age 55, capped at ERS (the most anyone can set aside). Deferring past 65 boosts every subsequent payout by an approximate ${(
+                CPF_LIFE_DEFERRAL_BONUS_PER_YEAR * 100
+              ).toFixed(0)}%/year deferred, up to age 70 — CPF Board's own published deferral bonus, applied here as a simple approximation of their actual formula.`}
+          {result.sex === "female" &&
+            " This also reflects the same approximate Female payout adjustment used in the CPF LIFE Estimate above."}
         </p>
       </ResultCard>
 
