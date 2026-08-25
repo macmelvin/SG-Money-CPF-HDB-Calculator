@@ -17,6 +17,7 @@ import {
   calculateRetirement,
   calculateSalaryCpf,
   estimateCpfLifeAllPlans,
+  estimateCpfLifePlanPayoutAtAge,
   formatSgd,
   planCpfLifeTopUp,
 } from "../lib/cpf";
@@ -341,6 +342,18 @@ export default function RetirementCalculator() {
     ]
   );
   const maxProjectedPayout = Math.max(1, ...cpfLifeTopUpPlan.payoutProjection.map((p) => p.payout));
+
+  // Picking a plan card auto-fills "Desired monthly payout" with what that plan would actually
+  // pay from your current projected balance — so the planner opens on a real number instead of
+  // an arbitrary default, and you're not left wondering why choosing Escalating didn't change
+  // anything. The field stays editable afterwards: type a different amount to see the top-up
+  // needed to reach it instead.
+  const selectCpfLifePlan = (plan: CpfLifePlanChoice) => {
+    setCpfLifePlanChoice(plan);
+    setDesiredMonthlyPayoutGoal(
+      estimateCpfLifePlanPayoutAtAge(currentProjectedRaBalanceForPlanner, plan, payoutStartAge, result.cpfRetirementSums, sex)
+    );
+  };
 
   // --- Net worth snapshot ---
   const totalCpfToday = currentOA + currentSaRa + currentMA;
@@ -1080,8 +1093,8 @@ export default function RetirementCalculator() {
 
       <ResultCard title="🎯 CPF LIFE Payout Planner">
         <p className="explainer" style={{ marginTop: -2 }}>
-          Pick the plan that suits your desired lifestyle, then tell us the monthly payout you're aiming for — we'll
-          work out how much more (if anything) you'd need to top up to get there.
+          Pick a plan and we'll fill in what it would actually pay you based on your projected balance — edit that
+          number afterwards if you'd rather target a different payout and see how much more you'd need to top up.
         </p>
         <div className="cpf-life-plan-picker" role="radiogroup" aria-label="CPF LIFE plan for this planner">
           {(["escalating", "standard", "basic"] as CpfLifePlanChoice[]).map((plan) => (
@@ -1091,7 +1104,7 @@ export default function RetirementCalculator() {
               role="radio"
               aria-checked={cpfLifePlanChoice === plan}
               className={`cpf-life-plan-card${cpfLifePlanChoice === plan ? " cpf-life-plan-card-selected" : ""}`}
-              onClick={() => setCpfLifePlanChoice(plan)}
+              onClick={() => selectCpfLifePlan(plan)}
             >
               <span className="cpf-life-plan-card-name">{CPF_LIFE_PLAN_LABEL[plan]}</span>
               <span className="cpf-life-plan-card-desc">{CPF_LIFE_PLAN_DESC[plan]}</span>

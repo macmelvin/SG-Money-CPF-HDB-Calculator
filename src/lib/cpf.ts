@@ -697,6 +697,25 @@ export function planCpfLifeTopUp(input: CpfLifeTopUpPlanInput): CpfLifeTopUpPlan
   return { requiredRaBalance, additionalTopUpNeeded, exceedsErs, payoutAtStartAge, payoutProjection };
 }
 
+// The forward direction of planCpfLifeTopUp: "given the RA balance I'm actually on track to
+// have, what would this plan/start age actually pay me?" Same plan-factor + deferral-multiplier
+// math as planCpfLifeTopUp, just not run through the invert step — used to auto-fill the
+// planner's "desired payout" field with a real number the moment a plan is picked, instead of
+// leaving it on an arbitrary default until the user types something in themselves.
+export function estimateCpfLifePlanPayoutAtAge(
+  raBalance: number,
+  plan: CpfLifePlanChoice,
+  payoutStartAge: number,
+  sums: { brs: number; frs: number; ers: number },
+  sex: CpfLifeSex
+): number {
+  const deferralYears = Math.max(0, Math.min(CPF_LIFE_MAX_DEFERRAL_YEARS, Math.round(payoutStartAge - 65)));
+  const deferralMultiplier = Math.pow(1 + CPF_LIFE_DEFERRAL_BONUS_PER_YEAR, deferralYears);
+  const planFactor = plan === "basic" ? BASIC_PLAN_FACTOR : plan === "escalating" ? ESCALATING_PLAN_START_FACTOR : 1;
+  const standardPayout = estimateCpfLifePayout(raBalance, sums.ers, sums, sex).estimatedMonthlyPayout;
+  return Math.round(standardPayout * planFactor * deferralMultiplier);
+}
+
 // Retirement Sum Topping-Up Scheme (RSTU) — voluntary cash top-ups to SA
 // (below 55) / RA (55+), earning the same 4% floor rate as other SA/RA
 // savings. Tax relief is capped at $8,000/year for self top-ups (up to
