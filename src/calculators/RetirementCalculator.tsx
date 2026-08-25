@@ -309,10 +309,21 @@ export default function RetirementCalculator() {
   // retirement" rows) instead project your balance forward to your target retirement age, so
   // they're deliberately a DIFFERENT, larger number for anyone who hasn't retired yet — this
   // gives an apples-to-apples figure for comparing against CPF Board's own tools.
-  const currentRaBalanceToday = Math.min(effectiveOA + currentSaRa, result.cpfRetirementSums.ers);
+  //
+  // Capped at whichever BRS/FRS/ERS tier is selected above (cpfLifeTargetTier), same as the
+  // projected figures — previously this was hardcoded to always cap at ERS regardless of the
+  // tier picker, which meant clicking FRS vs ERS silently did nothing to these "today's balance"
+  // rows even though it visibly changed the projected ones right above, with no indication why.
+  const currentRaBalanceToday = Math.min(effectiveOA + currentSaRa, result.cpfRetirementSums[cpfLifeTargetTier]);
   const cpfLifePlansToday = useMemo(
-    () => estimateCpfLifeAllPlans(currentRaBalanceToday, result.cpfRetirementSums.ers, result.cpfRetirementSums, sex),
-    [currentRaBalanceToday, result.cpfRetirementSums, sex]
+    () =>
+      estimateCpfLifeAllPlans(
+        currentRaBalanceToday,
+        result.cpfRetirementSums[cpfLifeTargetTier],
+        result.cpfRetirementSums,
+        sex
+      ),
+    [currentRaBalanceToday, result.cpfRetirementSums, cpfLifeTargetTier, sex]
   );
 
   // Total projected OA + SA/RA (regardless of which BRS/FRS/ERS tier is selected above) is what's
@@ -1084,7 +1095,8 @@ export default function RetirementCalculator() {
           useful for "what will I end up with," but not directly comparable to CPF Board's own Monthly Payout
           Estimator, which instead takes whatever balance you type in and computes a payout as if you joined CPF LIFE
           right now, with no further growth. Here's that same "today" comparison, using your current{" "}
-          {formatSgd(currentRaBalanceToday)} OA + SA/RA balance (capped at ERS) as-is:
+          {formatSgd(currentRaBalanceToday)} OA + SA/RA balance — capped at {cpfLifeTargetTier.toUpperCase()}, same
+          tier as selected above — as-is:
         </p>
         <ResultRow
           label="Standard, on today's balance"
