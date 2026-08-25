@@ -8,7 +8,6 @@ import { PremiumReportPreview } from "../components/PremiumReportPreview";
 import { captureNodeAsCanvas, downloadCanvasAsPng } from "../lib/dashboardImage";
 import {
   CPF_LIFE_STANDARD_PAYOUT_2026,
-  CPF_RETIREMENT_SUMS_2026,
   RSTU_SELF_RELIEF_CAP,
   RSTU_COMBINED_RELIEF_CAP,
   calculateCarCost,
@@ -256,8 +255,13 @@ export default function RetirementCalculator() {
   }, [currentAge, retirementAge, currentSavings, currentOA, currentSaRa, monthlyInvestment, expectedReturnPct, inflationRatePct, investmentItems, incomeItems, expenseItems, liabilityItems, result.cpfLife.estimatedMonthlyPayout, includeHdbSale]);
 
   const cpfLifePlans = useMemo(
-    () => estimateCpfLifeAllPlans(result.cpfLife.retirementAccountBalance, CPF_RETIREMENT_SUMS_2026[cpfLifeTargetTier]),
-    [result.cpfLife.retirementAccountBalance, cpfLifeTargetTier]
+    () =>
+      estimateCpfLifeAllPlans(
+        result.cpfLife.retirementAccountBalance,
+        result.cpfRetirementSums[cpfLifeTargetTier],
+        result.cpfRetirementSums
+      ),
+    [result.cpfLife.retirementAccountBalance, result.cpfRetirementSums, cpfLifeTargetTier]
   );
 
   // --- Net worth snapshot ---
@@ -292,9 +296,9 @@ export default function RetirementCalculator() {
   const hasLoanLikeExpense = expenseItems.some((item) => /loan/i.test(item.label));
   const healthCheck = computeHealthCheck({
     cpfOaSaRa: currentOA + currentSaRa,
-    cpfFrs: CPF_RETIREMENT_SUMS_2026.frs,
-    cpfBrs: CPF_RETIREMENT_SUMS_2026.brs,
-    cpfErs: CPF_RETIREMENT_SUMS_2026.ers,
+    cpfFrs: result.cpfRetirementSums.frs,
+    cpfBrs: result.cpfRetirementSums.brs,
+    cpfErs: result.cpfRetirementSums.ers,
     hdbLoanOutstanding: savedHdb?.data ? savedHdb.data.outstandingLoan : null,
     totalInvestments: totalInvestmentsPortfolio,
     investmentItemCount: investmentItems.length,
@@ -840,7 +844,7 @@ export default function RetirementCalculator() {
               onClick={() => setCpfLifeTargetTier(tier)}
             >
               <span className="cpf-life-tier-name">{tier.toUpperCase()}</span>
-              <span>{formatSgd(CPF_RETIREMENT_SUMS_2026[tier])}</span>
+              <span>{formatSgd(result.cpfRetirementSums[tier])}</span>
               <span className="cpf-life-tier-payout">~{formatSgd(CPF_LIFE_STANDARD_PAYOUT_2026[tier])}/mo</span>
             </button>
           ))}
@@ -863,9 +867,16 @@ export default function RetirementCalculator() {
           />
         )}
         <p className="explainer">
-          Based on the CPF LIFE Standard Plan, using CPF Board's published 2026 retirement sum tiers above as
-          reference points. Your OA and SA/RA typically combine into your Retirement Account at age 55 — this
-          estimate assumes that happens, then caps at whichever tier you've selected above.
+          The BRS/FRS/ERS amounts above are for{" "}
+          {result.cpfRetirementSums.isCohortEstimated
+            ? `the nearest year CPF Board has published (your own ${result.cpfRetirementSums.cohortYear} cohort figures aren't out yet, or predate our data)`
+            : `your own cohort — you turn 55 in ${result.cpfRetirementSums.cohortYear}`}
+          , not just whatever the current year's figures happen to be (BRS and FRS are fixed for life the year you
+          turn 55; ERS is the one exception and moves with the current year's ceiling instead). The monthly payout
+          estimate itself is still based on the CPF LIFE Standard Plan's published 2026 reference payouts — CPF Board
+          doesn't publish an exact payout figure per cohort, so treat it as illustrative, not precise to your cohort.
+          Your OA and SA/RA typically combine into your Retirement Account at age 55 — this estimate assumes that
+          happens, then caps at whichever tier you've selected above.
         </p>
       </ResultCard>
 

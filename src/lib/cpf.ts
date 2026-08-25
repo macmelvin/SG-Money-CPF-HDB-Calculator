@@ -389,6 +389,78 @@ export const CPF_LIFE_STANDARD_PAYOUT_2026 = {
 
 export type CpfLifeTargetTier = "brs" | "frs" | "ers";
 
+// BRS and FRS are fixed for life the moment you turn 55 — set by whatever year that
+// happens to be, NOT by the current calendar year. Someone who turned 55 in 2024 keeps
+// the 2024 cohort's $102,900 / $205,800 forever, even though CPF_RETIREMENT_SUMS_2026
+// above (the 2026 cohort's figures) are higher. Values verified against CPF Board's own
+// published tables: https://www.cpf.gov.sg/content/dam/web/member/general-documents/Retirement%20Sums.pdf
+// and https://www.cpf.gov.sg/content/dam/web/member/retirement-income/documents/19%20Feb%20New%20RS.pdf
+// (2017-2022), cross-checked against MOM's Budget 2022 factsheet (2022-2027).
+export const RETIREMENT_SUM_COHORT_TABLE: Record<number, { brs: number; frs: number }> = {
+  2017: { brs: 83000, frs: 166000 },
+  2018: { brs: 85500, frs: 171000 },
+  2019: { brs: 88000, frs: 176000 },
+  2020: { brs: 90500, frs: 181000 },
+  2021: { brs: 93000, frs: 186000 },
+  2022: { brs: 96000, frs: 192000 },
+  2023: { brs: 99400, frs: 198800 },
+  2024: { brs: 102900, frs: 205800 },
+  2025: { brs: 106500, frs: 213000 },
+  2026: { brs: 110200, frs: 220400 },
+  2027: { brs: 114100, frs: 228200 },
+};
+
+// Unlike BRS/FRS, the ERS top-up ceiling is NOT locked to your cohort — it rises every
+// 1 January and applies to anyone 55+ that year, so it's looked up by the CURRENT
+// calendar year, not the year you turned 55. It was 1.5x that year's FRS through 2024;
+// from 2025 it became 2x FRS (a real policy change, not a typo) — hence the jump.
+export const ERS_CEILING_BY_YEAR: Record<number, number> = {
+  2017: 249000,
+  2018: 256500,
+  2019: 264000,
+  2020: 271500,
+  2021: 279000,
+  2022: 288000,
+  2023: 298200,
+  2024: 308700,
+  2025: 426000,
+  2026: 440800,
+  2027: 456400,
+};
+
+export interface RetirementSumsForCohort {
+  /** The calendar year this person actually turns/turned 55 (today's year − currentAge + 55). */
+  cohortYear: number;
+  brs: number;
+  frs: number;
+  ers: number;
+  /** True when cohortYear (for BRS/FRS) falls before 2017 or after 2027 — CPF Board hasn't
+   *  published that cohort's figures (either not yet announced, or older than our table), so
+   *  the nearest published year's BRS/FRS is used as a stand-in. Doesn't affect ERS, which is
+   *  always looked up by the current year and separately clamped the same way. */
+  isCohortEstimated: boolean;
+}
+
+// Resolves the Basic/Full/Enhanced Retirement Sums that actually apply to someone, given only
+// their current whole-year age (what every calculator in this app already collects — no
+// separate birth-year field needed). `today` is a param purely for testability.
+export function getRetirementSumsForCohort(currentAge: number, today: Date = new Date()): RetirementSumsForCohort {
+  const cohortYear = today.getFullYear() - currentAge + 55;
+  const cohortTableYears = Object.keys(RETIREMENT_SUM_COHORT_TABLE).map(Number);
+  const minCohortYear = Math.min(...cohortTableYears);
+  const maxCohortYear = Math.max(...cohortTableYears);
+  const lookupCohortYear = Math.min(Math.max(cohortYear, minCohortYear), maxCohortYear);
+  const { brs, frs } = RETIREMENT_SUM_COHORT_TABLE[lookupCohortYear];
+
+  const ersTableYears = Object.keys(ERS_CEILING_BY_YEAR).map(Number);
+  const minErsYear = Math.min(...ersTableYears);
+  const maxErsYear = Math.max(...ersTableYears);
+  const lookupErsYear = Math.min(Math.max(today.getFullYear(), minErsYear), maxErsYear);
+  const ers = ERS_CEILING_BY_YEAR[lookupErsYear];
+
+  return { cohortYear, brs, frs, ers, isCohortEstimated: lookupCohortYear !== cohortYear };
+}
+
 export interface CpfLifeEstimate {
   retirementAccountBalance: number; // capped at the chosen target tier (BRS/FRS/ERS)
   estimatedMonthlyPayout: number;
@@ -402,11 +474,20 @@ export interface CpfLifeEstimate {
 // `capAmount` defaults to ERS (the most anyone can set aside in their RA), but callers
 // can pass a lower tier (e.g. BRS, for someone planning to pledge their property) to see
 // the payout — and leftover cash — for actually setting aside only that much.
+//
+// `sums` are the BRS/FRS/ERS dollar figures used as the band boundaries — pass the
+// caller's actual cohort figures (getRetirementSumsForCohort) so someone isn't capped
+// against a tier amount that was never theirs. The $/mo payout anchors themselves
+// (CPF_LIFE_STANDARD_PAYOUT_2026) stay fixed regardless — CPF Board doesn't publish a
+// payout table per cohort, only per current-year tier, so this estimates "your balance's
+// position between BRS and FRS/ERS, mapped through the published payout curve" rather
+// than a cohort-exact payout. Still an approximation; treat as illustrative.
 export function estimateCpfLifePayout(
   raBalance: number,
-  capAmount: number = CPF_RETIREMENT_SUMS_2026.ers
+  capAmount: number = CPF_RETIREMENT_SUMS_2026.ers,
+  sums: { brs: number; frs: number; ers: number } = CPF_RETIREMENT_SUMS_2026
 ): CpfLifeEstimate {
-  const { brs, frs, ers } = CPF_RETIREMENT_SUMS_2026;
+  const { brs, frs, ers } = sums;
   const { brs: brsP, frs: frsP, ers: ersP } = CPF_LIFE_STANDARD_PAYOUT_2026;
   const capped = Math.max(0, Math.min(raBalance, capAmount));
 
@@ -452,9 +533,10 @@ const ESCALATING_ANNUAL_GROWTH = 0.02; // 2%/year for life
 
 export function estimateCpfLifeAllPlans(
   raBalance: number,
-  capAmount: number = CPF_RETIREMENT_SUMS_2026.ers
+  capAmount: number = CPF_RETIREMENT_SUMS_2026.ers,
+  sums: { brs: number; frs: number; ers: number } = CPF_RETIREMENT_SUMS_2026
 ): CpfLifeAllPlansEstimate {
-  const standard = estimateCpfLifePayout(raBalance, capAmount);
+  const standard = estimateCpfLifePayout(raBalance, capAmount, sums);
   const basic: CpfLifeEstimate = {
     ...standard,
     estimatedMonthlyPayout: Math.round(standard.estimatedMonthlyPayout * BASIC_PLAN_FACTOR),
@@ -531,6 +613,9 @@ export interface RetirementResult {
   cpfLifeExcessCash: number; // projected OA+SA/RA beyond the chosen tier — withdrawable as cash at 55
   /** How much of projectedSaRa came from voluntary RSTU top-ups (0 if none entered). */
   rstuTopUpGrowth: number;
+  /** The BRS/FRS/ERS figures actually used above — resolved from currentAge to this
+   *  person's real cohort (see getRetirementSumsForCohort), not always the 2026 figures. */
+  cpfRetirementSums: RetirementSumsForCohort;
 }
 
 export function calculateRetirement(input: RetirementInput): RetirementResult {
@@ -613,8 +698,12 @@ export function calculateRetirement(input: RetirementInput): RetirementResult {
   // Anything projected beyond that tier is cash you could withdraw at 55 instead — e.g. by
   // pledging your property so you only need to set aside BRS.
   const projectedCpfForLife = projectedOA + projectedSaRa;
-  const cpfLifeCapAmount = CPF_RETIREMENT_SUMS_2026[cpfLifeTargetTier];
-  const cpfLife = estimateCpfLifePayout(projectedCpfForLife, cpfLifeCapAmount);
+  // BRS/FRS/ERS resolved to this person's actual cohort (the year THEY turn 55), not
+  // whatever the current year's published figures happen to be — see the function's
+  // own comment for why that distinction matters.
+  const cpfRetirementSums = getRetirementSumsForCohort(currentAge);
+  const cpfLifeCapAmount = cpfRetirementSums[cpfLifeTargetTier];
+  const cpfLife = estimateCpfLifePayout(projectedCpfForLife, cpfLifeCapAmount, cpfRetirementSums);
   const cpfLifeExcessCash = Math.max(0, projectedCpfForLife - cpfLife.retirementAccountBalance);
 
   return {
@@ -633,6 +722,7 @@ export function calculateRetirement(input: RetirementInput): RetirementResult {
     cpfLife,
     cpfLifeExcessCash,
     rstuTopUpGrowth,
+    cpfRetirementSums,
   };
 }
 

@@ -13,7 +13,6 @@ import {
 import type { PdfRow } from "./pdf";
 import {
   CPF_LIFE_STANDARD_PAYOUT_2026,
-  CPF_RETIREMENT_SUMS_2026,
   calculateRetirement,
   formatSgd,
 } from "./cpf";
@@ -333,9 +332,14 @@ function drawCpfLifePage(doc: jsPDF, input: PremiumReportInput): void {
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
   doc.setTextColor(90);
+  const cohortNote = result.cpfRetirementSums.isCohortEstimated
+    ? "the nearest year CPF Board has published"
+    : `your own cohort (you turn 55 in ${result.cpfRetirementSums.cohortYear})`;
   const intro = doc.splitTextToSize(
-    "Indicative CPF LIFE Standard Plan monthly payouts at each retirement sum tier, based on CPF Board's " +
-      "published 2026 figures. Your selected tier is marked below.",
+    `Indicative CPF LIFE Standard Plan monthly payouts at each retirement sum tier. Set-aside amounts are for ${cohortNote} — ` +
+      "BRS/FRS are fixed for life the year you turn 55, so these aren't just the current year's published figures. " +
+      "The payout figures themselves are still based on CPF Board's published 2026 reference payouts (an approximation, " +
+      "not exact to your cohort). Your selected tier is marked below.",
     PAGE_WIDTH - MARGIN_X * 2
   );
   doc.text(intro, MARGIN_X, y);
@@ -344,7 +348,7 @@ function drawCpfLifePage(doc: jsPDF, input: PremiumReportInput): void {
   const tiers: CpfLifeTargetTier[] = ["brs", "frs", "ers"];
   const tierRows: PdfRow[] = tiers.map((tier) => ({
     label: `${tier.toUpperCase()}${tier === cpfLifeTargetTier ? " (your selection)" : ""} — set aside ${formatSgd(
-      CPF_RETIREMENT_SUMS_2026[tier]
+      result.cpfRetirementSums[tier]
     )}`,
     value: `~${formatSgd(CPF_LIFE_STANDARD_PAYOUT_2026[tier])}/mo`,
   }));
