@@ -17,6 +17,9 @@ export interface LineItem {
   // investment holdings (see EditableLineItems' showEndDate prop).
   startDate?: string;
   endDate?: string;
+  // Free-text note, e.g. "policy number", "which broker", "why this loan exists". Purely
+  // informational — never read by any calculation, just stored and shown back to the user.
+  note?: string;
 }
 
 let nextId = 1;

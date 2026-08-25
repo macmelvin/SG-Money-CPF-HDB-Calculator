@@ -1380,6 +1380,22 @@
   font-weight: 600;
   color: var(--negative);
 }
+.line-item-note-row {
+  padding: 0 2px 2px;
+}
+.line-item-note {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-size: 12px;
+  background: var(--bg);
+  color: var(--text);
+  box-sizing: border-box;
+}
+.line-item-note::placeholder {
+  color: var(--text-muted);
+}
 .line-item-row.line-item-milestone .line-item-label,
 .line-item-row.line-item-milestone .line-item-amount {
   border-color: var(--status-warning);

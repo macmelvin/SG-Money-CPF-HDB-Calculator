@@ -136,6 +136,18 @@ export function EditableLineItems({
                 )}
               </div>
             )}
+            {showDateRange && (
+              <div className="line-item-note-row">
+                <input
+                  type="text"
+                  className="line-item-note"
+                  aria-label="Note"
+                  placeholder="Add a note (optional) — e.g. policy number, which broker, why this loan exists"
+                  value={item.note ?? ""}
+                  onChange={(e) => updateItem(item.id, { note: e.target.value || undefined })}
+                />
+              </div>
+            )}
           </div>
         );
       })}
