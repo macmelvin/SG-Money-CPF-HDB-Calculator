@@ -301,6 +301,19 @@ export default function RetirementCalculator() {
     [result.cpfLife.retirementAccountBalance, result.cpfRetirementSums, cpfLifeTargetTier, sex]
   );
 
+  // What CPF LIFE would pay TODAY on your current OA + SA/RA balance, with no further growth
+  // assumed — this is the same basis CPF Board's own Monthly Payout Estimator uses (it takes
+  // whatever RA balance you type in and computes a payout right now, not a projection years
+  // out). The figures elsewhere on this page (CPF LIFE Estimate, Compare CPF LIFE Plans "at
+  // retirement" rows) instead project your balance forward to your target retirement age, so
+  // they're deliberately a DIFFERENT, larger number for anyone who hasn't retired yet — this
+  // gives an apples-to-apples figure for comparing against CPF Board's own tools.
+  const currentRaBalanceToday = Math.min(effectiveOA + currentSaRa, result.cpfRetirementSums.ers);
+  const cpfLifePlansToday = useMemo(
+    () => estimateCpfLifeAllPlans(currentRaBalanceToday, result.cpfRetirementSums.ers, result.cpfRetirementSums, sex),
+    [currentRaBalanceToday, result.cpfRetirementSums, sex]
+  );
+
   // Total projected OA + SA/RA (regardless of which BRS/FRS/ERS tier is selected above) is what's
   // actually available toward a CPF LIFE plan — capped at ERS, the real ceiling on what can sit in
   // a Retirement Account. Feeds the reverse "how much do I need to top up" planner below.
@@ -954,6 +967,15 @@ export default function RetirementCalculator() {
           value={formatSgd(result.cpfLife.retirementAccountBalance)}
         />
         <ResultRow
+          label={`Top up needed to reach ${cpfLifeTargetTier.toUpperCase()} from today's balance`}
+          value={
+            result.cpfRetirementSums[cpfLifeTargetTier] > currentRaBalanceToday
+              ? formatSgd(result.cpfRetirementSums[cpfLifeTargetTier] - currentRaBalanceToday)
+              : "Already there today"
+          }
+          positive={result.cpfRetirementSums[cpfLifeTargetTier] <= currentRaBalanceToday}
+        />
+        <ResultRow
           label="ESTIMATED MONTHLY PAYOUT"
           value={`${formatSgd(result.cpfLife.estimatedMonthlyPayout)}/mo`}
           emphasis
@@ -976,7 +998,21 @@ export default function RetirementCalculator() {
           estimate itself is still based on the CPF LIFE Standard Plan's published 2026 reference payouts — CPF Board
           doesn't publish an exact payout figure per cohort, so treat it as illustrative, not precise to your cohort.
           Your OA and SA/RA typically combine into your Retirement Account at age 55 — this estimate assumes that
-          happens, then caps at whichever tier you've selected above.
+          happens, then caps at whichever tier you've selected above. The "Top up needed" row compares that tier
+          directly against your CURRENT {formatSgd(currentRaBalanceToday)} OA + SA/RA balance (no growth assumed) —
+          the ESTIMATED MONTHLY PAYOUT below it, though, is still projected forward to age {retirementAge} first, so
+          the two rows are on different bases and won't line up unless you're already at your target retirement age.
+          One more gap worth knowing about: for balances heading into the FRS→ERS range, this estimate uses{" "}
+          <strong>today's</strong> ERS ceiling as the top of that curve — but CPF Board only publishes ERS figures
+          through 2027, so if your payout start age is many years out, the real future ceiling is very likely higher
+          than today's, which would widen that band and pull the true payout down. Checked against one of CPF
+          Board's own published examples, this can overstate the estimate by roughly 50% for someone years away from
+          hitting ERS — so treat this card as a rough guide to the shape of the numbers, and use CPF Board's own
+          Monthly Payout Estimator at{" "}
+          <a href="https://www.cpf.gov.sg/lifeestimator" target="_blank" rel="noopener noreferrer">
+            cpf.gov.sg/lifeestimator
+          </a>{" "}
+          as the authoritative figure for any real decision.
           {result.sex === "female" && (
             <>
               {" "}
@@ -1019,6 +1055,27 @@ export default function RetirementCalculator() {
           long retirement and want built-in inflation protection. Basic suits those prioritising a larger legacy for
           beneficiaries over maximum lifetime income.
         </p>
+
+        <div style={{ borderTop: "1px dashed var(--border)", margin: "16px 0 12px" }} />
+        <p className="explainer" style={{ marginTop: -2 }}>
+          The rows above project your OA + SA/RA balance forward to age {retirementAge} before estimating a payout —
+          useful for "what will I end up with," but not directly comparable to CPF Board's own Monthly Payout
+          Estimator, which instead takes whatever balance you type in and computes a payout as if you joined CPF LIFE
+          right now, with no further growth. Here's that same "today" comparison, using your current{" "}
+          {formatSgd(currentRaBalanceToday)} OA + SA/RA balance (capped at ERS) as-is:
+        </p>
+        <ResultRow
+          label="Standard, on today's balance"
+          value={`${formatSgd(cpfLifePlansToday.standard.estimatedMonthlyPayout)}/mo`}
+        />
+        <ResultRow
+          label="Basic, on today's balance"
+          value={`${formatSgd(cpfLifePlansToday.basic.estimatedMonthlyPayout)}/mo`}
+        />
+        <ResultRow
+          label="Escalating, on today's balance"
+          value={`${formatSgd(cpfLifePlansToday.escalating.estimatedMonthlyPayout)}/mo`}
+        />
       </ResultCard>
 
       <ResultCard title="🎯 CPF LIFE Payout Planner">
@@ -1103,6 +1160,9 @@ export default function RetirementCalculator() {
               )} in your Retirement Account by age 55, capped at ERS (the most anyone can set aside). Deferring past 65 boosts every subsequent payout by an approximate ${(
                 CPF_LIFE_DEFERRAL_BONUS_PER_YEAR * 100
               ).toFixed(0)}%/year deferred, up to age 70 — CPF Board's own published deferral bonus, applied here as a simple approximation of their actual formula.`}
+          {!cpfLifeTopUpPlan.exceedsErs &&
+            cpfLifeTopUpPlan.requiredRaBalance > result.cpfRetirementSums.frs &&
+            " If that required balance sits above FRS, treat it as a rough guide rather than a precise target — this planner uses today's ERS ceiling, and CPF Board's real future ceiling (only published through 2027) is very likely higher by the time you get there, which would mean you actually need less than shown here."}
           {result.sex === "female" &&
             " This also reflects the same approximate Female payout adjustment used in the CPF LIFE Estimate above."}
         </p>
