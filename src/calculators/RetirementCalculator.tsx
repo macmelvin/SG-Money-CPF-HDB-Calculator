@@ -302,6 +302,18 @@ export default function RetirementCalculator() {
     [result.cpfLife.retirementAccountBalance, result.cpfRetirementSums, cpfLifeTargetTier, sex]
   );
 
+  // How much of an HDB sale's CPF refund (if any) would go toward filling today's shortfall to
+  // your selected BRS/FRS/ERS tier, vs how much is left over in your OA — computed independent of
+  // whether "Include selling my HDB today" is checked, so this preview shows either way. Uses
+  // TODAY's raw OA + SA/RA (no projection/growth to retirement age), same basis as "Top up needed
+  // ... from today's balance" elsewhere on this page. This is a simple today-only split, not a
+  // claim about how CPF Board actually allocates a refund across accounts.
+  const targetTierAmount = result.cpfRetirementSums[cpfLifeTargetTier];
+  const rawBalanceTodayNoSale = currentOA + currentSaRa;
+  const shortfallToTierWithoutSelling = Math.max(0, targetTierAmount - rawBalanceTodayNoSale);
+  const hdbRefundAppliedToTier = hdbScenario ? Math.min(hdbScenario.cpfRefund, shortfallToTierWithoutSelling) : 0;
+  const hdbRefundRemainingInOA = hdbScenario ? hdbScenario.cpfRefund - hdbRefundAppliedToTier : 0;
+
   // What CPF LIFE would pay TODAY on your current OA + SA/RA balance, with no further growth
   // assumed — this is the same basis CPF Board's own Monthly Payout Estimator uses (it takes
   // whatever RA balance you type in and computes a payout right now, not a projection years
@@ -756,6 +768,45 @@ export default function RetirementCalculator() {
                 : ""}
               .
             </p>
+
+            <div style={{ borderTop: "1px dashed var(--border)", margin: "12px 0 10px" }} />
+            <p className="explainer" style={{ marginTop: -2, marginBottom: 8 }}>
+              What that CPF refund would do to your {cpfLifeTargetTier.toUpperCase()} shortfall, using your current
+              OA + SA/RA balance today (no growth assumed) — same basis as "Top up needed" on the CPF LIFE Estimate
+              card above, and shown here regardless of whether the box below is checked:
+            </p>
+            <ResultRow
+              label={`Shortfall to ${cpfLifeTargetTier.toUpperCase()} without selling`}
+              value={shortfallToTierWithoutSelling > 0 ? formatSgd(shortfallToTierWithoutSelling) : "Already there today"}
+              positive={shortfallToTierWithoutSelling === 0}
+            />
+            {shortfallToTierWithoutSelling > 0 ? (
+              <>
+                <ResultRow
+                  label="Of the CPF refund, fills that shortfall"
+                  value={formatSgd(hdbRefundAppliedToTier)}
+                  positive
+                />
+                <ResultRow label="Remaining CPF refund → stays in your OA" value={formatSgd(hdbRefundRemainingInOA)} />
+                <p className="explainer">
+                  {hdbRefundAppliedToTier >= shortfallToTierWithoutSelling
+                    ? `Selling fully covers your ${cpfLifeTargetTier.toUpperCase()} shortfall today, with ${formatSgd(
+                        hdbRefundRemainingInOA
+                      )} of the refund left over in your OA as spare cash.`
+                    : `Even after selling, you'd still be ${formatSgd(
+                        shortfallToTierWithoutSelling - hdbRefundAppliedToTier
+                      )} short of ${cpfLifeTargetTier.toUpperCase()} — the refund alone isn't quite enough.`}{" "}
+                  This is a simple today-only split, not a projection to retirement age or a claim about how CPF
+                  Board actually allocates a refund across your accounts.
+                </p>
+              </>
+            ) : (
+              <p className="explainer">
+                You're already at or above {cpfLifeTargetTier.toUpperCase()} today without selling — so the whole{" "}
+                {formatSgd(hdbScenario.cpfRefund)} CPF refund would land in your OA as extra cash, none of it needed
+                to fill a shortfall.
+              </p>
+            )}
 
             <label className="hdb-scenario-toggle">
               <input
