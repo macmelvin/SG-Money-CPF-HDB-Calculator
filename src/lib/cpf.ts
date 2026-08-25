@@ -389,6 +389,32 @@ export const CPF_LIFE_STANDARD_PAYOUT_2026 = {
 
 export type CpfLifeTargetTier = "brs" | "frs" | "ers";
 
+// CPF LIFE payouts are calculated using gender-specific mortality/life-expectancy tables,
+// not a unisex one — a male member gets a HIGHER monthly payout than a female member with
+// the exact same RA balance and plan, because his shorter average life expectancy means
+// the payout is expected to be drawn over fewer years on average. Confirmed directly by
+// CPF Board: "Since CPF LIFE pays monthly payouts for life, longer life expectancies would
+// result in lower monthly payouts as the payout duration is longer on average. Hence, males
+// receive higher payouts compared to females."
+// (cpf.gov.sg/service/article/how-are-the-cpf-life-payouts-calculated)
+//
+// CPF_LIFE_STANDARD_PAYOUT_2026 above is itself a MALE-member figure — CPF Board's own
+// worked-example table says so explicitly: "Payout figures are based on a male member on
+// CPF LIFE Standard Plan" (cpf.gov.sg/service/article/how-much-cpf-payouts-can-i-get-every-
+// month). CPF Board doesn't publish an equivalent female-only table, so the female estimate
+// below applies an approximate downward adjustment, sourced from a peer-reviewed comparison
+// of male vs female CPF LIFE payouts at matched premiums (S$83k/S$166k/S$249k — the 2017
+// BRS/FRS/ERS): Fong, Mitchell & Koh, "Mandatory annuitization and money's worth: evidence
+// from Singapore", Journal of Pension Economics & Finance (cambridge.org/core/services/aop-
+// cambridge-core/content/view/0176186DB7E33CAEB2997231B699F014/S147474722100010Xa.pdf).
+// That paper's Table 1 shows female payouts consistently running ~91-93% of male payouts
+// (roughly 7-9% lower) across all three CPF LIFE plans at every premium level tested — this
+// uses the ~92% midpoint. Treat this as an ILLUSTRATIVE APPROXIMATION, not an official CPF
+// Board factor: for your exact figure, use CPF Board's own Monthly Payout Estimator
+// (cpf.gov.sg/lifeestimator), which computes it directly from your actual sex and birth year.
+export type CpfLifeSex = "male" | "female";
+export const CPF_LIFE_FEMALE_PAYOUT_FACTOR = 0.92;
+
 // BRS and FRS are fixed for life the moment you turn 55 — set by whatever year that
 // happens to be, NOT by the current calendar year. Someone who turned 55 in 2024 keeps
 // the 2024 cohort's $102,900 / $205,800 forever, even though CPF_RETIREMENT_SUMS_2026
@@ -441,11 +467,19 @@ export interface RetirementSumsForCohort {
   isCohortEstimated: boolean;
 }
 
-// Resolves the Basic/Full/Enhanced Retirement Sums that actually apply to someone, given only
-// their current whole-year age (what every calculator in this app already collects — no
-// separate birth-year field needed). `today` is a param purely for testability.
-export function getRetirementSumsForCohort(currentAge: number, today: Date = new Date()): RetirementSumsForCohort {
-  const cohortYear = today.getFullYear() - currentAge + 55;
+// Resolves the Basic/Full/Enhanced Retirement Sums that actually apply to someone. By default,
+// derives the cohort year from their current whole-year age (what every calculator in this app
+// already collects — no separate birth-year field needed, and this already matches real cases
+// to the year). If an exact `birthYear` is supplied instead (e.g. from the optional Birth Year
+// field mirroring CPF Board's own Monthly Payout Estimator), that's used directly for a
+// precise cohort — avoids the up-to-one-year ambiguity of "age 57" not saying whether this
+// year's birthday has passed yet. `today` is a param purely for testability.
+export function getRetirementSumsForCohort(
+  currentAge: number,
+  today: Date = new Date(),
+  birthYear?: number
+): RetirementSumsForCohort {
+  const cohortYear = birthYear !== undefined ? birthYear + 55 : today.getFullYear() - currentAge + 55;
   const cohortTableYears = Object.keys(RETIREMENT_SUM_COHORT_TABLE).map(Number);
   const minCohortYear = Math.min(...cohortTableYears);
   const maxCohortYear = Math.max(...cohortTableYears);
@@ -482,10 +516,16 @@ export interface CpfLifeEstimate {
 // payout table per cohort, only per current-year tier, so this estimates "your balance's
 // position between BRS and FRS/ERS, mapped through the published payout curve" rather
 // than a cohort-exact payout. Still an approximation; treat as illustrative.
+//
+// `sex` defaults to "male" since the published anchor payouts themselves are male-member
+// figures (see CPF_LIFE_FEMALE_PAYOUT_FACTOR above) — passing "female" scales the result
+// down by that approximate factor. This only affects the payout amount, never the RA
+// balance/tier boundaries, which aren't sex-dependent.
 export function estimateCpfLifePayout(
   raBalance: number,
   capAmount: number = CPF_RETIREMENT_SUMS_2026.ers,
-  sums: { brs: number; frs: number; ers: number } = CPF_RETIREMENT_SUMS_2026
+  sums: { brs: number; frs: number; ers: number } = CPF_RETIREMENT_SUMS_2026,
+  sex: CpfLifeSex = "male"
 ): CpfLifeEstimate {
   const { brs, frs, ers } = sums;
   const { brs: brsP, frs: frsP, ers: ersP } = CPF_LIFE_STANDARD_PAYOUT_2026;
@@ -505,6 +545,8 @@ export function estimateCpfLifePayout(
     payout = frsP + t * (ersP - frsP);
     nearestTier = capped === ers ? "ERS or above" : "Between FRS and ERS";
   }
+
+  if (sex === "female") payout *= CPF_LIFE_FEMALE_PAYOUT_FACTOR;
 
   return {
     retirementAccountBalance: Math.round(capped),
@@ -534,9 +576,10 @@ const ESCALATING_ANNUAL_GROWTH = 0.02; // 2%/year for life
 export function estimateCpfLifeAllPlans(
   raBalance: number,
   capAmount: number = CPF_RETIREMENT_SUMS_2026.ers,
-  sums: { brs: number; frs: number; ers: number } = CPF_RETIREMENT_SUMS_2026
+  sums: { brs: number; frs: number; ers: number } = CPF_RETIREMENT_SUMS_2026,
+  sex: CpfLifeSex = "male"
 ): CpfLifeAllPlansEstimate {
-  const standard = estimateCpfLifePayout(raBalance, capAmount, sums);
+  const standard = estimateCpfLifePayout(raBalance, capAmount, sums, sex);
   const basic: CpfLifeEstimate = {
     ...standard,
     estimatedMonthlyPayout: Math.round(standard.estimatedMonthlyPayout * BASIC_PLAN_FACTOR),
@@ -594,6 +637,14 @@ export interface RetirementInput {
    *  Defaults to 0 — fully backward compatible, doesn't change any existing
    *  behaviour when omitted. */
   annualRstuTopUp?: number;
+  /** Defaults to "male" — matches CPF Board's own published reference payout figures
+   *  (see CPF_LIFE_FEMALE_PAYOUT_FACTOR), so omitting this changes nothing for existing
+   *  callers/saved data. Pass "female" to apply the approximate female payout adjustment. */
+  sex?: CpfLifeSex;
+  /** Optional — if supplied, used for a more precise CPF retirement-sum cohort year
+   *  (birthYear + 55) instead of deriving it from currentAge. Fully optional; omitting
+   *  it keeps the existing age-derived behaviour. */
+  birthYear?: number;
 }
 
 export interface RetirementResult {
@@ -616,6 +667,9 @@ export interface RetirementResult {
   /** The BRS/FRS/ERS figures actually used above — resolved from currentAge to this
    *  person's real cohort (see getRetirementSumsForCohort), not always the 2026 figures. */
   cpfRetirementSums: RetirementSumsForCohort;
+  /** The sex actually used for the cpfLife payout estimate above (echoes input.sex,
+   *  defaulted to "male" when not supplied). */
+  sex: CpfLifeSex;
 }
 
 export function calculateRetirement(input: RetirementInput): RetirementResult {
@@ -634,6 +688,8 @@ export function calculateRetirement(input: RetirementInput): RetirementResult {
     investmentHoldingsValue = 0,
     inflationRatePct = 2.5,
     annualRstuTopUp = 0,
+    sex = "male",
+    birthYear,
   } = input;
 
   const yearsToRetirement = Math.max(0, retirementAge - currentAge);
@@ -701,9 +757,9 @@ export function calculateRetirement(input: RetirementInput): RetirementResult {
   // BRS/FRS/ERS resolved to this person's actual cohort (the year THEY turn 55), not
   // whatever the current year's published figures happen to be — see the function's
   // own comment for why that distinction matters.
-  const cpfRetirementSums = getRetirementSumsForCohort(currentAge);
+  const cpfRetirementSums = getRetirementSumsForCohort(currentAge, undefined, birthYear);
   const cpfLifeCapAmount = cpfRetirementSums[cpfLifeTargetTier];
-  const cpfLife = estimateCpfLifePayout(projectedCpfForLife, cpfLifeCapAmount, cpfRetirementSums);
+  const cpfLife = estimateCpfLifePayout(projectedCpfForLife, cpfLifeCapAmount, cpfRetirementSums, sex);
   const cpfLifeExcessCash = Math.max(0, projectedCpfForLife - cpfLife.retirementAccountBalance);
 
   return {
@@ -723,6 +779,7 @@ export function calculateRetirement(input: RetirementInput): RetirementResult {
     cpfLifeExcessCash,
     rstuTopUpGrowth,
     cpfRetirementSums,
+    sex,
   };
 }
 

@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { BtoPromo, CalcShell, Disclaimer, DocToolsPromo, NumberField, ResultCard, ResultRow } from "../components/CalcShell";
+import { BtoPromo, CalcShell, Disclaimer, DocToolsPromo, NumberField, ResultCard, ResultRow, SelectField } from "../components/CalcShell";
 import { AssetAllocationBar, EditableLineItems, HealthBadge } from "../components/Dashboard";
 import { RetirementDashboardExportCard } from "../components/RetirementDashboardExport";
 import type { DashboardExportData } from "../components/RetirementDashboardExport";
 import { PremiumReportPreview } from "../components/PremiumReportPreview";
 import { captureNodeAsCanvas, downloadCanvasAsPng } from "../lib/dashboardImage";
 import {
+  CPF_LIFE_FEMALE_PAYOUT_FACTOR,
   CPF_LIFE_STANDARD_PAYOUT_2026,
   RSTU_SELF_RELIEF_CAP,
   RSTU_COMBINED_RELIEF_CAP,
@@ -19,6 +20,7 @@ import {
 } from "../lib/cpf";
 import type {
   CarCostInput,
+  CpfLifeSex,
   CpfLifeTargetTier,
   HdbSaleInput,
   SalaryCpfInput,
@@ -59,6 +61,8 @@ const DEFAULTS = {
   includeInvestmentHoldings: true,
   yearsInRetirement: 25,
   annualRstuTopUp: 0,
+  sex: "male" as CpfLifeSex,
+  birthYear: 0, // 0 = not set — falls back to deriving your cohort from Current age instead
 };
 
 const CPF_LIFE_TIER_LABEL: Record<CpfLifeTargetTier, string> = {
@@ -149,6 +153,8 @@ export default function RetirementCalculator() {
   const [includeInvestmentHoldings, setIncludeInvestmentHoldings] = useState(initial.includeInvestmentHoldings);
   const [yearsInRetirement, setYearsInRetirement] = useState(initial.yearsInRetirement ?? DEFAULTS.yearsInRetirement);
   const [annualRstuTopUp, setAnnualRstuTopUp] = useState(initial.annualRstuTopUp ?? DEFAULTS.annualRstuTopUp);
+  const [sex, setSex] = useState<CpfLifeSex>(initial.sex ?? DEFAULTS.sex);
+  const [birthYear, setBirthYear] = useState(initial.birthYear ?? DEFAULTS.birthYear);
 
   // Pull whatever the user last saved in the HDB Sale Proceeds calculator (if anything) so this
   // page can offer a "what if I sold today" scenario without asking them to re-enter numbers.
@@ -216,6 +222,8 @@ export default function RetirementCalculator() {
         inflationRatePct,
         yearsInRetirement,
         annualRstuTopUp,
+        sex,
+        birthYear: birthYear > 0 ? birthYear : undefined,
       }),
     [
       currentAge,
@@ -232,6 +240,8 @@ export default function RetirementCalculator() {
       inflationRatePct,
       yearsInRetirement,
       annualRstuTopUp,
+      sex,
+      birthYear,
     ]
   );
 
@@ -259,9 +269,10 @@ export default function RetirementCalculator() {
       estimateCpfLifeAllPlans(
         result.cpfLife.retirementAccountBalance,
         result.cpfRetirementSums[cpfLifeTargetTier],
-        result.cpfRetirementSums
+        result.cpfRetirementSums,
+        sex
       ),
-    [result.cpfLife.retirementAccountBalance, result.cpfRetirementSums, cpfLifeTargetTier]
+    [result.cpfLife.retirementAccountBalance, result.cpfRetirementSums, cpfLifeTargetTier, sex]
   );
 
   // --- Net worth snapshot ---
@@ -356,6 +367,8 @@ export default function RetirementCalculator() {
     setIncludeInvestmentHoldings(DEFAULTS.includeInvestmentHoldings);
     setYearsInRetirement(DEFAULTS.yearsInRetirement);
     setAnnualRstuTopUp(DEFAULTS.annualRstuTopUp);
+    setSex(DEFAULTS.sex);
+    setBirthYear(DEFAULTS.birthYear);
     clearCalculatorData(STORAGE_KEY);
     setSavedAt(null);
   };
@@ -384,6 +397,8 @@ export default function RetirementCalculator() {
       includeInvestmentHoldings,
       yearsInRetirement,
       annualRstuTopUp,
+      sex,
+      birthYear,
       cpfLifeMonthlyIncome: result.cpfLife.estimatedMonthlyPayout,
       includeHdbSale,
     });
@@ -473,6 +488,8 @@ export default function RetirementCalculator() {
           inflationRatePct,
           yearsInRetirement,
           annualRstuTopUp,
+          sex,
+          birthYear: birthYear > 0 ? birthYear : undefined,
         },
         result,
         cpfLifeTargetTier,
@@ -530,6 +547,16 @@ export default function RetirementCalculator() {
       <div className="form-grid">
         <NumberField label="Current age" value={currentAge} onChange={setCurrentAge} />
         <NumberField label="Target retirement age" value={retirementAge} onChange={setRetirementAge} />
+        <SelectField
+          label="Sex"
+          value={sex}
+          onChange={setSex}
+          options={[
+            { value: "male", label: "Male" },
+            { value: "female", label: "Female" },
+          ]}
+        />
+        <NumberField label="Birth year (optional)" value={birthYear} onChange={setBirthYear} />
         <NumberField label="Current savings (cash/investments)" value={currentSavings} onChange={setCurrentSavings} prefix="$" step={1000} />
         <NumberField label="CPF Ordinary Account (OA)" value={currentOA} onChange={setCurrentOA} prefix="$" step={1000} />
         <NumberField label="CPF Special / Retirement Account (SA/RA)" value={currentSaRa} onChange={setCurrentSaRa} prefix="$" step={1000} />
@@ -547,6 +574,13 @@ export default function RetirementCalculator() {
         RSTU scheme earn 4% p.a. and qualify for up to $8,000/year in tax relief (up to $16,000/year combined with
         top-ups to a loved one's account) — not modeled as a tax saving here since that depends on your marginal
         tax rate, but the retirement-balance growth from topping up is reflected below.
+      </p>
+      <p className="explainer">
+        "Sex" feeds into the CPF LIFE Estimate below — CPF Board calculates payouts using gender-specific life
+        expectancy, so male and female members with the same Retirement Account balance get different monthly
+        payouts (see the estimate card for details). "Birth year" is optional — leave it at 0 to derive your CPF
+        cohort year from "Current age" (already accurate to the year for most cases); fill it in only if you want
+        the more precise, official-calculator-style derivation instead.
       </p>
 
       <ResultCard title="📊 Net Worth Snapshot">
@@ -845,7 +879,13 @@ export default function RetirementCalculator() {
             >
               <span className="cpf-life-tier-name">{tier.toUpperCase()}</span>
               <span>{formatSgd(result.cpfRetirementSums[tier])}</span>
-              <span className="cpf-life-tier-payout">~{formatSgd(CPF_LIFE_STANDARD_PAYOUT_2026[tier])}/mo</span>
+              <span className="cpf-life-tier-payout">
+                ~{formatSgd(
+                  sex === "female"
+                    ? CPF_LIFE_STANDARD_PAYOUT_2026[tier] * CPF_LIFE_FEMALE_PAYOUT_FACTOR
+                    : CPF_LIFE_STANDARD_PAYOUT_2026[tier]
+                )}/mo
+              </span>
             </button>
           ))}
         </div>
@@ -877,6 +917,20 @@ export default function RetirementCalculator() {
           doesn't publish an exact payout figure per cohort, so treat it as illustrative, not precise to your cohort.
           Your OA and SA/RA typically combine into your Retirement Account at age 55 — this estimate assumes that
           happens, then caps at whichever tier you've selected above.
+          {result.sex === "female" && (
+            <>
+              {" "}
+              Since Sex is set to Female, the payout above has been scaled down by an approximate ~8% — CPF Board's
+              published reference payouts (and the tier previews above) are male-member figures, and CPF LIFE pays
+              female members less for the same balance because of their longer average life expectancy. This
+              adjustment is an illustrative estimate (see the source in this app's code), not an official CPF Board
+              factor — for your exact figure, use CPF Board's own Monthly Payout Estimator at{" "}
+              <a href="https://www.cpf.gov.sg/lifeestimator" target="_blank" rel="noopener noreferrer">
+                cpf.gov.sg/lifeestimator
+              </a>
+              .
+            </>
+          )}
         </p>
       </ResultCard>
 

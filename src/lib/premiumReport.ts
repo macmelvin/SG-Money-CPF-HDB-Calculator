@@ -12,6 +12,7 @@ import {
 } from "./pdf";
 import type { PdfRow } from "./pdf";
 import {
+  CPF_LIFE_FEMALE_PAYOUT_FACTOR,
   CPF_LIFE_STANDARD_PAYOUT_2026,
   calculateRetirement,
   formatSgd,
@@ -163,6 +164,7 @@ function drawNarrativePage(doc: jsPDF, input: PremiumReportInput): void {
   const { base } = input;
   const inputRows: PdfRow[] = [
     { label: "Current age", value: `${base.currentAge}` },
+    { label: "Sex", value: base.sex === "female" ? "Female" : "Male" },
     { label: "Target retirement age", value: `${base.retirementAge}` },
     { label: "Current savings (cash/investments)", value: formatSgd(base.currentSavings) },
     { label: "CPF Ordinary Account (OA)", value: formatSgd(base.currentOA) },
@@ -335,11 +337,17 @@ function drawCpfLifePage(doc: jsPDF, input: PremiumReportInput): void {
   const cohortNote = result.cpfRetirementSums.isCohortEstimated
     ? "the nearest year CPF Board has published"
     : `your own cohort (you turn 55 in ${result.cpfRetirementSums.cohortYear})`;
+  const sexNote =
+    result.sex === "female"
+      ? " Payouts below are scaled down by an approximate ~8% for Sex: Female — CPF Board's reference payouts are " +
+        "male-member figures, and CPF LIFE pays female members less for the same balance due to their longer " +
+        "average life expectancy; this is an illustrative estimate, not an official CPF Board factor."
+      : "";
   const intro = doc.splitTextToSize(
     `Indicative CPF LIFE Standard Plan monthly payouts at each retirement sum tier. Set-aside amounts are for ${cohortNote} — ` +
       "BRS/FRS are fixed for life the year you turn 55, so these aren't just the current year's published figures. " +
       "The payout figures themselves are still based on CPF Board's published 2026 reference payouts (an approximation, " +
-      "not exact to your cohort). Your selected tier is marked below.",
+      `not exact to your cohort). Your selected tier is marked below.${sexNote}`,
     PAGE_WIDTH - MARGIN_X * 2
   );
   doc.text(intro, MARGIN_X, y);
@@ -350,7 +358,11 @@ function drawCpfLifePage(doc: jsPDF, input: PremiumReportInput): void {
     label: `${tier.toUpperCase()}${tier === cpfLifeTargetTier ? " (your selection)" : ""} — set aside ${formatSgd(
       result.cpfRetirementSums[tier]
     )}`,
-    value: `~${formatSgd(CPF_LIFE_STANDARD_PAYOUT_2026[tier])}/mo`,
+    value: `~${formatSgd(
+      result.sex === "female"
+        ? CPF_LIFE_STANDARD_PAYOUT_2026[tier] * CPF_LIFE_FEMALE_PAYOUT_FACTOR
+        : CPF_LIFE_STANDARD_PAYOUT_2026[tier]
+    )}/mo`,
   }));
   y = drawRows(doc, tierRows, y);
 
