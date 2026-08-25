@@ -393,6 +393,13 @@ export default function RetirementCalculator() {
   const monthlySurplus = totalIncome - totalExpenses - totalLiabilities;
 
   // --- Rightsizing scenario ---
+  // If the CPF refund alone doesn't cover the shortfall to your selected BRS/FRS/ERS tier, CPF
+  // Board requires the rest to be topped up from your sale proceeds before releasing cash — unless
+  // you pledge the replacement flat instead, in which case only the (usually already-met) Basic
+  // Retirement Sum applies. Since this box is specifically "buying a replacement flat," a BRS
+  // pledge is very likely your actual option — so this only kicks in when a HIGHER tier (FRS/ERS)
+  // is selected above; picking BRS itself makes the top-up ~0 for most people already at/above it.
+  const additionalRetirementSumTopUp = Math.max(0, shortfallToTierWithoutSelling - hdbRefundAppliedToTier);
   const rightsizing =
     planRightsizing && hdbScenario
       ? computeRightsizing({
@@ -400,6 +407,7 @@ export default function RetirementCalculator() {
           cpfRefund: hdbScenario.cpfRefund,
           replacementFlatPrice,
           legalMovingCosts,
+          additionalRetirementSumTopUp,
         })
       : null;
   const estimatedAssetsAfterRightsizing = rightsizing
@@ -553,6 +561,7 @@ export default function RetirementCalculator() {
             saleProceeds: hdbCurrentValue,
             cpfRefund: hdbScenario.cpfRefund,
             balanceAfterCpfRefund: rightsizing.balanceAfterCpfRefund,
+            additionalRetirementSumTopUp: rightsizing.additionalRetirementSumTopUp,
             replacementFlatPrice,
             legalMovingCosts,
             cashReleased: rightsizing.cashReleased,
@@ -850,6 +859,13 @@ export default function RetirementCalculator() {
                 <ResultRow label="Estimated sale proceeds" value={formatSgd(hdbCurrentValue)} />
                 <ResultRow label="Less: CPF refund" value={`-${formatSgd(hdbScenario.cpfRefund)}`} positive={false} />
                 <ResultRow label="Balance after CPF refund" value={formatSgd(rightsizing.balanceAfterCpfRefund)} />
+                {rightsizing.additionalRetirementSumTopUp > 0 && (
+                  <ResultRow
+                    label={`Less: additional top-up to reach ${cpfLifeTargetTier.toUpperCase()} (refund alone isn't enough)`}
+                    value={`-${formatSgd(rightsizing.additionalRetirementSumTopUp)}`}
+                    positive={false}
+                  />
+                )}
                 <ResultRow label="Less: replacement flat price" value={`-${formatSgd(replacementFlatPrice)}`} positive={false} />
                 <ResultRow label="Less: legal & moving costs" value={`-${formatSgd(legalMovingCosts)}`} positive={false} />
                 <ResultRow
@@ -858,6 +874,16 @@ export default function RetirementCalculator() {
                   emphasis
                   positive={rightsizing.cashReleased >= 0}
                 />
+                {rightsizing.additionalRetirementSumTopUp > 0 && (
+                  <p className="explainer">
+                    Since your CPF refund alone doesn't reach {cpfLifeTargetTier.toUpperCase()}, CPF Board would
+                    require the remaining {formatSgd(rightsizing.additionalRetirementSumTopUp)} to come out of your
+                    sale proceeds before releasing any cash to you — that's what's deducted above. But since you're
+                    buying a replacement flat, you can very likely pledge it instead and only need the lower Basic
+                    Retirement Sum (BRS) set aside, not FRS/ERS — select BRS in the CPF LIFE Estimate card above to
+                    see this deduction shrink or disappear if that applies to you.
+                  </p>
+                )}
                 <div className="result-card" style={{ marginTop: 12, marginBottom: 0, boxShadow: "none" }}>
                   <h3>Financial Position After Rightsizing</h3>
                   <ResultRow label="CPF savings" value={formatSgd(totalCpfToday)} />

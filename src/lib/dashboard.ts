@@ -129,17 +129,27 @@ export interface RightsizingInput {
   cpfRefund: number; // from the HDB Sale Proceeds calculator, if saved
   replacementFlatPrice: number;
   legalMovingCosts: number;
+  // If your CPF refund alone doesn't cover your selected BRS/FRS/ERS retirement sum, CPF Board
+  // requires the shortfall to be topped up from your sale proceeds before releasing any cash to
+  // you — UNLESS you pledge a replacement property, in which case only the lower Basic Retirement
+  // Sum applies instead. Pass the (already refund-netted) shortfall here to have it deducted from
+  // cashReleased; pass 0 or omit if you're pledging your replacement flat for BRS instead, since
+  // then no further cash top-up is required. Defaults to 0.
+  additionalRetirementSumTopUp?: number;
 }
 
 export interface RightsizingResult {
   balanceAfterCpfRefund: number;
+  additionalRetirementSumTopUp: number;
   cashReleased: number;
 }
 
 export function computeRightsizing(input: RightsizingInput): RightsizingResult {
   const balanceAfterCpfRefund = input.saleProceeds - input.cpfRefund;
-  const cashReleased = balanceAfterCpfRefund - input.replacementFlatPrice - input.legalMovingCosts;
-  return { balanceAfterCpfRefund, cashReleased };
+  const additionalRetirementSumTopUp = Math.max(0, input.additionalRetirementSumTopUp ?? 0);
+  const cashReleased =
+    balanceAfterCpfRefund - input.replacementFlatPrice - input.legalMovingCosts - additionalRetirementSumTopUp;
+  return { balanceAfterCpfRefund, additionalRetirementSumTopUp, cashReleased };
 }
 
 export type HealthStatus = "strong" | "good" | "moderate" | "attention";

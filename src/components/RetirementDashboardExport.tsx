@@ -20,6 +20,7 @@ export interface RightsizingExportData {
   saleProceeds: number;
   cpfRefund: number;
   balanceAfterCpfRefund: number;
+  additionalRetirementSumTopUp: number;
   replacementFlatPrice: number;
   legalMovingCosts: number;
   cashReleased: number;
@@ -281,6 +282,12 @@ export function RetirementDashboardExportCard({ data }: { data: DashboardExportD
               <Row label="Estimated sale proceeds" value={formatSgd(data.rightsizing.saleProceeds)} />
               <Row label="Less: CPF refund" value={`-${formatSgd(data.rightsizing.cpfRefund)}`} />
               <Row label="Balance after CPF refund" value={formatSgd(data.rightsizing.balanceAfterCpfRefund)} />
+              {data.rightsizing.additionalRetirementSumTopUp > 0 && (
+                <Row
+                  label="Less: additional retirement sum top-up"
+                  value={`-${formatSgd(data.rightsizing.additionalRetirementSumTopUp)}`}
+                />
+              )}
               <Row label="Less: replacement flat" value={`-${formatSgd(data.rightsizing.replacementFlatPrice)}`} />
               <Row label="Less: legal & moving costs" value={`-${formatSgd(data.rightsizing.legalMovingCosts)}`} />
               <Row label="CASH RELEASED" value={formatSgd(data.rightsizing.cashReleased)} bold />
