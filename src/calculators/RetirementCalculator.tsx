@@ -884,6 +884,30 @@ export default function RetirementCalculator() {
                     see this deduction shrink or disappear if that applies to you.
                   </p>
                 )}
+
+                <div style={{ borderTop: "1px dashed var(--border)", margin: "12px 0 10px" }} />
+                <p className="explainer" style={{ marginTop: -2, marginBottom: 8 }}>
+                  Bottom line — what you'd actually walk away with, split by where it sits:
+                </p>
+                <ResultRow
+                  label={`Withdrawal amount from OA (once ${cpfLifeTargetTier.toUpperCase()} is fulfilled)`}
+                  value={formatSgd(hdbRefundRemainingInOA)}
+                  positive
+                />
+                <ResultRow
+                  label="Cash on hand after selling your HDB"
+                  value={formatSgd(rightsizing.cashReleased)}
+                  emphasis
+                  positive={rightsizing.cashReleased >= 0}
+                />
+                <p className="explainer">
+                  The OA amount isn't automatic cash in hand — per CPF Board, once your RA meets{" "}
+                  {cpfLifeTargetTier.toUpperCase()}, anything above it in your OA is withdrawable anytime from age
+                  55, but you need to apply for it (it's not paid out on its own). The cash figure below it is
+                  separate — money from the sale that never touches CPF at all, so it's already yours with nothing
+                  further to apply for.
+                </p>
+
                 <div className="result-card" style={{ marginTop: 12, marginBottom: 0, boxShadow: "none" }}>
                   <h3>Financial Position After Rightsizing</h3>
                   <ResultRow label="CPF savings" value={formatSgd(totalCpfToday)} />
