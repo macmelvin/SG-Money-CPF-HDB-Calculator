@@ -32,6 +32,9 @@ export const EXPIRY_TRACKER_URL = "https://expiry-tracker-201069.web.app/";
 export const WAYPOINT_URL = "https://waypoint-production-0307.up.railway.app/";
 export const PROTEIN_TRACKER_URL = "https://protein-tracker-for-50s.web.app/protein-tracker";
 
+// Another sister app in the same family — a personal appointment reminder tool.
+export const APPT_REMINDER_URL = "https://persistent-appt-reminder.web.app/";
+
 // Melvin's own Facebook post — the "Good Lobang must share" link in the
 // app-suite footer points here rather than to a generic profile/page.
 export const LOBANG_SHARE_URL = "https://www.facebook.com/share/1EsHK8JzEM/";
