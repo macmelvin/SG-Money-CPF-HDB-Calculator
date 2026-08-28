@@ -706,7 +706,9 @@ export default function RetirementCalculator() {
         <p className="explainer" style={{ marginTop: 4 }}>
           Investments & insurance holdings — add each one (unit trusts, whole life policies, brokerage accounts,
           SRS, etc). This is separate from "Current savings" above — it can optionally be grown and added into
-          your retirement projection too (see "Projected Balances at Retirement" below).
+          your retirement projection too (see "Projected Balances at Retirement" below). You can also attach a
+          scanned copy of each policy's document — it's stored only in this browser (never uploaded anywhere),
+          which also means it won't carry over in a Backup & Restore file or to another device/browser.
         </p>
         <EditableLineItems
           items={investmentItems}
@@ -716,6 +718,7 @@ export default function RetirementCalculator() {
           showDateRange
           currentAge={currentAge}
           keepValueAfterEnd
+          allowAttachment
         />
         <ResultRow label="TOTAL NET WORTH" value={formatSgd(netWorth)} emphasis />
         <AssetAllocationBar slices={slices} />

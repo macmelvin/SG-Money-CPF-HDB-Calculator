@@ -1416,6 +1416,74 @@
   font-weight: 600;
   color: var(--positive);
 }
+.line-item-attach-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 0 2px 2px;
+}
+.line-item-attach-btn,
+.line-item-attach-replace {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary);
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+.line-item-attach-replace {
+  border: none;
+  padding: 0;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-decoration: underline;
+}
+.line-item-attach-btn input[type="file"],
+.line-item-attach-replace input[type="file"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+}
+.line-item-attachment-chip {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 10px;
+}
+.line-item-attachment-chip button {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary);
+  cursor: pointer;
+  text-decoration: underline;
+}
+.line-item-attachment-remove {
+  color: var(--negative) !important;
+  text-decoration: none !important;
+  font-weight: 700 !important;
+}
+.line-item-attach-error {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--negative);
+}
 
 /* Geo Arbitrage: expandable "which items make up this total" breakdown under the
    linked Retirement Calculator expenses/liabilities figure. */

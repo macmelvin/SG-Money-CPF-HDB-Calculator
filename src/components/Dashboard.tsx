@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { AllocationSlice, HealthDimension, LineItem } from "../lib/dashboard";
 import {
   HEALTH_STATUS_LABEL,
@@ -8,6 +9,7 @@ import {
   sumLineItems,
 } from "../lib/dashboard";
 import { formatSgd } from "../lib/cpf";
+import { MAX_ATTACHMENT_BYTES, deleteAttachment, downloadAttachment, saveAttachment } from "../lib/attachments";
 
 export function EditableLineItems({
   items,
@@ -20,6 +22,7 @@ export function EditableLineItems({
   highlightEndAges = [60, 62, 65],
   highlightEndYears = [2028],
   keepValueAfterEnd = false,
+  allowAttachment = false,
 }: {
   items: LineItem[];
   onChange: (items: LineItem[]) => void;
@@ -49,15 +52,58 @@ export function EditableLineItems({
   // that kind of list; the end date still drives the milestone highlight above, it just
   // switches to a "matured" badge instead of "ended — excluded" once the date has passed.
   keepValueAfterEnd?: boolean;
+  // Shows a "📎 Attach document" control per row (e.g. a scanned insurance policy). Only
+  // meaningful alongside showDateRange's investment/insurance styling — see the Net Worth
+  // Snapshot's holdings list in RetirementCalculator.tsx.
+  allowAttachment?: boolean;
 }) {
+  // Per-item attach error (e.g. wrong file type, too large) — keyed by item id so one row's
+  // error doesn't clobber another's, and cleared as soon as that row's next attach attempt
+  // starts or succeeds.
+  const [attachErrors, setAttachErrors] = useState<Record<string, string>>({});
+
   const updateItem = (id: string, patch: Partial<LineItem>) => {
     onChange(items.map((item) => (item.id === id ? { ...item, ...patch } : item)));
   };
   const removeItem = (id: string) => {
+    const target = items.find((item) => item.id === id);
+    if (target?.attachmentId) {
+      // Best-effort — an orphaned IndexedDB blob costs nothing functionally, so a failure
+      // here shouldn't block removing the line item itself.
+      deleteAttachment(target.attachmentId).catch(() => {});
+    }
     onChange(items.filter((item) => item.id !== id));
   };
   const addItem = () => {
     onChange([...items, { id: newLineItemId(), label: "", amount: 0 }]);
+  };
+
+  const handleAttachFile = async (item: LineItem, file: File) => {
+    setAttachErrors((prev) => ({ ...prev, [item.id]: "" }));
+    if (file.size > MAX_ATTACHMENT_BYTES) {
+      setAttachErrors((prev) => ({ ...prev, [item.id]: "That file is too large (max 15MB)." }));
+      return;
+    }
+    // Replacing an existing attachment — clear out the old blob first so it doesn't linger.
+    if (item.attachmentId) {
+      await deleteAttachment(item.attachmentId).catch(() => {});
+    }
+    try {
+      const record = await saveAttachment(file);
+      updateItem(item.id, { attachmentId: record.id, attachmentName: record.name });
+    } catch {
+      setAttachErrors((prev) => ({
+        ...prev,
+        [item.id]: "Couldn't save that file on this device — storage may be full or unavailable.",
+      }));
+    }
+  };
+
+  const handleRemoveAttachment = async (item: LineItem) => {
+    if (item.attachmentId) {
+      await deleteAttachment(item.attachmentId).catch(() => {});
+    }
+    updateItem(item.id, { attachmentId: undefined, attachmentName: undefined });
   };
 
   return (
@@ -146,6 +192,52 @@ export function EditableLineItems({
                   value={item.note ?? ""}
                   onChange={(e) => updateItem(item.id, { note: e.target.value || undefined })}
                 />
+              </div>
+            )}
+            {allowAttachment && (
+              <div className="line-item-attach-row">
+                {item.attachmentName ? (
+                  <span className="line-item-attachment-chip">
+                    📄 {item.attachmentName}
+                    <button type="button" onClick={() => downloadAttachment(item.attachmentId!)}>
+                      Download
+                    </button>
+                    <label className="line-item-attach-replace">
+                      Replace
+                      <input
+                        type="file"
+                        accept="application/pdf,image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          e.target.value = "";
+                          if (file) handleAttachFile(item, file);
+                        }}
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      className="line-item-attachment-remove"
+                      aria-label="Remove attached document"
+                      onClick={() => handleRemoveAttachment(item)}
+                    >
+                      ✕
+                    </button>
+                  </span>
+                ) : (
+                  <label className="line-item-attach-btn">
+                    📎 Attach policy document (optional)
+                    <input
+                      type="file"
+                      accept="application/pdf,image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        e.target.value = "";
+                        if (file) handleAttachFile(item, file);
+                      }}
+                    />
+                  </label>
+                )}
+                {attachErrors[item.id] && <span className="line-item-attach-error">{attachErrors[item.id]}</span>}
               </div>
             )}
           </div>
