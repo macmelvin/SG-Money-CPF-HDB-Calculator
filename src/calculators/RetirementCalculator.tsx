@@ -735,6 +735,7 @@ export default function RetirementCalculator() {
           placeholder="e.g. Insurance premium"
           showDateRange
           currentAge={currentAge}
+          allowAttachment
         />
         <p className="explainer" style={{ marginTop: 14 }}>Liabilities</p>
         <p className="explainer" style={{ marginTop: -6 }}>
