@@ -20,14 +20,6 @@ export interface LineItem {
   // Free-text note, e.g. "policy number", "which broker", "why this loan exists". Purely
   // informational — never read by any calculation, just stored and shown back to the user.
   note?: string;
-  // Optional attached document (e.g. a scanned insurance policy PDF). Only the id and
-  // display metadata live here in the JSON-serialized calculator data — the actual file
-  // is stored separately in IndexedDB (see src/lib/attachments.ts), since a PDF is far
-  // too large for localStorage's shared quota. Currently only exposed in the UI for Net
-  // Worth Snapshot holdings (see EditableLineItems' allowAttachment prop). Because it
-  // lives in IndexedDB, it is NOT included in Backup & Restore.
-  attachmentId?: string;
-  attachmentName?: string;
 }
 
 let nextId = 1;
