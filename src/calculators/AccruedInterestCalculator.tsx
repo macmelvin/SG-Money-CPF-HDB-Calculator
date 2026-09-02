@@ -4,7 +4,7 @@ import { NextStep } from "../components/NextStep";
 import { formatSgd } from "../lib/cpf";
 import type { HdbSaleInput } from "../lib/cpf";
 import { usePageMeta } from "../lib/usePageMeta";
-import { clearCalculatorData, loadCalculatorData, saveCalculatorData } from "../lib/storage";
+import { clearCalculatorData, loadCalculatorData, saveCalculatorData, useAutoSaveOnUnload } from "../lib/storage";
 import { downloadCalculatorPdf } from "../lib/pdf";
 import { trackEvent } from "../lib/analytics";
 
@@ -53,16 +53,19 @@ export default function AccruedInterestCalculator() {
     setSavedAt(null);
   };
 
+  const currentSaveData = {
+    manualPrincipal,
+    manualAccruedInterest,
+    // Precomputed totals, saved alongside the raw inputs — downstream consumers (Retirement
+    // Calculator's Premium Report) read these directly rather than recomputing.
+    totalPrincipal: manualPrincipal,
+    totalAccruedInterest: manualAccruedInterest,
+    totalRefund,
+  };
+  useAutoSaveOnUnload(CALCULATOR_ID, currentSaveData);
+
   const handleSave = () => {
-    const at = saveCalculatorData(CALCULATOR_ID, {
-      manualPrincipal,
-      manualAccruedInterest,
-      // Precomputed totals, saved alongside the raw inputs — downstream consumers (Retirement
-      // Calculator's Premium Report) read these directly rather than recomputing.
-      totalPrincipal: manualPrincipal,
-      totalAccruedInterest: manualAccruedInterest,
-      totalRefund,
-    });
+    const at = saveCalculatorData(CALCULATOR_ID, currentSaveData);
     setSavedAt(at);
     trackEvent("calculator_completed", { calculator: CALCULATOR_ID });
   };

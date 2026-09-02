@@ -8,7 +8,7 @@ import { calculateCarCost, formatSgd } from "../lib/cpf";
 import type { FuelType } from "../lib/cpf";
 import type { Sponsor } from "../lib/offers";
 import { usePageMeta } from "../lib/usePageMeta";
-import { clearCalculatorData, loadCalculatorData, saveCalculatorData } from "../lib/storage";
+import { clearCalculatorData, loadCalculatorData, saveCalculatorData, useAutoSaveOnUnload } from "../lib/storage";
 import { downloadCalculatorPdf } from "../lib/pdf";
 import { trackEvent } from "../lib/analytics";
 
@@ -202,27 +202,30 @@ export default function CarCostCalculator() {
     setSavedAt(null);
   };
 
+  const currentSaveData = {
+    fuelType,
+    carPrice,
+    gst,
+    downpayment,
+    loanAmount,
+    loanYears,
+    interestRatePct,
+    monthlyPetrol,
+    monthlyParking,
+    monthlyErp,
+    annualInsurance,
+    annualRoadTax,
+    annualMaintenance,
+    monthlyGrabSpend,
+    ownershipYears,
+    planningToRenewCoe,
+    coeRenewalPqp,
+    coeRenewalYears,
+  };
+  useAutoSaveOnUnload(STORAGE_KEY, currentSaveData);
+
   const handleSave = () => {
-    const at = saveCalculatorData(STORAGE_KEY, {
-      fuelType,
-      carPrice,
-      gst,
-      downpayment,
-      loanAmount,
-      loanYears,
-      interestRatePct,
-      monthlyPetrol,
-      monthlyParking,
-      monthlyErp,
-      annualInsurance,
-      annualRoadTax,
-      annualMaintenance,
-      monthlyGrabSpend,
-      ownershipYears,
-      planningToRenewCoe,
-      coeRenewalPqp,
-      coeRenewalYears,
-    });
+    const at = saveCalculatorData(STORAGE_KEY, currentSaveData);
     setSavedAt(at);
   };
 

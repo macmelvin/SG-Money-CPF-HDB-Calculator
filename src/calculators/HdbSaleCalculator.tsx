@@ -4,7 +4,7 @@ import { NextStep } from "../components/NextStep";
 import { calculateHdbSaleProceeds, calculateResaleLevy, checkMop, formatSgd } from "../lib/cpf";
 import type { FlatTypeForLevy } from "../lib/cpf";
 import { usePageMeta } from "../lib/usePageMeta";
-import { clearCalculatorData, loadCalculatorData, saveCalculatorData } from "../lib/storage";
+import { clearCalculatorData, loadCalculatorData, saveCalculatorData, useAutoSaveOnUnload } from "../lib/storage";
 import { downloadCalculatorPdf } from "../lib/pdf";
 import { trackEvent } from "../lib/analytics";
 
@@ -119,19 +119,22 @@ export default function HdbSaleCalculator() {
     setSavedAt(null);
   };
 
+  const currentSaveData = {
+    sellingPrice,
+    outstandingLoan,
+    cpfPrincipalUsed,
+    cpfAccruedInterest,
+    agentCommissionPct,
+    otherCosts,
+    mopStartDate,
+    buyingAnotherSubsidisedFlat,
+    firstFlatType,
+    isSingleScheme,
+  };
+  useAutoSaveOnUnload(STORAGE_KEY, currentSaveData);
+
   const handleSave = () => {
-    const at = saveCalculatorData(STORAGE_KEY, {
-      sellingPrice,
-      outstandingLoan,
-      cpfPrincipalUsed,
-      cpfAccruedInterest,
-      agentCommissionPct,
-      otherCosts,
-      mopStartDate,
-      buyingAnotherSubsidisedFlat,
-      firstFlatType,
-      isSingleScheme,
-    });
+    const at = saveCalculatorData(STORAGE_KEY, currentSaveData);
     setSavedAt(at);
   };
 

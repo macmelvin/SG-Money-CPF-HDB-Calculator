@@ -6,7 +6,7 @@ import { calculateSalaryCpf, formatSgd } from "../lib/cpf";
 import type { CitizenshipStatus } from "../lib/cpf";
 import type { Sponsor } from "../lib/offers";
 import { usePageMeta } from "../lib/usePageMeta";
-import { clearCalculatorData, loadCalculatorData, saveCalculatorData } from "../lib/storage";
+import { clearCalculatorData, loadCalculatorData, saveCalculatorData, useAutoSaveOnUnload } from "../lib/storage";
 import { downloadCalculatorPdf } from "../lib/pdf";
 import { trackEvent } from "../lib/analytics";
 
@@ -87,15 +87,18 @@ export default function SalaryCalculator() {
     setSavedAt(null);
   };
 
+  const currentSaveData = {
+    age,
+    monthlyGross,
+    monthlySalesCommission,
+    monthlyBonus,
+    status,
+    estimateIncomeTax,
+  };
+  useAutoSaveOnUnload(STORAGE_KEY, currentSaveData);
+
   const handleSave = () => {
-    const at = saveCalculatorData(STORAGE_KEY, {
-      age,
-      monthlyGross,
-      monthlySalesCommission,
-      monthlyBonus,
-      status,
-      estimateIncomeTax,
-    });
+    const at = saveCalculatorData(STORAGE_KEY, currentSaveData);
     setSavedAt(at);
   };
 

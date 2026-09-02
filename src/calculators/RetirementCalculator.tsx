@@ -37,7 +37,7 @@ import {
 } from "../lib/dashboard";
 import type { LineItem } from "../lib/dashboard";
 import { usePageMeta } from "../lib/usePageMeta";
-import { clearCalculatorData, loadCalculatorData, saveCalculatorData } from "../lib/storage";
+import { clearCalculatorData, loadCalculatorData, saveCalculatorData, useAutoSaveOnUnload } from "../lib/storage";
 import { generatePremiumRetirementReport } from "../lib/premiumReport";
 import { consumeUnlockRedirect, isPremiumReportUnlocked } from "../lib/premiumUnlock";
 import { PREMIUM_REPORT_PAYMENT_LINK, PREMIUM_REPORT_PRICE_LABEL } from "../lib/calculators";
@@ -487,38 +487,41 @@ export default function RetirementCalculator() {
     setSavedAt(null);
   };
 
+  const currentSaveData = {
+    currentAge,
+    retirementAge,
+    currentSavings,
+    currentOA,
+    currentSaRa,
+    currentMA,
+    monthlyInvestment,
+    expectedReturnPct,
+    desiredMonthlySpend,
+    inflationRatePct,
+    hdbCurrentValue,
+    incomeItems,
+    expenseItems,
+    investmentItems,
+    liabilityItems,
+    planRightsizing,
+    replacementFlatPrice,
+    legalMovingCosts,
+    cpfLifeTargetTier,
+    includeInvestmentHoldings,
+    yearsInRetirement,
+    annualRstuTopUp,
+    sex,
+    birthYear,
+    cpfLifePlanChoice,
+    desiredMonthlyPayoutGoal,
+    payoutStartAge,
+    cpfLifeMonthlyIncome: result.cpfLife.estimatedMonthlyPayout,
+    includeHdbSale,
+  };
+  useAutoSaveOnUnload(STORAGE_KEY, currentSaveData);
+
   const handleSave = () => {
-    const at = saveCalculatorData(STORAGE_KEY, {
-      currentAge,
-      retirementAge,
-      currentSavings,
-      currentOA,
-      currentSaRa,
-      currentMA,
-      monthlyInvestment,
-      expectedReturnPct,
-      desiredMonthlySpend,
-      inflationRatePct,
-      hdbCurrentValue,
-      incomeItems,
-      expenseItems,
-      investmentItems,
-      liabilityItems,
-      planRightsizing,
-      replacementFlatPrice,
-      legalMovingCosts,
-      cpfLifeTargetTier,
-      includeInvestmentHoldings,
-      yearsInRetirement,
-      annualRstuTopUp,
-      sex,
-      birthYear,
-      cpfLifePlanChoice,
-      desiredMonthlyPayoutGoal,
-      payoutStartAge,
-      cpfLifeMonthlyIncome: result.cpfLife.estimatedMonthlyPayout,
-      includeHdbSale,
-    });
+    const at = saveCalculatorData(STORAGE_KEY, currentSaveData);
     setSavedAt(at);
   };
 
