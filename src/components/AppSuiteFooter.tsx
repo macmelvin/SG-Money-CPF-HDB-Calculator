@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { BTO_TOOL_URL, DOC_TOOLS_URL, EXPIRY_TRACKER_URL, WAYPOINT_URL, PROTEIN_TRACKER_URL, APPT_REMINDER_URL, LOBANG_SHARE_URL } from "../lib/calculators";
+import { BTO_TOOL_URL, DOC_TOOLS_URL, EXPIRY_TRACKER_URL, WAYPOINT_URL, PROTEIN_TRACKER_URL, APPT_REMINDER_URL, VALUE_COMPARE_URL, LOBANG_SHARE_URL } from "../lib/calculators";
 import { trackEvent } from "../lib/analytics";
 
 // The same "share + signature + sister apps" block Melvin uses across his
@@ -80,6 +80,9 @@ export function AppSuiteFooter() {
         </a>
         <a href={APPT_REMINDER_URL} target="_blank" rel="noopener noreferrer">
           Appointment Reminder
+        </a>
+        <a href={VALUE_COMPARE_URL} target="_blank" rel="noopener noreferrer">
+          Value Compare
         </a>
       </nav>
     </div>

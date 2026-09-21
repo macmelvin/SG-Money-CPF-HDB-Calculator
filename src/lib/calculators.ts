@@ -35,6 +35,10 @@ export const PROTEIN_TRACKER_URL = "https://protein-tracker-for-50s.web.app/prot
 // Another sister app in the same family — a personal appointment reminder tool.
 export const APPT_REMINDER_URL = "https://persistent-appt-reminder.web.app/";
 
+// A Claude artifact (not a standalone hosted app) — a unit-price/value
+// comparison tool. Shared publicly, so it's cross-linked here too.
+export const VALUE_COMPARE_URL = "https://claude.ai/artifact/UcYRLuxcrxQ9MabUkE5kt9";
+
 // Melvin's own Facebook post — the "Good Lobang must share" link in the
 // app-suite footer points here rather than to a generic profile/page.
 export const LOBANG_SHARE_URL = "https://www.facebook.com/share/1EsHK8JzEM/";
